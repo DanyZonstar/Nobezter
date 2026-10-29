@@ -328,6 +328,13 @@ function setMode(m) { G.mode = m; }
 
 /* ---------------- Глава 2: действия ---------------- */
 Object.assign(G, { genOn: false, hasHammer: false, benchFixed: false, crafted: [] });
+/* монстр: охотится за игроком вне светового круга, в круг войти не может */
+const mon = new THREE.Group(); mon.position.set(-22, 0, -92); scene.add(mon);
+const monBody = new THREE.Mesh(new THREE.SphereGeometry(.7, 18, 14), new THREE.MeshStandardMaterial({ color: 0x060507, roughness: .9 })); monBody.scale.set(1, 1.6, 1); monBody.position.y = 1.1; mon.add(monBody);
+[-.24, .24].forEach(x => { const e = new THREE.Mesh(new THREE.SphereGeometry(.07, 8, 6), new THREE.MeshBasicMaterial({ color: 0xff3030 })); e.position.set(x, 1.9, .58); mon.add(e); });
+const monL = new THREE.PointLight(0xff2a2a, .3, 5, 2); monL.position.set(0, 1.9, .9); mon.add(monL);
+const hamL = new THREE.PointLight(0xffd9a0, .5, 4, 2); hamL.position.set(HAMMER.x, .6, HAMMER.z); scene.add(hamL);
+
 const nearP = (v, r) => Math.hypot(G.pos.x - v.x, G.pos.z - v.z) < r;
 const CRAFT_NAME = { 1: ['bench', 'Лавочка'], 2: ['guitar', 'Гитара'], 3: ['fire', 'Костёр'], 4: ['pot', 'Кастрюля'] };
 function invUpdate() { const names = []; if (G.hasHammer) names.push('Молоток'); G.crafted.forEach(k => names.push(Object.values(CRAFT_NAME).find(v => v[0] === k)[1])); $('inv').textContent = names.length ? 'Инвентарь: ' + names.join(' · ') : ''; }
@@ -401,6 +408,18 @@ function update(dt, time) {
       if (G.ch2 && matComp.uniforms.uFlash.value > 0) matComp.uniforms.uFlash.value = Math.max(0, matComp.uniforms.uFlash.value - dt * 1.5);
       if (G.opening) { G.openT += dt; const T = G.openT; if (T < .5) { G.handle = Math.min(1, T / .35); lever.rotation.z = -G.handle * .6; if (T < .06 && !G.rattled) { G.rattled = true; sfx.rattle(); } } if (T > .65 && T < .7 && !G.said.l) { G.said.l = 1; sfx.latch(); say('door2', 2600); } if (T > 1.1) { if (!G.said.c) { G.said.c = 1; sfx.creak(5.2); sfx.swell(); say('open1', 3400); } const k = Math.min(1, (T - 1.1) / 4.6), e = k * k * (3 - 2 * k); G.open = e; doorPivot.rotation.y = -e * 1.75; openGlow.visible = false; const b = 5.5 + e * 3; glowMat.color.setRGB(b, b * .9, b * .72); doorLight.intensity = 38 + e * 60; haloMat.opacity = .18 + e * .5; if (T > 3.6 && T < 6.4) { matComp.uniforms.uFlash.value = Math.min(.25, (T - 3.6) / 10); } if (T > 6.4 && !G.ch2) { G.ch2 = true; G.opening = false; matComp.uniforms.uFlash.value = 0; openGlow.visible = false; sayRaw('Темнота. Где-то внутри тихо гудит.', 4200); invUpdate(); } } }
     }
+    if (G.ch2) {
+      const dxm = G.pos.x - mon.position.x, dzm = G.pos.z - mon.position.z, dm = Math.hypot(dxm, dzm), sp = Math.min(dm, 1.25 * dt);
+      if (dm > .01) { mon.position.x += dxm / dm * sp; mon.position.z += dzm / dm * sp; }
+      const gdx = mon.position.x - GEN.x, gdz = mon.position.z - GEN.z, gd = Math.hypot(gdx, gdz), lim = GEN_R + .9;
+      if (gd < lim) { const k = lim / (gd || 1); mon.position.x = GEN.x + gdx * k; mon.position.z = GEN.z + gdz * k; }
+      mon.rotation.y = Math.atan2(dxm, dzm); monBody.position.y = 1.1 + Math.sin(time * 5) * .05; monL.intensity = .25 + Math.sin(time * 7) * .08;
+      G.growlT = (G.growlT || 0) - dt; if (dm < 16 && G.growlT <= 0) { G.growlT = 3.5 + Math.random() * 2; sfx.thump(); }
+      G.caughtT = Math.max(0, (G.caughtT || 0) - dt);
+      const inCircle = Math.hypot(G.pos.x - GEN.x, G.pos.z - GEN.z) < GEN_R;
+      if (!inCircle && dm < 1.2 && G.caughtT <= 0 && G.mode === 'play') { G.caughtT = 4; sfx.zap(); sayRaw('Оно поймало тебя. Беги к свету!', 2800); G.pos.set(GEN.x + 3, 1.62, GEN.z + 3); }
+    }
+    hamL.intensity = G.hasHammer ? 0 : .5;
     const kg = G.genOn ? 1 : 0; genL.intensity += (kg * 7 - genL.intensity) * Math.min(1, dt * 3); bulbs.forEach((b, i) => { const c = Math.max(.12, Math.min(1, genL.intensity / 7 * (1 + (i % 3) * .04))); b.material.color.setRGB(c, c * .76, c * .48); }); fireL.intensity = G.crafted.includes('fire') ? 2.2 + Math.sin(time * 9) * .4 + Math.sin(time * 23) * .2 : 0; bench.rotation.z += ((G.benchFixed ? 0 : .32) - bench.rotation.z) * Math.min(1, dt * 4); hammer.visible = !G.hasHammer;
     const lamp = G.lampT > 0 ? (Math.random() < .55 ? 1 : .1) : 0; if (G.lampT > 0) G.lampT -= dt; lampL.intensity = lamp * 14; bulb.material.emissive.setRGB(lamp * .55, lamp * .7, lamp * .6);
     ledL.intensity = .03 + (Math.sin(time * 2.2) > .6 ? .06 : 0); led.material.color.setRGB(Math.sin(time * 2.2) > .6 ? 1 : .22, .06, .04);
