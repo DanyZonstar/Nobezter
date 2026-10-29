@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>nobezter games</title>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&family=Onest:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script type="importmap">{"imports":{"three":"./vendor/three/three.module.js","three/addons/":"./vendor/three/addons/"}}</script>
 <style>
 :root{--bg:#07090d;--surf:rgba(255,255,255,.055);--side:rgba(10,14,22,.97);--ink:#e8ecf4;--mute:#8f9ab0;--acc:#62c8ff;--onacc:#04121c;--line:rgba(255,255,255,.11);color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 *{box-sizing:border-box}
@@ -145,6 +146,24 @@ button.no:hover{background:#ef5a5f}
 .tools{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}.tools button{padding:7px 2px;font-size:.72rem;display:flex;flex-direction:column;align-items:center;gap:2px;line-height:1.15}.tools button i{font-style:normal;font-size:1.15rem}.tools button.on{background:var(--acc);color:var(--onacc);border-color:var(--acc)}
 #wPlan,#wPrev{width:100%;display:block;border-radius:12px;touch-action:none;background:#1a2233}#wPlan{aspect-ratio:1/1;cursor:crosshair}#wPrev{aspect-ratio:84/50}
 .mkf label input[type=range]{width:100%}
+
+.mkt{grid-template-columns:repeat(auto-fit,minmax(104px,1fr))}
+#stud{align-items:stretch;justify-content:flex-start;padding:0;z-index:6}
+#stud .sbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:8px;border-bottom:1px solid var(--line)}
+#stud .sbar b{margin-right:auto}
+#stud .sbar button{padding:6px 10px;font-size:.9rem}
+#stud .smain{flex:1;display:grid;grid-template-columns:200px 1fr 270px;min-height:0;overflow:hidden}
+#stud .sview{position:relative;min-height:340px}
+#stud .sview canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+#stud .sexp,#stud .sprop{overflow:auto;padding:8px;border-right:1px solid var(--line)}
+#stud .sprop{border-right:0;border-left:1px solid var(--line)}
+#stud .srow{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin:4px 0}
+#stud input,#stud select,#stud textarea{width:100%;font:inherit;background:var(--surf);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:4px}
+#stud input[type=color]{height:34px;padding:2px}
+#stud textarea{font-family:ui-monospace,monospace;font-size:.8rem;min-height:130px;margin-top:6px}
+#stud pre{white-space:pre-wrap;font-size:.75rem;color:var(--mute);background:var(--surf);padding:8px;border-radius:8px;margin:6px 0}
+#stud .shint{position:absolute;left:8px;bottom:8px;color:var(--mute);font-size:.8rem;pointer-events:none;background:rgba(0,0,0,.35);padding:4px 8px;border-radius:8px}
+@media(max-width:760px){#stud .smain{grid-template-columns:1fr;grid-template-rows:auto minmax(300px,1fr) auto}#stud .sexp,#stud .sprop{max-height:220px;border:0}}
 </style>
 </head>
 <body>
@@ -222,7 +241,7 @@ button.no:hover{background:#ef5a5f}
 <div class="ov" id="mk"><div class="cwrap">
   <div class="bar"><button id="mkBack" aria-label="Назад">‹ Назад</button><b>Создать игру</b></div>
   <section style="overflow:auto">
-    <div class="mkt"><button class="p" id="tWorld">🌍 3D-мир</button><button id="tQuiz">❓ Викторина</button><button id="tCatch">🧺 Ловец</button></div>
+    <div class="mkt"><button class="p" id="tWorld">🌍 3D-мир</button><button id="tQuiz">❓ Викторина</button><button id="tStud">🧱 3D-студия</button><button id="tCatch">🧺 Ловец</button></div>
     <input class="search" id="mName" placeholder="Название игры" maxlength="30" aria-label="Название игры">
     <input class="search" id="mIcon" placeholder="Значок игры, например 🚀" maxlength="4" aria-label="Значок игры">
     <div id="fWorld" class="mkf">
@@ -236,6 +255,11 @@ button.no:hover{background:#ef5a5f}
       <div class="acts" style="grid-template-columns:1fr 1fr"><button id="wUndo" disabled>↶ Отменить</button><button id="wRedo" disabled>↷ Повторить</button></div>
       <div class="acts" style="grid-template-columns:1fr 1fr 1fr"><button id="wTest">▶ Играть</button><button id="wSample">✨ Пример</button><button id="wClear">🗑 Очистить</button></div>
       <div id="wMsg" class="qb"></div>
+    </div>
+    <div id="fStud" class="mkf" hidden>
+      <div class="mkh">Как в Roblox Studio: расставь блоки, пружины, лаву и монеты в 3D, задай старт и финиш, при желании напиши скрипт на JavaScript через api.</div>
+      <button class="p" id="stOpen">✏️ Открыть 3D-студию</button>
+      <div class="mkh">Игра сохраняется в этом браузере, пока вы её не опубликуете.</div>
     </div>
     <div id="fQuiz" class="mkf" hidden>
       <div class="mkh">Напиши вопрос, варианты и отметь кружком верный ответ. Проверка не даст опубликовать викторину, если верного ответа нет или он неправильный (например «5+5=» без варианта 10).</div>
@@ -264,6 +288,31 @@ button.no:hover{background:#ef5a5f}
 </div></div>
 <div class="ov" id="bzov" style="padding:0"><iframe id="bzf" title="Зона крови" allow="autoplay; fullscreen" style="flex:1;align-self:stretch;width:100%;border:0;background:#0b0607"></iframe></div>
 <div class="ov" id="aiov" style="padding:0"><button id="aiBack" class="p" style="position:fixed;top:10px;left:10px;z-index:8" aria-label="Назад в каталог">‹ Назад</button><iframe id="aif" title="ИИ Nobezter" allow="microphone; clipboard-write; fullscreen" style="flex:1;align-self:stretch;width:100%;border:0;background:#07090d"></iframe></div>
+<div class="ov" id="stud" role="dialog" aria-label="3D-студия">
+  <div class="sbar">
+    <button id="stBack">‹ Назад</button><b>3D-студия</b>
+    <button data-add="block">🧱 Блок</button><button data-add="spring">🟢 Пружина</button><button data-add="lava">🔥 Лава</button><button data-add="coin">🪙 Монета</button><button data-add="finish">🏁 Финиш</button><button data-add="spawn">🧍 Старт</button>
+    <button id="stMove" class="p">Двигать</button><button id="stScale">Размер</button>
+    <button id="stUndo" disabled>↶</button><button id="stRedo" disabled>↷</button><button id="stDup">Копия</button><button id="stDel">Удалить</button>
+    <button id="stPlay" class="p">▶ Играть</button>
+  </div>
+  <div class="smain">
+    <aside class="sexp"><b>Обозреватель</b><div id="stList"></div></aside>
+    <div class="sview"><canvas id="stCv" aria-label="3D-вид мира"></canvas><div class="shint">ПКМ — вращать · СКМ или Shift+ЛКМ — сдвиг · колесо — приблизить · Delete — удалить · Ctrl+D — копия · Ctrl+Z — отменить</div></div>
+    <aside class="sprop"><b>Свойства</b><div id="stProp"></div><b>Скрипт (API)</b><textarea id="stScript" aria-label="Скрипт игры" placeholder="api.on('coin', () => api.say('+1 монета'))"></textarea><button id="stApi">📖 API</button><pre id="stApiDoc" hidden>api.on('coin', ({coins}) => {})     собрал монету
+api.on('finish', ({coins}) => {})   добежал до финиша
+api.on('lava', () => {})            упал в лаву
+api.on('tick', dt => {})            каждый кадр, dt в секундах
+api.addPart({type, p:[x,y,z], size:[sx,sy,sz], color}) → id
+  type: 'block' | 'spring' | 'lava' | 'coin' | 'finish'
+api.removePart(id)                  удалить объект
+api.setColor(id, '#hex')            сменить цвет
+api.teleport(x, y, z)               перенести игрока
+api.player                          {x, y, z} (только чтение)
+api.coins                           сколько монет собрано
+api.say('текст')                    сообщение игроку</pre><div id="stMsg" class="qb" role="status"></div></aside>
+  </div>
+</div>
 <div id="toast"></div>
 
 <script>
@@ -1305,8 +1354,8 @@ function checkQ(q) {
 /* ---------- Редактор ---------- */
 let mine = ld('nbz-mine', []), mkType = 'world';
 const toGame = m => {
-  const w = m.type === 'world', ct = m.type === 'catch';
-  return { id: m.id, name: m.name, icon: m.icon || '🎮', bg: '#d2e3fc', tag: 'Моя игра', desc: ct ? 'Ловец: лови ' + m.cfg.good + ', избегай ' + m.cfg.bad : w ? '3D-мир: собери монеты и добеги до флага' : 'Викторина: ' + m.cfg.q.length + ' вопр.', kind: m.type, cfg: m.cfg, label: ct ? 'Счёт' : w ? 'Монеты' : 'Верно', pad: ct || w, mine: true, run: (b, s) => ct ? catchGame(b, s, m.cfg) : w ? worldGame(b, s, m.cfg) : quizGame(b, s, m.cfg) };
+  const w = m.type === 'world', ct = m.type === 'catch', sd = m.type === 'studio';
+  return { id: m.id, name: m.name, icon: m.icon || '🎮', bg: '#d2e3fc', tag: 'Моя игра', desc: ct ? 'Ловец: лови ' + m.cfg.good + ', избегай ' + m.cfg.bad : sd ? '3D-студия: собери монеты и добеги до флага' : w ? '3D-мир: собери монеты и добеги до флага' : 'Викторина: ' + m.cfg.q.length + ' вопр.', kind: m.type, cfg: m.cfg, label: ct ? 'Счёт' : w || sd ? 'Монеты' : 'Верно', pad: ct || w, mine: true, run: (b, s) => ct ? catchGame(b, s, m.cfg) : w ? worldGame(b, s, m.cfg) : sd ? studioGame(b, s, m.cfg) : quizGame(b, s, m.cfg) };
 };
 const allGames = () => mine.map(toGame).concat(games);
 const WN = 16; let WD = null, wTool = 1, qs = [];
@@ -1398,11 +1447,11 @@ function qRender() {
 }
 function setType(t) {
   mkType = t; $('fWorld').hidden = t !== 'world'; $('fCatch').hidden = t !== 'catch'; $('fQuiz').hidden = t !== 'quiz';
-  $('tWorld').className = t === 'world' ? 'p' : ''; $('tCatch').className = t === 'catch' ? 'p' : ''; $('tQuiz').className = t === 'quiz' ? 'p' : ''; $('mkChk').textContent = '';
+  $('tWorld').className = t === 'world' ? 'p' : ''; $('tCatch').className = t === 'catch' ? 'p' : ''; $('tQuiz').className = t === 'quiz' ? 'p' : ''; $('mkChk').textContent = ''; $('fStud').hidden = t !== 'studio'; $('tStud').className = t === 'studio' ? 'p' : '';
   if (t === 'world') { if (!WD) WD = wSample(); wTools(); wDraw(); }
   if (t === 'quiz' && !qs.length) { qs = [{ q: 'Сколько будет 2+2?', a: ['3', '4', '5'], c: 1 }, { q: 'Столица Франции?', a: ['Париж', 'Рим', 'Лондон'], c: 0 }]; qRender(); }
 }
-$('tWorld').onclick = () => setType('world'); $('tCatch').onclick = () => setType('catch'); $('tQuiz').onclick = () => setType('quiz');
+$('tStud').onclick = () => setType('studio'); $('tWorld').onclick = () => setType('world'); $('tCatch').onclick = () => setType('catch'); $('tQuiz').onclick = () => setType('quiz');
 $('qAdd').onclick = () => { qs.push({ q: '', a: ['', ''], c: -1 }); qRender(); const l = $('qList').lastChild; if (l) l.scrollIntoView({ block: 'center' }); };
 $('cSpeed').oninput = () => { $('spv').textContent = $('cSpeed').value; };
 $('wH').oninput = () => { $('wHv').textContent = $('wH').value; };
@@ -1451,7 +1500,7 @@ $('wTest').onclick = () => {
 $('nMake').onclick = () => { $('mk').classList.add('on'); setType(mkType); };
 $('mkBack').onclick = () => $('mk').classList.remove('on');
 $('mkGo').onclick = () => {
-  const name = $('mName').value.trim(), icon = $('mIcon').value.trim() || ({ world: '🌍', quiz: '❓', catch: '🧺' })[mkType], chk = $('mkChk'); chk.className = 'qb'; chk.textContent = '';
+  const name = $('mName').value.trim(), icon = $('mIcon').value.trim() || ({ world: '🌍', quiz: '❓', catch: '🧺', studio: '🧱' })[mkType], chk = $('mkChk'); chk.className = 'qb'; chk.textContent = '';
   const fail = (list) => { chk.className = 'qb bad'; chk.textContent = '🚫 Игру нельзя опубликовать:\n' + list.map(x => '❌ ' + x).join('\n'); chk.scrollIntoView({ block: 'center' }); toast('Проверка не пропустила игру. Исправь ошибки'); };
   if (name.length < 2) return fail(['Придумай название игры']);
   let cfg;
@@ -1460,7 +1509,8 @@ $('mkGo').onclick = () => {
     const bad = []; if (!qs.length) bad.push('Добавь хотя бы один вопрос');
     qs.forEach((q, i) => checkQ(q).forEach(e => bad.push('Вопрос ' + (i + 1) + ': ' + e))); if (bad.length) return fail(bad);
     cfg = { q: qs.map(q => ({ q: q.q.trim().slice(0, 120), a: q.a.map(v => v.trim().slice(0, 60)), c: q.c })) };
-  } else { const e = wCheck(); if (e.length) return fail(e); cfg = JSON.parse(JSON.stringify(WD)); }
+  } else if (mkType === 'studio') { const e = sdCheck(); if (e.length) return fail(e); cfg = sdCfg(); }
+  else { const e = wCheck(); if (e.length) return fail(e); cfg = JSON.parse(JSON.stringify(WD)); }
   const m = { id: 'u' + Date.now().toString(36), type: mkType, name: name.slice(0, 30), icon: icon.slice(0, 4), cfg };
   mine.unshift(m); sv('nbz-mine', mine); $('mk').classList.remove('on'); renderList(); toast('✅ Проверка пройдена. Игра опубликована в каталоге'); openGame(toGame(m));
 };
@@ -1547,7 +1597,8 @@ const SRCS = { worldGame, snake, g2048, memory, flappy, pong, brick, dodge, shoo
 const srcOf = (n, f) => { const t = f.toString(); return /^(async\s+)?function/.test(t) ? t : 'const ' + n + ' = ' + t + ';'; };
 function buildGame(g) {
   let fn, run; const extra = [];
-  if (g.kind) { fn = { catch: 'catchGame', quiz: 'quizGame', world: 'worldGame' }[g.kind]; run = '(b, s) => ' + fn + '(b, s, ' + JSON.stringify(g.cfg).replace(/</g, '\\u003c') + ')'; if (g.kind === 'catch') extra.push(srcOf('catchMk', catchMk)); if (g.kind === 'world') extra.push('const WCOL = ' + JSON.stringify(WCOL) + ';', srcOf('wRender', wRender)); }
+  if (g.kind) { fn = { catch: 'catchGame', quiz: 'quizGame', world: 'worldGame', studio: 'studioGame' }[g.kind]; run = '(b, s) => ' + fn + '(b, s, ' + JSON.stringify(g.cfg).replace(/</g, '\\u003c') + ')'; if (g.kind === 'catch') extra.push(srcOf('catchMk', catchMk)); if (g.kind === 'world') extra.push('const WCOL = ' + JSON.stringify(WCOL) + ';', srcOf('wRender', wRender));
+  if (g.kind === 'studio') extra.push('const THREE_URL = ' + JSON.stringify(THREE_URL) + ';', 'const STUDIO_COL = ' + JSON.stringify(STUDIO_COL) + ';', srcOf('studioGame', studioGame), srcOf('studioPlay', studioPlay)); }
   else { const d = DL[g.id]; fn = d[0]; run = d[1] ? '(b, s) => loop(b, s, ' + d[1] + ', ' + d[2] + ', ' + fn + ')' : fn; }
   const glue = [
     'const G = { run: ' + run + ', name: ' + JSON.stringify(g.name) + ', label: ' + JSON.stringify(g.label) + ', pad: ' + !!g.pad + ' };',
@@ -1615,6 +1666,304 @@ $('nAi').onclick = openAi; $('aiBack').onclick = closeAi;
 
 $('onBack').onclick = () => $('onG').classList.remove('on');
 renderList();
+/* ---------- 3D-студия: общие данные ---------- */
+const THREE_URL = new URL('vendor/three/three.module.js', document.baseURI).href;
+const STUDIO_COL = { block: '#9aa6b2', spring: '#3ee0a0', lava: '#ff5a1f', coin: '#ffcf4a', finish: '#ffd45a', spawn: '#62c8ff' };
+const STUDIO_NAME = { block: 'Блок', spring: 'Пружина', lava: 'Лава', coin: 'Монета', finish: 'Финиш', spawn: 'Старт' };
+const STUDIO_ICON = { block: '🧱', spring: '🟢', lava: '🔥', coin: '🪙', finish: '🏁', spawn: '🧍' };
+const STUDIO_SIZE = { block: [4, 1, 4], spring: [4, .5, 4], lava: [4, .5, 4], coin: [1, 1, 1], finish: [4, .5, 4], spawn: [2, .2, 2] };
+
+/* ---------- 3D-студия: игра (запускается из каталога) ---------- */
+function studioGame(box, score, cfg) {
+  const st = { on: true, raf: 0, stop() { st.on = false; cancelAnimationFrame(st.raf); removeEventListener('keydown', st.kd); removeEventListener('keyup', st.ku); } };
+  const hint = document.createElement('div'); hint.className = 'mkh'; hint.textContent = 'Загрузка 3D-движка…'; box.append(hint);
+  import(THREE_URL).then(THREE => {
+    if (!st.on) return; hint.remove(); studioPlay(THREE, box, score, cfg, st);
+  }).catch(() => { hint.textContent = 'Не удалось загрузить 3D-движок. Проверьте интернет и обновите страницу.'; });
+  return st;
+}
+function studioPlay(THREE, box, score, cfg, st) {
+  const W = Math.min(box.clientWidth || 720, 760), H = Math.round(W * .6);
+  const cv = document.createElement('canvas');
+  cv.style.cssText = 'width:' + W + 'px;max-width:94vw;height:auto;aspect-ratio:' + W + '/' + H + ';border-radius:14px;display:block;touch-action:none';
+  const msg = document.createElement('div'); msg.className = 'mkh'; msg.setAttribute('role', 'status');
+  box.append(cv, msg);
+  const rd = new THREE.WebGLRenderer({ canvas: cv, antialias: true }); rd.setPixelRatio(Math.min(2, window.devicePixelRatio || 1)); rd.setSize(W, H, false);
+  const scn = new THREE.Scene(); scn.background = new THREE.Color(0x87ceeb); scn.fog = new THREE.Fog(0x87ceeb, 70, 170);
+  const cam = new THREE.PerspectiveCamera(60, W / H, .1, 400);
+  scn.add(new THREE.HemisphereLight(0xffffff, 0x3a4a5a, 1.2));
+  const sun = new THREE.DirectionalLight(0xffffff, .8); sun.position.set(30, 50, 20); scn.add(sun);
+  const parts = new Map(); let uid = 0, coins = 0, won = false, spawn = [0, 2, 0];
+  const say = t => { msg.textContent = t; };
+  const solidOf = t => t === 'block' || t === 'spring';
+  const bounds = q => [q.p[0] - q.s[0] / 2, q.p[1] - q.s[1] / 2, q.p[2] - q.s[2] / 2, q.p[0] + q.s[0] / 2, q.p[1] + q.s[1] / 2, q.p[2] + q.s[2] / 2];
+  function addPart(o) {
+    const id = o.id || 'r' + (++uid), t = o.t || o.type || 'block', p = (o.p || [0, 0, 0]).slice(), s = (o.s || o.size || [1, 1, 1]).slice(), c = o.c || o.color || STUDIO_COL[t] || '#999';
+    let mesh = null;
+    if (t !== 'spawn') {
+      mesh = new THREE.Mesh(t === 'coin' ? new THREE.SphereGeometry(.5, 16, 12) : new THREE.BoxGeometry(1, 1, 1), new THREE.MeshStandardMaterial({ color: c, emissive: t === 'lava' ? 0x771a00 : 0x000000, roughness: .6 }));
+      mesh.position.set(p[0], p[1], p[2]); mesh.scale.set(s[0], s[1], s[2]); scn.add(mesh);
+    }
+    parts.set(id, { id, t, p, s, c, mesh }); return id;
+  }
+  for (const q of cfg.parts || []) { addPart(q); if (q.t === 'spawn') spawn = q.p.slice(); }
+  const HX = .35, HY = .9, HZ = .35;
+  const pl = { x: spawn[0], y: spawn[1] + HY, z: spawn[2], vx: 0, vy: 0, vz: 0, on: false, face: 0 };
+  const reset = () => { pl.x = spawn[0]; pl.y = spawn[1] + HY; pl.z = spawn[2]; pl.vx = pl.vy = pl.vz = 0; };
+  const body = new THREE.Group(); scn.add(body);
+  const bodyPart = (w, h, d, x, y, col) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshStandardMaterial({ color: col })); m.position.set(x, y, 0); body.add(m); };
+  bodyPart(.55, .55, .55, 0, .75, '#f2c14e'); bodyPart(.75, .75, .4, 0, .15, '#e5484d'); bodyPart(.6, .65, .35, 0, -.62, '#2b4c9b');
+  const keys = {}, handlers = {};
+  st.kd = e => { keys[e.code] = true; if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault(); };
+  st.ku = e => { keys[e.code] = false; };
+  addEventListener('keydown', st.kd); addEventListener('keyup', st.ku);
+  let yaw = 0, pitch = .35, dist = 9, drag = null;
+  cv.addEventListener('pointerdown', e => { drag = [e.clientX, e.clientY]; try { cv.setPointerCapture(e.pointerId); } catch (x) {} });
+  cv.addEventListener('pointermove', e => { if (!drag) return; yaw -= (e.clientX - drag[0]) * .008; pitch = Math.min(1.1, Math.max(.05, pitch + (e.clientY - drag[1]) * .005)); drag = [e.clientX, e.clientY]; });
+  cv.addEventListener('pointerup', () => { drag = null; });
+  cv.addEventListener('pointercancel', () => { drag = null; });
+  cv.addEventListener('wheel', e => { e.preventDefault(); dist = Math.min(20, Math.max(4, dist + e.deltaY * .01)); }, { passive: false });
+  const emit = (ev, a) => (handlers[ev] || []).forEach(fn => { try { fn(a); } catch (e) { say('Ошибка скрипта: ' + e.message); } });
+  const api = {
+    on(ev, fn) { (handlers[ev] = handlers[ev] || []).push(fn); },
+    addPart(o) { return addPart(o || {}); },
+    removePart(id) { const q = parts.get(id); if (!q) return; if (q.mesh) scn.remove(q.mesh); parts.delete(id); },
+    setColor(id, c) { const q = parts.get(id); if (q && q.mesh) { q.c = c; q.mesh.material.color.set(c); } },
+    teleport(x, y, z) { pl.x = x; pl.y = y; pl.z = z; pl.vx = pl.vy = pl.vz = 0; },
+    say,
+    get player() { return { x: pl.x, y: pl.y, z: pl.z }; },
+    get coins() { return coins; }
+  };
+  if (cfg.script && cfg.script.trim()) { try { new Function('api', cfg.script)(api); } catch (e) { say('Ошибка скрипта: ' + e.message); } }
+  score(0);
+  const pbox = () => [pl.x - HX, pl.y - HY, pl.z - HZ, pl.x + HX, pl.y + HY, pl.z + HZ];
+  const over = q => { const a = pbox(), B = bounds(q); return a[0] < B[3] && a[3] > B[0] && a[1] < B[4] && a[4] > B[1] && a[2] < B[5] && a[5] > B[2]; };
+  function step(dt) {
+    const S = [...parts.values()], sol = S.filter(q => solidOf(q.t));
+    const iz = (keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0), ix = (keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0);
+    let dx = -Math.sin(yaw) * iz + Math.cos(yaw) * ix, dz = -Math.cos(yaw) * iz - Math.sin(yaw) * ix;
+    const L = Math.hypot(dx, dz);
+    if (L > 0) { dx /= L; dz /= L; pl.face = Math.atan2(dx, dz); }
+    pl.vx = L ? dx * 8 : 0; pl.vz = L ? dz * 8 : 0;
+    if (keys.Space && pl.on) { pl.vy = 11; pl.on = false; }
+    pl.vy -= 30 * dt;
+    pl.x += pl.vx * dt;
+    for (const q of sol) if (over(q)) { const B = bounds(q); pl.x = pl.vx > 0 ? B[0] - HX : B[3] + HX; pl.vx = 0; }
+    pl.z += pl.vz * dt;
+    for (const q of sol) if (over(q)) { const B = bounds(q); pl.z = pl.vz > 0 ? B[2] - HZ : B[5] + HZ; pl.vz = 0; }
+    pl.on = false; pl.y += pl.vy * dt;
+    for (const q of sol) if (over(q)) {
+      const B = bounds(q);
+      if (pl.vy <= 0) { pl.y = B[4] + HY; pl.vy = q.t === 'spring' ? 17 : 0; pl.on = q.t !== 'spring'; }
+      else { pl.y = B[1] - HY; pl.vy = 0; }
+    }
+    for (const q of S) {
+      if (q.t === 'coin' && q.mesh && Math.hypot(pl.x - q.p[0], pl.y - q.p[1], pl.z - q.p[2]) < 1.1) {
+        scn.remove(q.mesh); parts.delete(q.id); coins++; score(coins); emit('coin', { id: q.id, coins });
+      } else if (q.t === 'lava' && over(q)) { say('Упал в лаву!'); reset(); emit('lava', { id: q.id }); }
+      else if (q.t === 'finish' && !won && over(q)) { won = true; say('🏁 Финиш! Монет собрано: ' + coins); emit('finish', { coins }); }
+    }
+    if (pl.y < -40) { say('Ты упал. Возвращаемся на старт'); reset(); }
+    emit('tick', dt);
+  }
+  let last = performance.now();
+  function frame(now) {
+    if (!st.on) return;
+    const dt = Math.min(.05, (now - last) / 1000); last = now;
+    if (!won) step(dt);
+    for (const q of parts.values()) if (q.t === 'coin' && q.mesh) q.mesh.rotation.y += dt * 3;
+    body.position.set(pl.x, pl.y - .05, pl.z); body.rotation.y = pl.face;
+    const tx = pl.x, ty = pl.y + .4, tz = pl.z;
+    cam.position.set(tx + Math.sin(yaw) * dist * Math.cos(pitch), ty + Math.sin(pitch) * dist, tz + Math.cos(yaw) * dist * Math.cos(pitch));
+    cam.lookAt(tx, ty, tz);
+    rd.render(scn, cam);
+    st.raf = requestAnimationFrame(frame);
+  }
+  window.__studio = { pl, get coins() { return coins; }, parts };
+  st.raf = requestAnimationFrame(frame);
+}
+
+/* ---------- 3D-студия: редактор ---------- */
+const SD = { parts: [], script: '', sel: null, hist: [], fut: [], ids: 0, mode: 'translate', R: null, three: null, focusSnap: '' };
+try { const saved = JSON.parse(localStorage.getItem('nbz-studio') || 'null'); if (saved && Array.isArray(saved.parts)) { SD.parts = saved.parts; SD.script = saved.script || ''; } } catch (e) {}
+const sdSnap = () => JSON.stringify({ parts: SD.parts, script: SD.script });
+const sdMsg = t => { $('stMsg').textContent = t; };
+const sdId = () => { let id; do { id = 'p' + (++SD.ids); } while (SD.parts.some(q => q.id === id)); return id; };
+function sdSave() { try { localStorage.setItem('nbz-studio', JSON.stringify({ parts: SD.parts, script: SD.script })); } catch (e) {} }
+function sdUI() { $('stUndo').disabled = !SD.hist.length; $('stRedo').disabled = !SD.fut.length; }
+function sdPush(before) { SD.hist.push(before); if (SD.hist.length > 100) SD.hist.shift(); SD.fut.length = 0; sdSave(); sdUI(); }
+function sdApply(snap) {
+  const o = JSON.parse(snap); SD.parts = o.parts; SD.script = o.script; $('stScript').value = SD.script;
+  if (SD.sel && !SD.parts.some(q => q.id === SD.sel)) SD.sel = null;
+  sdRebuild(); sdSelect(SD.sel); sdSave(); sdUI();
+}
+function sdUndo() { if (!SD.hist.length) return; SD.fut.push(sdSnap()); sdApply(SD.hist.pop()); }
+function sdRedo() { if (!SD.fut.length) return; SD.hist.push(sdSnap()); sdApply(SD.fut.pop()); }
+function sdMake(q) {
+  const R = SD.R, T = R.T;
+  const mat = q.t === 'spawn' ? new T.MeshStandardMaterial({ color: STUDIO_COL.spawn, transparent: true, opacity: .45 }) : new T.MeshStandardMaterial({ color: q.c, emissive: q.t === 'lava' ? 0x662200 : 0, roughness: .6 });
+  const m = new T.Mesh(q.t === 'coin' ? new T.SphereGeometry(.5, 20, 14) : new T.BoxGeometry(1, 1, 1), mat);
+  m.userData.id = q.id; m.position.set(q.p[0], q.p[1], q.p[2]); m.scale.set(q.s[0], q.s[1], q.s[2]);
+  R.scn.add(m); R.meshes.set(q.id, m); return m;
+}
+function sdRemoveMesh(id) { const R = SD.R, m = R && R.meshes.get(id); if (!m) return; R.scn.remove(m); m.geometry.dispose(); m.material.dispose(); R.meshes.delete(id); }
+function sdRebuild() { if (!SD.R) return; for (const id of [...SD.R.meshes.keys()]) sdRemoveMesh(id); SD.parts.forEach(sdMake); }
+function sdSelect(id) {
+  SD.sel = id; const R = SD.R;
+  if (R) { R.tc.detach(); const m = id && R.meshes.get(id); if (m) R.tc.attach(m); }
+  sdRenderProps(); sdRenderList();
+}
+function sdFromMesh() {
+  const q = SD.parts.find(x => x.id === SD.sel), m = q && SD.R.meshes.get(q.id); if (!m) return;
+  q.p = m.position.toArray().map(v => +v.toFixed(2)); q.s = m.scale.toArray().map(v => +v.toFixed(2)); sdRenderProps();
+}
+function sdEdit(fn) {
+  const q = SD.parts.find(x => x.id === SD.sel); if (!q) return;
+  const before = sdSnap(); fn(q); sdPush(before);
+  sdRemoveMesh(q.id); sdMake(q); sdSelect(q.id);
+}
+function sdRenderList() {
+  const box = $('stList'); box.innerHTML = '';
+  SD.parts.forEach((q, i) => { const b = document.createElement('button'); b.className = 'nav' + (q.id === SD.sel ? ' on' : ''); b.textContent = STUDIO_ICON[q.t] + ' ' + STUDIO_NAME[q.t] + ' ' + (i + 1); b.onclick = () => sdSelect(q.id); box.append(b); });
+  if (!SD.parts.length) box.textContent = 'Пусто. Добавь объекты кнопками сверху.';
+}
+function sdRenderProps() {
+  const box = $('stProp'); box.innerHTML = '';
+  const q = SD.parts.find(x => x.id === SD.sel);
+  if (!q) { box.textContent = 'Выбери объект в обозревателе или нажми на него в 3D-виде.'; return; }
+  const sel = document.createElement('select'); sel.setAttribute('aria-label', 'Тип объекта');
+  Object.keys(STUDIO_NAME).forEach(t => { const o = document.createElement('option'); o.value = t; o.textContent = STUDIO_NAME[t]; o.selected = t === q.t; sel.append(o); });
+  sel.onchange = () => {
+    const t = sel.value;
+    if ((t === 'spawn' || t === 'finish') && SD.parts.some(o => o.t === t && o.id !== q.id)) { sdMsg('Старт и финиш бывают по одному. Передвинь существующий.'); sel.value = q.t; return; }
+    sdEdit(x => { x.t = t; x.c = STUDIO_COL[t]; x.s = STUDIO_SIZE[t].slice(); });
+  };
+  box.append(sel);
+  const vec = (label, key, min) => {
+    const l = document.createElement('div'); l.textContent = label; l.style.marginTop = '6px'; box.append(l);
+    const r = document.createElement('div'); r.className = 'srow';
+    ['x', 'y', 'z'].forEach((ax, i) => {
+      const inp = document.createElement('input'); inp.type = 'number'; inp.step = key === 'p' ? 1 : .5; inp.value = q[key][i]; inp.setAttribute('aria-label', label + ' ' + ax);
+      inp.onchange = () => { const v = Number(inp.value); if (!Number.isFinite(v)) return; sdEdit(x => { x[key][i] = min !== undefined ? Math.max(min, v) : v; }); };
+      r.append(inp);
+    });
+    box.append(r);
+  };
+  vec('Позиция', 'p'); vec('Размер', 's', .2);
+  const cl = document.createElement('div'); cl.textContent = 'Цвет'; cl.style.marginTop = '6px'; box.append(cl);
+  const col = document.createElement('input'); col.type = 'color'; col.value = q.c; col.onchange = () => sdEdit(x => { x.c = col.value; });
+  box.append(col);
+}
+function sdAdd(t) {
+  if ((t === 'spawn' || t === 'finish') && SD.parts.some(q => q.t === t)) { sdMsg('Такой объект уже есть: ' + STUDIO_NAME[t] + ' бывает один. Передвинь его.'); return; }
+  const T = SD.R.view.tgt, before = sdSnap();
+  const q = { id: sdId(), t, p: [Math.round(T.x), t === 'coin' ? 2 : 1, Math.round(T.z)], s: STUDIO_SIZE[t].slice(), c: STUDIO_COL[t] };
+  SD.parts.push(q); sdPush(before); sdMake(q); sdSelect(q.id);
+}
+function sdDel() {
+  if (!SD.sel) return; const before = sdSnap(), id = SD.sel;
+  SD.parts = SD.parts.filter(q => q.id !== id); sdRemoveMesh(id); sdPush(before); sdSelect(null);
+}
+function sdDup() {
+  const q = SD.parts.find(x => x.id === SD.sel); if (!q) return;
+  if (q.t === 'spawn' || q.t === 'finish') { sdMsg('Старт и финиш бывают по одному, копия не создана.'); return; }
+  const before = sdSnap(), c = JSON.parse(JSON.stringify(q)); c.id = sdId(); c.p[0] += 2; c.p[2] += 2;
+  SD.parts.push(c); sdPush(before); sdMake(c); sdSelect(c.id);
+}
+function sdMode(m) { SD.mode = m; if (SD.R) SD.R.tc.setMode(m); $('stMove').className = m === 'translate' ? 'p' : ''; $('stScale').className = m === 'scale' ? 'p' : ''; }
+function sdCheck() {
+  const e = [];
+  if (!SD.parts.some(q => q.t === 'spawn')) e.push('Поставь старт 🧍');
+  if (!SD.parts.some(q => q.t === 'finish')) e.push('Поставь финиш 🏁');
+  if (!SD.parts.some(q => q.t === 'block')) e.push('Добавь хотя бы один блок 🧱, чтобы было на чём стоять');
+  return e;
+}
+const sdCfg = () => ({ parts: JSON.parse(JSON.stringify(SD.parts)), script: SD.script });
+function sdPick(e) {
+  const R = SD.R, cv = $('stCv'), b = cv.getBoundingClientRect();
+  const v = new R.T.Vector2(((e.clientX - b.left) / b.width) * 2 - 1, -((e.clientY - b.top) / b.height) * 2 + 1);
+  R.ray.setFromCamera(v, R.cam); const hit = R.ray.intersectObjects([...R.meshes.values()], false)[0];
+  sdSelect(hit ? hit.object.userData.id : null);
+}
+function sdResize() {
+  const R = SD.R, b = $('stCv').getBoundingClientRect(); if (!R || !b.width) return;
+  R.rd.setSize(b.width, b.height, false); R.cam.aspect = b.width / b.height; R.cam.updateProjectionMatrix();
+}
+function sdLoop() {
+  const R = SD.R; if (!R) return; requestAnimationFrame(sdLoop);
+  if (!$('stud').classList.contains('on')) return;
+  const v = R.view;
+  R.cam.position.set(v.tgt.x + Math.sin(v.yaw) * v.dist * Math.cos(v.pitch), v.tgt.y + Math.sin(v.pitch) * v.dist, v.tgt.z + Math.cos(v.yaw) * v.dist * Math.cos(v.pitch));
+  R.cam.lookAt(v.tgt); R.rd.render(R.scn, R.cam);
+}
+function sdEnsure() {
+  if (SD.three) return SD.three;
+  SD.three = Promise.all([import(THREE_URL), import('three/addons/controls/TransformControls.js')]).then(([T, A]) => {
+    const cv = $('stCv'), rd = new T.WebGLRenderer({ canvas: cv, antialias: true });
+    rd.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+    const scn = new T.Scene(); scn.background = new T.Color(0x9fd8f5);
+    const cam = new T.PerspectiveCamera(55, 1, .1, 800);
+    scn.add(new T.HemisphereLight(0xffffff, 0x3a4a5a, 1.2));
+    const sun = new T.DirectionalLight(0xffffff, .8); sun.position.set(30, 50, 20); scn.add(sun);
+    scn.add(new T.GridHelper(200, 200, 0x335577, 0x2a4060));
+    const tc = new A.TransformControls(cam, cv); tc.setTranslationSnap(1); tc.setScaleSnap(.5); tc.setMode(SD.mode); scn.add(tc);
+    const R = { T, rd, scn, cam, tc, ray: new T.Raycaster(), view: { yaw: .8, pitch: .6, dist: 46, tgt: new T.Vector3(0, 2, 0) }, meshes: new Map(), before: null, orbit: null, down: null };
+    SD.R = R;
+    tc.addEventListener('dragging-changed', e => {
+      if (e.value) R.before = sdSnap();
+      else if (R.before !== null) { if (R.before !== sdSnap()) sdPush(R.before); R.before = null; }
+    });
+    tc.addEventListener('objectChange', sdFromMesh);
+    cv.addEventListener('contextmenu', e => e.preventDefault());
+    cv.addEventListener('pointerdown', e => {
+      if (e.button === 2 || e.button === 1 || (e.button === 0 && e.shiftKey)) { R.orbit = { x: e.clientX, y: e.clientY, pan: e.button !== 2 }; try { cv.setPointerCapture(e.pointerId); } catch (x) {} return; }
+      if (e.button === 0) R.down = { moved: 0 };
+    });
+    cv.addEventListener('pointermove', e => {
+      if (R.orbit) {
+        const o = R.orbit, dx = e.clientX - o.x, dy = e.clientY - o.y, v = R.view; o.x = e.clientX; o.y = e.clientY;
+        if (o.pan) { v.tgt.x -= dx * Math.cos(v.yaw) * .1; v.tgt.z += dx * Math.sin(v.yaw) * .1; v.tgt.y += dy * .1; }
+        else { v.yaw -= dx * .008; v.pitch = Math.min(1.45, Math.max(.1, v.pitch + dy * .006)); }
+      }
+      if (R.down) R.down.moved += Math.abs(e.movementX) + Math.abs(e.movementY);
+    });
+    cv.addEventListener('pointerup', e => {
+      R.orbit = null;
+      if (R.down) { if (R.down.moved < 5 && !tc.dragging) sdPick(e); R.down = null; }
+    });
+    cv.addEventListener('wheel', e => { e.preventDefault(); R.view.dist = Math.min(120, Math.max(8, R.view.dist + e.deltaY * .05)); }, { passive: false });
+    addEventListener('resize', sdResize);
+    sdRebuild(); sdRenderList(); sdRenderProps(); sdMode(SD.mode);
+    requestAnimationFrame(sdLoop);
+    return R;
+  });
+  return SD.three;
+}
+$('stOpen').onclick = () => {
+  $('stud').classList.add('on'); sdMsg('');
+  sdEnsure().then(() => { sdResize(); sdUI(); $('stScript').value = SD.script; }).catch(err => sdMsg('Не удалось загрузить 3D-движок: ' + (err && err.message || err)));
+};
+$('stBack').onclick = () => { $('stud').classList.remove('on'); };
+$('stUndo').onclick = sdUndo; $('stRedo').onclick = sdRedo; $('stDup').onclick = sdDup; $('stDel').onclick = sdDel;
+$('stMove').onclick = () => sdMode('translate'); $('stScale').onclick = () => sdMode('scale');
+document.querySelectorAll('#stud [data-add]').forEach(b => { b.onclick = () => { if (SD.R) sdAdd(b.dataset.add); }; });
+$('stScript').onfocus = () => { SD.focusSnap = sdSnap(); };
+$('stScript').onchange = () => { SD.script = $('stScript').value; if (SD.focusSnap !== sdSnap()) sdPush(SD.focusSnap); };
+$('stApi').onclick = () => { const d = $('stApiDoc'); d.hidden = !d.hidden; };
+$('stPlay').onclick = () => {
+  const e = sdCheck(); if (e.length) { sdMsg('⚠️ ' + e.join(' · ')); return; }
+  $('ov').style.zIndex = 7;
+  openGame(toGame({ id: 'test', name: $('mName').value.trim() || 'Моя 3D-игра', icon: '🧱', type: 'studio', cfg: sdCfg() }));
+};
+addEventListener('keydown', e => {
+  if (!$('stud').classList.contains('on') || /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) return;
+  const mod = e.ctrlKey || e.metaKey;
+  if (mod && e.code === 'KeyZ') { e.preventDefault(); e.shiftKey ? sdRedo() : sdUndo(); }
+  else if (mod && e.code === 'KeyY') { e.preventDefault(); sdRedo(); }
+  else if (mod && e.code === 'KeyD') { e.preventDefault(); sdDup(); }
+  else if (!mod && (e.code === 'Delete' || e.code === 'Backspace')) { e.preventDefault(); sdDel(); }
+});
+
 </script>
 </body>
 </html>
