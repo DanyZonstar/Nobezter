@@ -149,7 +149,7 @@ function skinTex() { const s = 256, h = fbm(s, 5), h2 = fbm(s, 3); const alb = t
 function softSprite() { const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'), g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(.35, 'rgba(255,255,255,.35)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c); }
 
 /* ---------------- Сцена ---------------- */
-const scene = new THREE.Scene(); scene.background = new THREE.Color(0x000000); scene.fog = new THREE.FogExp2(0x000000, .062);
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x000000); scene.fog = new THREE.FogExp2(0x050506, .028);
 const camera = new THREE.PerspectiveCamera(72, 1, .04, 120); camera.rotation.order = 'YXZ'; scene.add(camera);
 const RX0 = -20, RX1 = 20, RZ0 = -30, RZ1 = 18, RH = 6.2;
 const conc = concreteSet(512, [.95, .98, 1.02], true), wallC = concreteSet(512, [1, 1, .98], false);
@@ -201,7 +201,7 @@ const dustN = 380, dustPos = new Float32Array(dustN * 3), dustCol = new Float32A
 for (let i = 0; i < dustN; i++) { const x = rnd(-2.6, 2.6), y = rnd(.1, 3.4), z = DZ + rnd(.4, 11); dustPos[i * 3] = x; dustPos[i * 3 + 1] = y; dustPos[i * 3 + 2] = z; const k = Math.max(0, 1 - Math.hypot(x / 3, (z - DZ) / 11)) * (.25 + .75 * Math.max(0, 1 - Math.abs(y - 1.1) / 3)); dustCol[i * 3] = k; dustCol[i * 3 + 1] = k * .9; dustCol[i * 3 + 2] = k * .72; dustSeed.push(Math.random() * 6.28); }
 const dustGeo = new THREE.BufferGeometry(); dustGeo.setAttribute('position', new THREE.BufferAttribute(dustPos, 3)); dustGeo.setAttribute('color', new THREE.BufferAttribute(dustCol, 3));
 const dust = new THREE.Points(dustGeo, new THREE.PointsMaterial({ size: .035, map: softSprite(), vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, sizeAttenuation: true, opacity: .8, fog: false })); scene.add(dust);
-const amb = new THREE.AmbientLight(0x2a2f3a, .55); scene.add(amb);
+const amb = new THREE.AmbientLight(0x3a4150, .9); scene.add(amb);
 /* ---------------- Глава 2: тёмная комната, генератор, безопасный круг ---------------- */
 const CH = { x0: -75, x1: 75, z0: -180 }, GEN = new THREE.Vector3(-4, 0, -42), BENCH = new THREE.Vector3(-1, 0, -47), HAMMER = new THREE.Vector3(9, 0, -34), GEN_R = 6.5;
 const chGroup = new THREE.Group(); scene.add(chGroup);
@@ -398,8 +398,8 @@ function update(dt, time) {
       if (Au.ctx) { const prox = Math.max(0, 1 - G.dist / 16); Au.humG.gain.value += (prox * .02 - Au.humG.gain.value) * .05; G.beat -= dt; if (G.beat <= 0) { const bpm = 56 + prox * 60 + (running ? 14 : 0); G.beat = 60 / bpm; sfx.thump(); setTimeout(() => tone(48, .18, 'sine', .14, 28), 140); } G.nextDrip -= dt; if (G.nextDrip <= 0) { G.nextDrip = rnd(5, 14); sfx.drip(); } }
       G.nextLamp -= dt; if (G.nextLamp <= 0 && G.dist < 26 && !G.opening) { G.nextLamp = rnd(11, 24); G.lampT = rnd(.35, .8); sfx.zap(); }
       /* открытие двери */
-      if (G.ch2 && matComp.uniforms.uFlash.value > 0) matComp.uniforms.uFlash.value = Math.max(0, matComp.uniforms.uFlash.value - dt * .35);
-      if (G.opening) { G.openT += dt; const T = G.openT; if (T < .5) { G.handle = Math.min(1, T / .35); lever.rotation.z = -G.handle * .6; if (T < .06 && !G.rattled) { G.rattled = true; sfx.rattle(); } } if (T > .65 && T < .7 && !G.said.l) { G.said.l = 1; sfx.latch(); say('door2', 2600); } if (T > 1.1) { if (!G.said.c) { G.said.c = 1; sfx.creak(5.2); sfx.swell(); say('open1', 3400); } const k = Math.min(1, (T - 1.1) / 4.6), e = k * k * (3 - 2 * k); G.open = e; doorPivot.rotation.y = -e * 1.75; openGlow.visible = true; const b = 5.5 + e * 22; glowMat.color.setRGB(b, b * .9, b * .72); doorLight.intensity = 38 + e * 1500; haloMat.opacity = .18 + e * .5; if (T > 3.6) { matComp.uniforms.uFlash.value = Math.min(1, (T - 3.6) / 2.4); } if (T > 6.4 && !G.ch2) { G.ch2 = true; G.opening = false; sayRaw('Темнота. Где-то внутри тихо гудит.', 4200); invUpdate(); } } }
+      if (G.ch2 && matComp.uniforms.uFlash.value > 0) matComp.uniforms.uFlash.value = Math.max(0, matComp.uniforms.uFlash.value - dt * 1.5);
+      if (G.opening) { G.openT += dt; const T = G.openT; if (T < .5) { G.handle = Math.min(1, T / .35); lever.rotation.z = -G.handle * .6; if (T < .06 && !G.rattled) { G.rattled = true; sfx.rattle(); } } if (T > .65 && T < .7 && !G.said.l) { G.said.l = 1; sfx.latch(); say('door2', 2600); } if (T > 1.1) { if (!G.said.c) { G.said.c = 1; sfx.creak(5.2); sfx.swell(); say('open1', 3400); } const k = Math.min(1, (T - 1.1) / 4.6), e = k * k * (3 - 2 * k); G.open = e; doorPivot.rotation.y = -e * 1.75; openGlow.visible = false; const b = 5.5 + e * 3; glowMat.color.setRGB(b, b * .9, b * .72); doorLight.intensity = 38 + e * 60; haloMat.opacity = .18 + e * .5; if (T > 3.6 && T < 6.4) { matComp.uniforms.uFlash.value = Math.min(.25, (T - 3.6) / 10); } if (T > 6.4 && !G.ch2) { G.ch2 = true; G.opening = false; matComp.uniforms.uFlash.value = 0; openGlow.visible = false; sayRaw('Темнота. Где-то внутри тихо гудит.', 4200); invUpdate(); } } }
     }
     const kg = G.genOn ? 1 : 0; genL.intensity += (kg * 7 - genL.intensity) * Math.min(1, dt * 3); bulbs.forEach((b, i) => { const c = Math.max(.12, Math.min(1, genL.intensity / 7 * (1 + (i % 3) * .04))); b.material.color.setRGB(c, c * .76, c * .48); }); fireL.intensity = G.crafted.includes('fire') ? 2.2 + Math.sin(time * 9) * .4 + Math.sin(time * 23) * .2 : 0; bench.rotation.z += ((G.benchFixed ? 0 : .32) - bench.rotation.z) * Math.min(1, dt * 4); hammer.visible = !G.hasHammer;
     const lamp = G.lampT > 0 ? (Math.random() < .55 ? 1 : .1) : 0; if (G.lampT > 0) G.lampT -= dt; lampL.intensity = lamp * 14; bulb.material.emissive.setRGB(lamp * .55, lamp * .7, lamp * .6);
@@ -407,8 +407,8 @@ function update(dt, time) {
     camera.position.copy(G.pos); camera.rotation.set(G.pitch, G.yaw, Math.sin(G.phase) * .004 * Math.min(1, Math.hypot(G.vel.x, G.vel.z) / 1.6));
     body.visible = true; body.position.set(G.pos.x, 0, G.pos.z); body.rotation.y = G.yaw; body.position.x += Math.sin(G.yaw) * .0; torso.position.z = .06 + .0; body.position.add(v3.set(Math.sin(G.yaw) * .13, 0, Math.cos(G.yaw) * .13));
     const lg = Math.sin(G.phase) * .35 * Math.min(1, Math.hypot(G.vel.x, G.vel.z) / 1.6); legs[0].rotation.x = lg; legs[1].rotation.x = -lg;
-    armL.visible = armR.visible = true; G.swayX += (-G.mdx * .0004 - G.swayX) * Math.min(1, dt * 6); G.swayY += (G.mdy * .0004 - G.swayY) * Math.min(1, dt * 6); G.mdx *= .7; G.mdy *= .7; const spd = Math.min(1, Math.hypot(G.vel.x, G.vel.z) / 1.6), sw = Math.sin(G.phase) * .12 * spd, ab = Math.sin(G.phase * 2) * .012 * spd, br = Math.sin(time * 1.1) * .004;
-    armL.position.set(-.2 + G.swayX * 2, -.36 + ab - G.swayY + br, -.4 + sw * .6); armR.position.set(.2 + G.swayX * 2, -.36 - ab - G.swayY - br, -.4 - sw * .6); armL.rotation.x = -1.78 + sw * .5; armR.rotation.x = -1.78 - sw * .5;
+    armL.visible = armR.visible = true; const bobA = Math.sin(time * 1.1) * .004 + Math.sin(G.phase * 2) * .006 * Math.min(1, Math.hypot(G.vel.x, G.vel.z) / 1.6);
+    armL.position.set(-.2, -.36 + bobA, -.4); armR.position.set(.2, -.36 - bobA, -.4); armL.rotation.set(-1.78, 0, -.05); armR.rotation.set(-1.78, 0, .05);
   }
   /* свет/пыль/поток */
   const fl = 1 + Math.sin(time * 23) * .015 + Math.sin(time * 7.3) * .03; doorLight.intensity = (doorLight.intensity) * 0 + (G.open > 0 ? 38 + G.open * 1500 : 38 * fl); streak.material.opacity = .2 * fl + G.open * .6;
