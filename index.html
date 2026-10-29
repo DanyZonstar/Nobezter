@@ -957,6 +957,1058 @@ const timing = (x, sc, st) => {
 const APPLES = { hero: '🧺', good: '🍎', bad: '💣', speed: 3, lives: 3 };
 
 /* ---------- Каталог ---------- */
+const cStars = (x, sc, st) => {
+  let px = 150, n = 0, lives = 3, it = [], fr = 0, over = 0, sp = 2.4;
+  st('A и D двигают корзину. Лови ⭐, избегай ☄️');
+  return { held: true, t() {
+    if (!over) {
+      px = cl(px + ((K.KeyD | 0) - (K.KeyA | 0)) * 5, 24, 276); fr++;
+      if (fr % 40 === 0) it.push({ x: 20 + rnd(260), y: -12, g: rnd(3) > 0 });
+      if (fr % 600 === 0) sp += .4;
+      it.forEach(o => o.y += sp);
+      it = it.filter(o => { if (!o.k && o.y > 360 && Math.abs(o.x - px) < 30) { o.k = 1; if (o.g) { sc(++n); boom(o.x, 350, '#ffd13a', 10); } else { lives--; boom(o.x, 350, '#e5484d', 14); if (lives <= 0) { over = 1; st(OVER); } } } return !o.k && o.y < 420; });
+    }
+    x.font = '22px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+    it.forEach(o => x.fillText(o.g ? '⭐' : '☄️', o.x, o.y));
+    x.font = '34px sans-serif'; x.fillText('🧺', px, 366);
+    x.font = '600 14px sans-serif'; x.textAlign = 'left'; x.fillText('❤️'.repeat(Math.max(0, lives)), 8, 18);
+  } };
+};
+const cSnow = (x, sc, st) => {
+  let px = 150, n = 0, lives = 3, it = [], fr = 0, over = 0, sp = 2;
+  st('A и D — корзина. Лови ❄️, на 🪨 не попадай');
+  return { held: true, t() {
+    if (!over) {
+      px = cl(px + ((K.KeyD | 0) - (K.KeyA | 0)) * 5, 24, 276); fr++;
+      if (fr % 34 === 0) it.push({ x: 20 + rnd(260), y: -12, g: rnd(4) > 0 });
+      if (fr % 500 === 0) sp += .3;
+      it.forEach(o => o.y += sp + Math.sin(fr / 20 + o.x) * .4);
+      it = it.filter(o => { if (!o.k && o.y > 360 && Math.abs(o.x - px) < 30) { o.k = 1; if (o.g) { sc(++n); boom(o.x, 350, '#bde7ff', 8); } else { lives--; boom(o.x, 350, '#8d6e63', 12); if (lives <= 0) { over = 1; st(OVER); } } } return !o.k && o.y < 420; });
+    }
+    x.font = '22px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+    it.forEach(o => x.fillText(o.g ? '❄️' : '🪨', o.x, o.y));
+    x.font = '34px sans-serif'; x.fillText('🧺', px, 366);
+    x.font = '600 14px sans-serif'; x.textAlign = 'left'; x.fillText('❤️'.repeat(Math.max(0, lives)), 8, 18);
+  } };
+};
+const cFish = (x, sc, st) => {
+  let px = 150, n = 0, lives = 3, it = [], fr = 0, over = 0, sp = 2.2;
+  st('A и D — удочка-корзина. Лови 🐟, ботинки не трогай');
+  return { held: true, t() {
+    if (!over) {
+      px = cl(px + ((K.KeyD | 0) - (K.KeyA | 0)) * 5, 24, 276); fr++;
+      if (fr % 38 === 0) it.push({ x: 20 + rnd(260), y: -12, g: rnd(4) > 0 });
+      if (fr % 550 === 0) sp += .35;
+      it.forEach(o => o.y += sp);
+      it = it.filter(o => { if (!o.k && o.y > 360 && Math.abs(o.x - px) < 30) { o.k = 1; if (o.g) { sc(++n); boom(o.x, 350, '#4fc3f7', 10); } else { lives--; boom(o.x, 350, '#8d6e63', 12); if (lives <= 0) { over = 1; st(OVER); } } } return !o.k && o.y < 420; });
+    }
+    x.font = '22px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+    it.forEach(o => x.fillText(o.g ? '🐟' : '🥾', o.x, o.y));
+    x.font = '34px sans-serif'; x.fillText('🧺', px, 366);
+    x.font = '600 14px sans-serif'; x.textAlign = 'left'; x.fillText('❤️'.repeat(Math.max(0, lives)), 8, 18);
+  } };
+};
+const cEggs = (x, sc, st) => {
+  let px = 150, n = 0, lives = 3, it = [], fr = 0, over = 0, sp = 2.6;
+  st('A и D — корзина. Лови 🥚, камни 🪨 пропускай');
+  return { held: true, t() {
+    if (!over) {
+      px = cl(px + ((K.KeyD | 0) - (K.KeyA | 0)) * 5.5, 24, 276); fr++;
+      if (fr % 36 === 0) it.push({ x: 20 + rnd(260), y: -12, g: rnd(3) > 0 });
+      if (fr % 500 === 0) sp += .35;
+      it.forEach(o => o.y += sp);
+      it = it.filter(o => { if (!o.k && o.y > 360 && Math.abs(o.x - px) < 30) { o.k = 1; if (o.g) { sc(++n); boom(o.x, 350, '#fff3c4', 10); } else { lives--; boom(o.x, 350, '#757575', 12); if (lives <= 0) { over = 1; st(OVER); } } } return !o.k && o.y < 420; });
+    }
+    x.font = '22px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+    it.forEach(o => x.fillText(o.g ? '🥚' : '🪨', o.x, o.y));
+    x.font = '34px sans-serif'; x.fillText('🧺', px, 366);
+    x.font = '600 14px sans-serif'; x.textAlign = 'left'; x.fillText('❤️'.repeat(Math.max(0, lives)), 8, 18);
+  } };
+};
+const cGems = (x, sc, st) => {
+  let px = 150, n = 0, lives = 3, it = [], fr = 0, over = 0, sp = 2.5;
+  st('A и D двигают ковш. Собирай 💎, не трогай 💣');
+  return { held: true, t() {
+    if (!over) {
+      px = cl(px + ((K.KeyD | 0) - (K.KeyA | 0)) * 5, 24, 276); fr++;
+      if (fr % 42 === 0) it.push({ x: 20 + rnd(260), y: -12, g: rnd(3) > 0 });
+      if (fr % 480 === 0) sp += .4;
+      it.forEach(o => o.y += sp);
+      it = it.filter(o => { if (!o.k && o.y > 360 && Math.abs(o.x - px) < 30) { o.k = 1; if (o.g) { sc(++n); boom(o.x, 350, '#62c8ff', 12); } else { lives--; boom(o.x, 350, '#ff7043', 20); if (lives <= 0) { over = 1; st(OVER); } } } return !o.k && o.y < 420; });
+    }
+    x.font = '22px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+    it.forEach(o => x.fillText(o.g ? '💎' : '💣', o.x, o.y));
+    x.font = '34px sans-serif'; x.fillText('🧺', px, 366);
+    x.font = '600 14px sans-serif'; x.textAlign = 'left'; x.fillText('❤️'.repeat(Math.max(0, lives)), 8, 18);
+  } };
+};
+const cMush = (x, sc, st) => {
+  let px = 150, n = 0, lives = 3, it = [], fr = 0, over = 0, sp = 2.3;
+  st('A и D — корзинка. Собирай 🍄, пауков 🕷️ избегай');
+  return { held: true, t() {
+    if (!over) {
+      px = cl(px + ((K.KeyD | 0) - (K.KeyA | 0)) * 5, 24, 276); fr++;
+      if (fr % 37 === 0) it.push({ x: 20 + rnd(260), y: -12, g: rnd(4) > 0 });
+      if (fr % 520 === 0) sp += .35;
+      it.forEach(o => o.y += sp);
+      it = it.filter(o => { if (!o.k && o.y > 360 && Math.abs(o.x - px) < 30) { o.k = 1; if (o.g) { sc(++n); boom(o.x, 350, '#ffab91', 10); } else { lives--; boom(o.x, 350, '#37474f', 12); if (lives <= 0) { over = 1; st(OVER); } } } return !o.k && o.y < 420; });
+    }
+    x.font = '22px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+    it.forEach(o => x.fillText(o.g ? '🍄' : '🕷️', o.x, o.y));
+    x.font = '34px sans-serif'; x.fillText('🧺', px, 366);
+    x.font = '600 14px sans-serif'; x.textAlign = 'left'; x.fillText('❤️'.repeat(Math.max(0, lives)), 8, 18);
+  } };
+};
+const cLeaf = (x, sc, st) => {
+  let px = 150, n = 0, lives = 3, it = [], fr = 0, over = 0, sp = 2.1;
+  st('A и D — ловим 🍂. Порывы ветра 🌪️ — мимо');
+  return { held: true, t() {
+    if (!over) {
+      px = cl(px + ((K.KeyD | 0) - (K.KeyA | 0)) * 5, 24, 276); fr++;
+      if (fr % 33 === 0) it.push({ x: 20 + rnd(260), y: -12, g: rnd(4) > 0, s: Math.random() * 2 - 1 });
+      if (fr % 480 === 0) sp += .3;
+      it.forEach(o => { o.y += sp; o.x += o.s; });
+      it = it.filter(o => { if (!o.k && o.y > 360 && Math.abs(o.x - px) < 30) { o.k = 1; if (o.g) { sc(++n); boom(o.x, 350, '#ffb74d', 10); } else { lives--; boom(o.x, 350, '#90a4ae', 12); if (lives <= 0) { over = 1; st(OVER); } } } return !o.k && o.y < 420 && o.x > -20 && o.x < 320; });
+    }
+    x.font = '22px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+    it.forEach(o => x.fillText(o.g ? '🍂' : '🌪️', o.x, o.y));
+    x.font = '34px sans-serif'; x.fillText('🧺', px, 366);
+    x.font = '600 14px sans-serif'; x.textAlign = 'left'; x.fillText('❤️'.repeat(Math.max(0, lives)), 8, 18);
+  } };
+};
+const cCandy = (x, sc, st) => {
+  let px = 150, n = 0, lives = 3, it = [], fr = 0, over = 0, sp = 2.7;
+  st('A и D — ловим 🍬, не трогаем 🧂');
+  return { held: true, t() {
+    if (!over) {
+      px = cl(px + ((K.KeyD | 0) - (K.KeyA | 0)) * 5.5, 24, 276); fr++;
+      if (fr % 32 === 0) it.push({ x: 20 + rnd(260), y: -12, g: rnd(3) > 0 });
+      if (fr % 460 === 0) sp += .4;
+      it.forEach(o => o.y += sp);
+      it = it.filter(o => { if (!o.k && o.y > 360 && Math.abs(o.x - px) < 30) { o.k = 1; if (o.g) { sc(++n); boom(o.x, 350, '#f48fb1', 10); } else { lives--; boom(o.x, 350, '#fafafa', 12); if (lives <= 0) { over = 1; st(OVER); } } } return !o.k && o.y < 420; });
+    }
+    x.font = '22px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+    it.forEach(o => x.fillText(o.g ? '🍬' : '🧂', o.x, o.y));
+    x.font = '34px sans-serif'; x.fillText('🧺', px, 366);
+    x.font = '600 14px sans-serif'; x.textAlign = 'left'; x.fillText('❤️'.repeat(Math.max(0, lives)), 8, 18);
+  } };
+};
+const dIce = (x, sc, st) => {
+  let px = 150, t = 0, over = 0, it = [];
+  st('A и D — уворот. Сколько секунд продержишься?');
+  return { held: true, t() {
+    if (!over) {
+      px = cl(px + ((K.KeyD | 0) - (K.KeyA | 0)) * 5.5, 20, 280); t++;
+      if (t % 60 === 0) sc(t / 60);
+      if (t % 22 === 0) it.push({ x: 15 + rnd(270), y: -20, v: 3 + Math.random() * 2 + t / 1200 });
+      it.forEach(o => o.y += o.v);
+      it = it.filter(o => { if (!over && hit(o.x - 9, o.y - 12, 18, 24, px - 14, 350, 28, 32)) { over = 1; boom(px, 360, '#bde7ff', 30); st(OVER); } return o.y < 420; });
+    }
+    x.font = '26px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+    it.forEach(o => x.fillText('🧊', o.x, o.y));
+    x.fillText('🧍', px, 366);
+  } };
+};
+const dRock = (x, sc, st) => {
+  let px = 150, t = 0, over = 0, it = [];
+  st('A и D — уворот от камней 🪨');
+  return { held: true, t() {
+    if (!over) {
+      px = cl(px + ((K.KeyD | 0) - (K.KeyA | 0)) * 5.5, 20, 280); t++;
+      if (t % 60 === 0) sc(t / 60);
+      if (t % 26 === 0) it.push({ x: 15 + rnd(270), y: -20, v: 2.6 + Math.random() * 2 + t / 1500, r: 8 + rnd(8) });
+      it.forEach(o => { o.y += o.v; o.a = (o.a || 0) + .05; });
+      it = it.filter(o => { if (!over && hit(o.x - o.r, o.y - o.r, o.r * 2, o.r * 2, px - 14, 350, 28, 32)) { over = 1; boom(px, 360, '#9e9e9e', 30); st(OVER); } return o.y < 420; });
+    }
+    x.font = '24px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+    it.forEach(o => { x.save(); x.translate(o.x, o.y); x.rotate(o.a); x.fillText('🪨', 0, 0); x.restore(); });
+    x.fillText('🧍', px, 366);
+  } };
+};
+const dBall = (x, sc, st) => {
+  let px = 150, t = 0, over = 0, it = [];
+  st('A и D — уворачивайся от мячей');
+  return { held: true, t() {
+    if (!over) {
+      px = cl(px + ((K.KeyD | 0) - (K.KeyA | 0)) * 5.5, 20, 280); t++;
+      if (t % 60 === 0) sc(t / 60);
+      if (t % 30 === 0) it.push({ x: 15 + rnd(270), y: -20, v: 2.8 + t / 1500 });
+      it.forEach(o => o.y += o.v);
+      it = it.filter(o => { if (!over && hit(o.x - 11, o.y - 11, 22, 22, px - 14, 350, 28, 32)) { over = 1; boom(px, 360, '#ffd13a', 24); st(OVER); } return o.y < 420; });
+    }
+    x.font = '24px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+    it.forEach(o => x.fillText('🏐', o.x, o.y));
+    x.fillText('🧍', px, 366);
+  } };
+};
+const dMeteor = (x, sc, st) => {
+  let px = 150, t = 0, over = 0, it = [];
+  st('A и D — уклоняйся от метеоритов ☄️');
+  return { held: true, t() {
+    if (!over) {
+      px = cl(px + ((K.KeyD | 0) - (K.KeyA | 0)) * 6, 20, 280); t++;
+      if (t % 60 === 0) sc(t / 60);
+      if (t % 18 === 0) it.push({ x: 15 + rnd(270), y: -20, v: 3.5 + t / 1000 });
+      it.forEach(o => o.y += o.v);
+      it = it.filter(o => { if (!over && hit(o.x - 12, o.y - 12, 24, 24, px - 14, 350, 28, 32)) { over = 1; boom(px, 360, '#ff7043', 34); st(OVER); } return o.y < 420; });
+    }
+    x.font = '26px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+    it.forEach(o => x.fillText('☄️', o.x, o.y));
+    x.fillText('🚀', px, 366);
+  } };
+};
+const dBee = (x, sc, st) => {
+  let px = 150, t = 0, over = 0, it = [];
+  st('A и D — уворот от пчёл 🐝');
+  return { held: true, t() {
+    if (!over) {
+      px = cl(px + ((K.KeyD | 0) - (K.KeyA | 0)) * 5.5, 20, 280); t++;
+      if (t % 60 === 0) sc(t / 60);
+      if (t % 40 === 0) it.push({ x: rnd(2) ? -20 : 320, y: 40 + rnd(300), v: (rnd(2) ? 1 : -1) * (2 + Math.random() * 1.5) });
+      it.forEach(o => { o.x += o.v; o.y += Math.sin(t / 15 + o.x) * .6; });
+      it = it.filter(o => { if (!over && hit(o.x - 10, o.y - 10, 20, 20, px - 14, 350, 28, 32)) { over = 1; boom(px, 360, '#ffd13a', 26); st(OVER); } return o.x > -30 && o.x < 330; });
+    }
+    x.font = '24px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+    it.forEach(o => x.fillText('🐝', o.x, o.y));
+    x.fillText('🧍', px, 366);
+  } };
+};
+const dFire = (x, sc, st) => {
+  let px = 150, t = 0, over = 0, it = [];
+  st('A и D — уворот от огненных шаров 🔥');
+  return { held: true, t() {
+    if (!over) {
+      px = cl(px + ((K.KeyD | 0) - (K.KeyA | 0)) * 5.5, 20, 280); t++;
+      if (t % 60 === 0) sc(t / 60);
+      if (t % 24 === 0) it.push({ x: 15 + rnd(270), y: -20, v: 3 + t / 1400 });
+      it.forEach(o => o.y += o.v);
+      it = it.filter(o => { if (!over && hit(o.x - 10, o.y - 10, 20, 20, px - 14, 350, 28, 32)) { over = 1; boom(px, 360, '#ff7043', 30); st(OVER); } return o.y < 420; });
+    }
+    x.font = '24px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+    it.forEach(o => x.fillText('🔥', o.x, o.y));
+    x.fillText('🧍', px, 366);
+  } };
+};
+const sDuck = (x, sc, st) => {
+  let d = [], n = 0, lives = 3, fr = 0, over = 0;
+  st('Кликай по уткам 🦆. Улетевшие утки отнимают жизнь');
+  return { click(a, b) { if (over) return; for (let i = d.length - 1; i >= 0; i--) { const o = d[i]; if (Math.hypot(a - o.x, b - o.y) < 22) { sc(++n); boom(o.x, o.y, '#ffd13a', 14); d.splice(i, 1); return; } } }, t() {
+    if (!over) {
+      fr++; if (fr % 45 === 0) { const L = rnd(2); d.push({ x: L ? -20 : 320, y: 60 + rnd(260), v: (L ? 1 : -1) * (1.4 + Math.random()) }); }
+      d.forEach(o => o.x += o.v);
+      d = d.filter(o => { if (o.x < -30 || o.x > 330) { lives--; if (lives <= 0 && !over) { over = 1; st(OVER); } return false; } return true; });
+    }
+    x.font = '30px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+    d.forEach(o => x.fillText(o.v > 0 ? '🦆' : '🦆', o.x, o.y));
+    x.font = '600 14px sans-serif'; x.textAlign = 'left'; x.fillText('❤️'.repeat(Math.max(0, lives)), 8, 18);
+  } };
+};
+const sBalloon = (x, sc, st) => {
+  let b = [], n = 0, lives = 3, fr = 0, over = 0;
+  st('Лопай 🎈 кликом. Улетевшие шарики отнимают жизнь');
+  return { click(a, c) { if (over) return; for (let i = b.length - 1; i >= 0; i--) { const o = b[i]; if (Math.hypot(a - o.x, c - o.y) < 20) { sc(++n); boom(o.x, o.y, o.col, 12); b.splice(i, 1); return; } } }, t() {
+    if (!over) {
+      fr++; if (fr % 40 === 0) b.push({ x: 20 + rnd(260), y: 420, v: 1 + Math.random() * 1.2 + fr / 4000, col: ['#ff6b6b', '#4dabf7', '#51cf66', '#ffd43b', '#b197fc'][rnd(5)] });
+      b.forEach(o => o.y -= o.v);
+      b = b.filter(o => { if (o.y < -30) { lives--; if (lives <= 0 && !over) { over = 1; st(OVER); } return false; } return true; });
+    }
+    x.font = '30px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+    b.forEach(o => { x.fillStyle = o.col; x.beginPath(); x.ellipse(o.x, o.y, 15, 19, 0, 0, 7); x.fill(); x.strokeStyle = '#555'; x.beginPath(); x.moveTo(o.x, o.y + 19); x.lineTo(o.x, o.y + 30); x.stroke(); });
+    x.font = '600 14px sans-serif'; x.textAlign = 'left'; x.fillText('❤️'.repeat(Math.max(0, lives)), 8, 18);
+  } };
+};
+const sMonster = (x, sc, st) => {
+  let m = null, n = 0, fr = 0, over = 0, lives = 3, cd = 0;
+  st('Кликай по 👾, пока он не спрятался. Промах — минус жизнь');
+  const spawn = () => { m = { c: rnd(3), r: rnd(3), t: 70 - Math.min(40, n) }; };
+  spawn();
+  return { click(a, b) { if (over) return; if (!m) return; const cx = m.c * 100 + 50, cy = m.r * 100 + 60; if (Math.hypot(a - cx, b - cy) < 40) { sc(++n); boom(cx, cy, '#a5d6a7', 16); spawn(); } else { lives--; if (lives <= 0) { over = 1; st(OVER); } } }, t() {
+    if (!over) { fr++; if (m) { m.t--; if (m.t <= 0) { lives--; m = null; if (lives <= 0) { over = 1; st(OVER); } } } if (!m && !over) { cd++; if (cd > 15) { cd = 0; spawn(); } } }
+    for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) { R(x, '#263238', i * 100 + 10, j * 100 + 20, 80, 80); }
+    if (m) { x.font = '44px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('👾', m.c * 100 + 50, m.r * 100 + 60); }
+    x.font = '600 14px sans-serif'; x.textAlign = 'left'; x.fillText('❤️'.repeat(Math.max(0, lives)), 8, 14);
+  } };
+};
+const sFrog = (x, sc, st) => {
+  let f = null, n = 0, fr = 0, over = 0, lives = 3;
+  st('Лови 🐸 пока он на кувшинке. Опоздал — минус жизнь');
+  const spawn = () => { f = { i: rnd(4), j: rnd(3), t: Math.max(40, 80 - n * 2) }; };
+  spawn();
+  return { click(a, b) { if (over || !f) return; const cx = f.i * 75 + 37, cy = f.j * 100 + 70; if (Math.hypot(a - cx, b - cy) < 34) { sc(++n); boom(cx, cy, '#81c784', 14); f = null; fr = 0; } else { lives--; if (lives <= 0) { over = 1; st(OVER); } } }, t() {
+    if (!over) { fr++; if (f) { f.t--; if (f.t <= 0) { lives--; f = null; if (lives <= 0) { over = 1; st(OVER); } } } else if (fr > 30) { spawn(); fr = 0; } }
+    for (let i = 0; i < 4; i++) for (let j = 0; j < 3; j++) { x.fillStyle = '#2e7d32'; x.beginPath(); x.ellipse(i * 75 + 37, j * 100 + 70, 28, 14, 0, 0, 7); x.fill(); }
+    if (f) { x.font = '36px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('🐸', f.i * 75 + 37, f.j * 100 + 58); }
+    x.font = '600 14px sans-serif'; x.textAlign = 'left'; x.fillText('❤️'.repeat(Math.max(0, lives)), 8, 14);
+  } };
+};
+const sBottle = (x, sc, st) => {
+  let bt = [], n = 0, fr = 0, over = 0, lives = 3;
+  st('Разбей 🍾 кликом. Упущенная бутылка — минус жизнь');
+  return { click(a, b) { if (over) return; for (let i = bt.length - 1; i >= 0; i--) { const o = bt[i]; if (Math.hypot(a - o.x, b - o.y) < 22) { sc(++n); boom(o.x, o.y, '#66bb6a', 16); bt.splice(i, 1); return; } } }, t() {
+    if (!over) {
+      fr++; if (fr % 50 === 0) bt.push({ x: 30 + rnd(240), y: 320 + rnd(60), life: 110 - Math.min(60, n * 2) });
+      bt.forEach(o => o.life--);
+      bt = bt.filter(o => { if (o.life <= 0) { lives--; if (lives <= 0 && !over) { over = 1; st(OVER); } return false; } return true; });
+    }
+    x.font = '32px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+    bt.forEach(o => x.fillText('🍾', o.x, o.y));
+    x.font = '600 14px sans-serif'; x.textAlign = 'left'; x.fillText('❤️'.repeat(Math.max(0, lives)), 8, 18);
+  } };
+};
+const sWater = (x, sc, st) => {
+  let m = [], n = 0, fr = 0, over = 0, lives = 3;
+  st('Разрезай 🍉 кликом. Упавший арбуз — минус жизнь');
+  return { click(a, b) { if (over) return; for (let i = m.length - 1; i >= 0; i--) { const o = m[i]; if (Math.hypot(a - o.x, b - o.y) < 26) { sc(++n); boom(o.x, o.y, '#e53935', 20); m.splice(i, 1); return; } } }, t() {
+    if (!over) {
+      fr++; if (fr % 42 === 0) m.push({ x: 25 + rnd(250), y: -20, v: 1.6 + Math.random() * 1.4 + n * .03 });
+      m.forEach(o => o.y += o.v);
+      m = m.filter(o => { if (o.y > 400) { lives--; if (lives <= 0 && !over) { over = 1; st(OVER); } return false; } return true; });
+    }
+    x.font = '30px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+    m.forEach(o => x.fillText('🍉', o.x, o.y));
+    x.font = '600 14px sans-serif'; x.textAlign = 'left'; x.fillText('❤️'.repeat(Math.max(0, lives)), 8, 18);
+  } };
+};
+const pLights = (x, sc, st) => {
+  const N = 5, cs = 60; let g, moves = 0, won = 0;
+  const flip = (r, c) => { [[r, c], [r - 1, c], [r + 1, c], [r, c - 1], [r, c + 1]].forEach(([i, j]) => { if (i >= 0 && j >= 0 && i < N && j < N) g[i][j] ^= 1; }); };
+  const reset = () => { g = Array.from({ length: N }, () => Array(N).fill(0)); for (let k = 0; k < 12; k++) flip(rnd(N), rnd(N)); moves = 0; won = 0; sc(0); st('Нажимай на клетки: они и соседи меняются. Погаси все огни'); };
+  reset();
+  return { click(a, b) { if (won) { reset(); return; } const c = Math.floor(a / cs), r = Math.floor(b / cs); if (r < 0 || c < 0 || r >= N || c >= N) return; flip(r, c); moves++; sc(moves); if (g.every(row => row.every(v => !v))) { won = 1; st('💡 Победа за ' + moves + ' ходов. Нажми, чтобы сыграть снова'); } },
+    t() { for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) R(x, g[r][c] ? '#ffd13a' : '#2b3446', c * cs + 4, r * cs + 4, cs - 8, cs - 8); } };
+};
+const pHanoi = (x, sc, st) => {
+  let T, sel = -1, moves = 0, won = 0;
+  const reset = () => { T = [[4, 3, 2, 1], [], []]; sel = -1; moves = 0; won = 0; sc(0); st('Клик по столбику — выбрать, клик по другому — положить диск. Все диски на правый столбик'); };
+  reset();
+  return { click(a) { if (won) { reset(); return; } const i = Math.floor(a / 100); if (i < 0 || i > 2) return;
+    if (sel < 0) { if (T[i].length) sel = i; return; }
+    if (sel === i) { sel = -1; return; }
+    const d = T[sel][T[sel].length - 1], top = T[i][T[i].length - 1];
+    if (top === undefined || d < top) { T[i].push(T[sel].pop()); moves++; sc(moves); if (T[2].length === 4) { won = 1; st('🏆 Победа за ' + moves + ' ходов. Нажми, чтобы сыграть снова'); } }
+    sel = -1; },
+    t() {
+      R(x, '#5d4037', 0, 250, 300, 14);
+      for (let i = 0; i < 3; i++) { R(x, sel === i ? '#62c8ff' : '#8d6e63', i * 100 + 46, 110, 8, 140); }
+      const cols = ['#ff8a65', '#ffd54f', '#81c784', '#64b5f6'];
+      T.forEach((tw, i) => tw.forEach((d, k) => { const w = 20 + d * 20; R(x, cols[d - 1], i * 100 + 50 - w / 2, 232 - k * 24, w, 20); }));
+    } };
+};
+const pFlood = (x, sc, st) => {
+  const N = 8, cs = 37, P = ['#e57373', '#64b5f6', '#81c784', '#ffd54f', '#ba68c8'];
+  let g, moves = 0, won = 0;
+  const reset = () => { g = Array.from({ length: N }, () => Array.from({ length: N }, () => rnd(5))); moves = 0; won = 0; sc(0); st('Выбирай цвет внизу: закрашиваешь область из левого верхнего угла'); };
+  const fill = c => { const from = g[0][0]; if (from === c) return; const q = [[0, 0]], seen = new Set(['0,0']); g[0][0] = c; for (let k = 0; k < q.length; k++) { const [i, j] = q[k]; [[i - 1, j], [i + 1, j], [i, j - 1], [i, j + 1]].forEach(([a, b]) => { if (a >= 0 && b >= 0 && a < N && b < N && !seen.has(a + ',' + b) && g[a][b] === from) { seen.add(a + ',' + b); g[a][b] = c; q.push([a, b]); } }); } };
+  reset();
+  return { click(a, b) { if (won) { reset(); return; } if (b >= N * cs) { const k = Math.floor(a / (300 / 5)); if (k >= 0 && k < 5 && g[0][0] !== k) { fill(k); moves++; sc(moves); if (g.every(row => row.every(v => v === g[0][0]))) { won = 1; st('🎨 Готово за ' + moves + ' ходов. Нажми, чтобы сыграть снова'); } } } },
+    t() {
+      for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) R(x, P[g[i][j]], j * cs + 2, i * cs + 2, cs - 4, cs - 4);
+      for (let k = 0; k < 5; k++) R(x, P[k], k * 60 + 6, N * cs + 8, 48, 36);
+    } };
+};
+const pBubbles = (x, sc, st) => {
+  const N = 8, cs = 37.5, PAL = ['#e57373', '#64b5f6', '#81c784', '#ffd54f', '#ba68c8'];
+  let g, sco = 0, over = 0;
+  const grp = (r, c) => { const col = g[r][c], seen = new Set([r * N + c]), q = [[r, c]]; for (let k = 0; k < q.length; k++) { const [i, j] = q[k]; [[i - 1, j], [i + 1, j], [i, j - 1], [i, j + 1]].forEach(([a, b]) => { if (a >= 0 && b >= 0 && a < N && b < N && !seen.has(a * N + b) && g[a][b] === col) { seen.add(a * N + b); q.push([a, b]); } }); } return q; };
+  const canMove = () => { for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) if (g[i][j] >= 0 && grp(i, j).length >= 2) return true; return false; };
+  const reset = () => { g = Array.from({ length: N }, () => Array.from({ length: N }, () => rnd(5))); sco = 0; over = 0; sc(0); st('Нажимай на группы одинаковых пузырей (от 2 штук)'); };
+  reset();
+  return { click(a, b) { if (over) { reset(); return; } const c = Math.floor(a / cs), r = Math.floor(b / cs); if (r < 0 || c < 0 || r >= N || c >= N || g[r][c] < 0) return; const q = grp(r, c); if (q.length < 2) return;
+      q.forEach(([i, j]) => { g[i][j] = -1; boom(j * cs + cs / 2, i * cs + cs / 2, PAL[0], 2); });
+      for (let j = 0; j < N; j++) { const col = []; for (let i = N - 1; i >= 0; i--) if (g[i][j] >= 0) col.push(g[i][j]); for (let i = N - 1; i >= 0; i--) g[i][j] = col[N - 1 - i] !== undefined ? col[N - 1 - i] : -1; }
+      sco += q.length * q.length; sc(sco);
+      if (!canMove()) { over = 1; st('Конец! Очки: ' + sco + '. Нажми, чтобы сыграть снова'); } },
+    t() { for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) if (g[i][j] >= 0) C(x, PAL[g[i][j]], j * cs + cs / 2, i * cs + cs / 2, cs / 2 - 3); } };
+};
+const pCode = (x, sc, st) => {
+  const PAL = ['#e57373', '#64b5f6', '#81c784', '#ffd54f', '#ba68c8', '#4db6ac'];
+  let sec, rows, cur, sel = 0, over = 0;
+  const reset = () => { sec = Array.from({ length: 4 }, () => rnd(6)); rows = []; cur = [-1, -1, -1, -1]; sel = 0; over = 0; sc(0); st('Угадай код из 4 цветов за 8 попыток. ⚫ — цвет и место верны, ⚪ — только цвет'); };
+  const check = () => { let ex = 0; const used = [0, 0, 0, 0, 0, 0], sec2 = [0, 0, 0, 0, 0, 0]; sec.forEach((v, i) => { if (v === cur[i]) ex++; else sec2[v]++; }); cur.forEach((v, i) => { if (v !== sec[i]) used[v]++; }); let wp = 0; for (let k = 0; k < 6; k++) wp += Math.min(used[k], sec2[k]); return { ex, wp }; };
+  reset();
+  return { click(a, b) {
+      if (over) { reset(); return; }
+      if (b >= 250 && b < 280) { const i = Math.floor((a - 40) / 50); if (i >= 0 && i < 4) sel = i; return; }
+      if (b >= 290 && b < 320) { const j = Math.floor((a - 5) / 50); if (j >= 0 && j < 6) cur[sel] = j; return; }
+      if (b >= 330 && b < 370 && a >= 90 && a < 210 && cur.every(v => v >= 0)) {
+        const r = check(); rows.push({ g: cur.slice(), r }); cur = [-1, -1, -1, -1]; sc(rows.length);
+        if (r.ex === 4) { over = 1; st('🔓 Угадал за ' + rows.length + ' попыток! Нажми, чтобы сыграть снова'); }
+        else if (rows.length >= 8) { over = 1; st('Код был: ' + sec.map(v => '●').join('') + '. Нажми, чтобы сыграть снова'); }
+      }
+    },
+    t() {
+      rows.forEach((rw, k) => { const y = 20 + k * 26; rw.g.forEach((v, i) => C(x, PAL[v], 40 + i * 50, y + 10, 11)); let p = 0; for (let e = 0; e < rw.r.ex; e++) { x.fillStyle = '#111'; x.beginPath(); x.arc(200 + (p % 2) * 22, y + 2 + (p >= 2 ? 10 : 0), 4, 0, 7); x.fill(); p++; } for (let e = 0; e < rw.r.wp; e++) { x.fillStyle = '#eee'; x.beginPath(); x.arc(200 + (p % 2) * 22, y + 2 + (p >= 2 ? 10 : 0), 4, 0, 7); x.fill(); p++; } });
+      for (let i = 0; i < 4; i++) { x.strokeStyle = sel === i ? '#62c8ff' : '#37474f'; x.lineWidth = 3; x.beginPath(); x.arc(40 + i * 50, 265, 15, 0, 7); x.stroke(); if (cur[i] >= 0) C(x, PAL[cur[i]], 40 + i * 50, 265, 12); }
+      for (let j = 0; j < 6; j++) C(x, PAL[j], 30 + j * 50, 305, 16);
+      R(x, '#43a047', 90, 336, 120, 34); x.fillStyle = '#fff'; x.font = '700 15px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('Проверить', 150, 353);
+    } };
+};
+const rFrog = (x, sc, st) => {
+  let p = { i: 2, j: 6 }, n = 0, cars = [], fr = 0, over = 0, cd = 0;
+  st('W A S D — шаги по клеткам. Перейди дорогу, не попав под машину');
+  return { dir: (dx, dy) => { if (over) return; const i = cl(p.i + dx, 0, 4), j = cl(p.j + dy, 0, 6); if (j === 0 && p.j !== 0) { n++; sc(n); } p.i = i; p.j = j; }, t() {
+    if (!over) {
+      fr++; if (fr % 38 === 0) { const L = rnd(3) + 1, s = rnd(2); cars.push({ row: L, x: s ? -30 : 330, v: (s ? 1 : -1) * (1 + Math.random() * 1.5), w: 46 + rnd(30) }); }
+      cars.forEach(c => c.x += c.v); cars = cars.filter(c => c.x > -80 && c.x < 380);
+      const pl = { x: p.i * 60 + 10, y: p.j * 50 + 20 };
+      if (p.j >= 1 && p.j <= 3 && cars.some(c => c.row === p.j && hit(c.x, c.row * 50 + 22, c.w, 26, pl.x, pl.y, 40, 30))) { over = 1; boom(pl.x + 20, pl.y + 15, '#ff7043', 26); st(OVER); }
+    }
+    for (let j = 0; j < 7; j++) R(x, j === 0 || j === 6 ? '#66bb6a' : '#424242', 0, j * 50, 300, 50);
+    cars.forEach(c => R(x, c.v > 0 ? '#e53935' : '#1e88e5', c.x, c.row * 50 + 22, c.w, 26));
+    x.font = '30px sans-serif'; x.textAlign = 'left'; x.textBaseline = 'top'; x.fillText('🐸', p.i * 60 + 10, p.j * 50 + 8);
+    x.font = '700 14px sans-serif'; x.fillStyle = '#fff'; x.fillText('Переходы: ' + n, 8, 4);
+  } };
+};
+const rLogs = (x, sc, st) => {
+  let p = { i: 0, row: 0 }, n = 0, logs = [], over = 0, fr = 0;
+  st('A и D — прыгай по брёвнам 🪵 и не падай в воду');
+  for (let r = 1; r <= 4; r++) for (let k = 0; k < 2; k++) logs.push({ row: r, x: k * 160 - 20, v: (r % 2 ? 1 : -1) * (.6 + r * .2), w: 90 });
+  return { held: true, t() {
+    if (!over) {
+      fr++; logs.forEach(l => { l.x += l.v; if (l.x > 320) l.x = -100; if (l.x < -110) l.x = 320; });
+      const onLog = logs.find(l => l.row === p.row && p.row > 0 && p.x + 20 > l.x && p.x + 20 < l.x + l.w);
+      if (onLog) p.x += onLog.v;
+      if (p.row > 0 && !onLog) { over = 1; boom(p.x + 20, 260, '#4fc3f7', 26); st(OVER); }
+      if (p.row === 0) { p.x += ((K.KeyD | 0) - (K.KeyA | 0)) * 2.4; } else { p.x += ((K.KeyD | 0) - (K.KeyA | 0)) * 0.8; }
+      p.x = cl(p.x, -20, 280);
+      if (fr % 14 === 0 && (K.KeyW)) { if (p.row < 4) { p.row++; n++; sc(n); } }
+      if (K.KeyS && p.row > 0 && fr % 14 === 0) p.row--;
+    }
+    R(x, '#1976d2', 0, 0, 300, 400);
+    logs.forEach(l => R(x, '#8d6e63', l.x, 355 - l.row * 50 - 4, l.w, 26));
+    R(x, '#66bb6a', 0, 0, 300, 40); R(x, '#66bb6a', 0, 360, 300, 40);
+    x.font = '26px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('🐸', p.x + 20, 355 - p.row * 50 - 16);
+    x.font = '700 13px sans-serif'; x.fillStyle = '#fff'; x.textAlign = 'left'; x.fillText('Высота: ' + n, 8, 20);
+  } };
+};
+const rLift = (x, sc, st) => {
+  let y = 200, v = 0, m = [], fr = 0, n = 0, over = 0;
+  st('Зажми W — ракета летит вверх. Не врежься в метеориты');
+  return { held: true, t() {
+    if (!over) {
+      fr++; if (K.KeyW) v -= .5; else v += .32; v = cl(v, -6, 7); y += v;
+      if (fr % 50 === 0) n++, sc(n);
+      if (fr % 45 === 0) m.push({ x: 320, y: 40 + rnd(320), v: 3 + Math.random() * 1.5 });
+      m.forEach(o => o.x -= o.v);
+      m = m.filter(o => o.x > -30);
+      if (y < 0 || y > 380) { over = 1; st(OVER); }
+      if (m.some(o => hit(o.x - 14, o.y - 14, 28, 28, 40, y - 12, 34, 24))) { over = 1; boom(60, y, '#ff7043', 26); st(OVER); }
+    }
+    R(x, '#0b1d3a', 0, 0, 300, 400);
+    x.font = '24px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+    m.forEach(o => x.fillText('☄️', o.x, o.y));
+    x.fillText('🚀', 52, y);
+    x.font = '700 13px sans-serif'; x.fillStyle = '#fff'; x.textAlign = 'left'; x.fillText('Высота и время: ' + n, 8, 16);
+  } };
+};
+const rPlane = (x, sc, st) => {
+  let y = 200, n = 0, cl2 = [], fr = 0, over = 0;
+  st('W и S — самолёт. Пролетай между облаками ☁️');
+  return { held: true, t() {
+    if (!over) {
+      fr++; y += ((K.KeyS | 0) - (K.KeyW | 0)) * 3.6; y = cl(y, 20, 380);
+      if (fr % 30 === 0) { n++; sc(n); }
+      if (fr % 55 === 0) cl2.push({ x: 320, y: 30 + rnd(340), gap: 110 });
+      cl2.forEach(o => o.x -= 3.2 + n * .02);
+      cl2 = cl2.filter(o => o.x > -80);
+      if (cl2.some(o => (40 + 22 > o.x && 40 - 22 < o.x + 64) && (y - 12 < o.y - o.gap / 2 || y + 12 > o.y + o.gap / 2))) { over = 1; boom(40, y, '#ffd13a', 26); st(OVER); }
+    }
+    R(x, '#4fc3f7', 0, 0, 300, 400);
+    cl2.forEach(o => { x.font = '34px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('☁️', o.x + 32, o.y - o.gap / 2 - 10); x.fillText('☁️', o.x + 32, o.y + o.gap / 2 + 10); });
+    x.font = '30px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('✈️', 40, y);
+    x.font = '700 13px sans-serif'; x.fillStyle = '#fff'; x.textAlign = 'left'; x.fillText('Пролетел: ' + n, 8, 16);
+  } };
+};
+const rTunnel = (x, sc, st) => {
+  let p = 150, walls = [], n = 0, fr = 0, over = 0, w0 = 120;
+  st('A и D — держись в проходе. Стены сужаются');
+  return { held: true, t() {
+    if (!over) {
+      fr++; p = cl(p + ((K.KeyD | 0) - (K.KeyA | 0)) * 5, 20, 280);
+      if (fr % 3 === 0) { n++; sc(n); }
+      if (fr % 6 === 0) { const c = w0 + Math.sin(fr / 60) * 40; walls.push({ y: -10, l: 150 - c / 2 - 10 + (fr / 60 % 1) * 0, r: 150 + c / 2 }); }
+      walls.forEach(o => o.y += 4 + fr / 1200);
+      walls = walls.filter(o => o.y < 420);
+      if (walls.some(o => o.y > 330 && o.y < 380 && (p - 12 < o.l || p + 12 > o.r))) { over = 1; boom(p, 350, '#ce93d8', 26); st(OVER); }
+      w0 = Math.max(70, 120 - fr / 300);
+    }
+    R(x, '#1a1033', 0, 0, 300, 400);
+    walls.forEach(o => { R(x, '#6a1b9a', 0, o.y, o.l, 14); R(x, '#6a1b9a', o.r, o.y, 300 - o.r, 14); });
+    x.font = '28px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('🛸', p, 360);
+    x.font = '700 13px sans-serif'; x.fillStyle = '#fff'; x.textAlign = 'left'; x.fillText('Дистанция: ' + n, 8, 16);
+  } };
+};
+const spBasket = (x, sc, st) => {
+  let b = null, n = 0, hoop = { x: 230, y: 90, w: 60 };
+  st('Кликни, куда бросить мяч 🏀. Попади в кольцо!');
+  return { click(a, c) { if (b) return; b = { x: 30, y: 360, vx: (a - 30) / 60, vy: (c - 360) / 60 - .5 * .02 * 60, g: .02, rd: false }; },
+    t() {
+      if (b) { b.x += b.vx; b.y += b.vy; b.vy += b.g;
+        if (!b.rd && b.vy > 0 && Math.abs(b.x - (hoop.x + hoop.w / 2)) < hoop.w / 2 && Math.abs(b.y - hoop.y) < 6) { b.rd = true; n++; sc(n); st('🏀 Попал! Кликай ещё'); }
+        if (b.y > 420 || b.x > 330 || b.x < -30) { if (!b.rd) st('Мимо. Кликай, чтобы бросить снова'); b = null; } }
+      R(x, '#e0e0e0', 0, 0, 300, 400);
+      R(x, '#ff7043', hoop.x, hoop.y, hoop.w, 4); R(x, '#fff', hoop.x + 20, hoop.y + 4, 20, 40);
+      x.font = '26px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+      if (b) x.fillText('🏀', b.x, b.y);
+      x.fillText('🙋', 30, 380);
+      x.font = '700 13px sans-serif'; x.fillStyle = '#333'; x.textAlign = 'left'; x.fillText('Попаданий: ' + n, 8, 16);
+    } };
+};
+const spPenalty = (x, sc, st) => {
+  let ball = null, gk = 150, dir = 1, n = 0, tries = 0, over = 0;
+  st('Кликни в створ ⚽. Вратарь прыгает — не угадаешь ли?');
+  return { click(a, b) { if (ball || over) return; const tx = a, ty = b; ball = { x: 150, y: 370, tx, ty, t: 0 };
+      if (tries >= 5) return; }, t() {
+    gk += dir * 2.1; if (gk < 60 || gk > 240) dir = -dir;
+    if (ball) { ball.t += 1 / 40; const k = Math.min(1, ball.t); ball.cx = 150 + (ball.tx - 150) * k; ball.cy = 370 + (ball.ty - 370) * k; ball.s = 1 - k * .5;
+      if (k >= 1) { const ok = ball.ty > 80 && ball.ty < 200 && ball.tx > 40 && ball.tx < 260; const saved = Math.abs(ball.tx - gk) < 26 && ball.ty > 80 && ball.ty < 200;
+        tries++; if (ok && !saved) { n++; sc(n); boom(ball.tx, ball.ty, '#ffd13a', 20); st('⚽ Гол! Ещё попытка'); } else if (saved) { st('🧤 Вратарь поймал!'); } else { st('Мимо ворот'); }
+        ball = null; if (tries >= 5) { over = 1; st('Серия окончена. Голов: ' + n + '. Перезапустите игру'); } } }
+    R(x, '#2e7d32', 0, 0, 300, 400); R(x, '#fff', 60, 60, 180, 6); R(x, '#fff', 60, 60, 6, 140); R(x, '#fff', 234, 60, 6, 140);
+    x.font = '34px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('🧤', gk, 130);
+    if (ball) { x.font = '26px sans-serif'; x.fillText('⚽', ball.cx, ball.cy); } else if (!over) { x.font = '26px sans-serif'; x.fillText('⚽', 150, 370); }
+    x.font = '700 13px sans-serif'; x.fillStyle = '#fff'; x.textAlign = 'left'; x.fillText('Голы: ' + n + ' · удары: ' + (5 - tries), 8, 16);
+  } };
+};
+const spBowling = (x, sc, st) => {
+  let ball = null, pins = [], n = 0, rolls = 0, over = 0;
+  const setPins = () => { pins = []; for (let r = 0; r < 4; r++) for (let k = 0; k <= r; k++) pins.push({ x: 150 + (k - r / 2) * 26, y: 60 + r * 22, up: 1 }); };
+  setPins(); st('Кликни по дорожке — куда катится шар 🎳. 3 броска');
+  return { click(a) { if (ball || over) return; ball = { x: a, y: 370, vx: (a - 150) * 0 + (Math.random() - .5) * 1.6, hit: 0 }; rolls++; },
+    t() {
+      if (ball) { ball.y -= 6; ball.x += ball.vx; if (ball.x < 60 || ball.x > 240) ball.vx = -ball.vx * .4;
+        pins.forEach(p => { if (p.up && Math.hypot(p.x - ball.x, p.y - ball.y) < 15) { p.up = 0; ball.hit++; boom(p.x, p.y, '#fff', 8); } });
+        if (ball.y < 40) { if (ball.hit) { n += ball.hit; sc(n); } ball = null; if (rolls >= 3) { over = 1; st('Игра окончена. Сбито кеглей: ' + n); } else { st('Бросок ' + (rolls + 1) + ' из 3'); if (pins.every(p => !p.up)) setPins(); } } }
+      R(x, '#8d6e63', 110, 0, 80, 400); R(x, '#e0c48c', 118, 0, 64, 400);
+      x.font = '18px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+      pins.forEach(p => { if (p.up) x.fillText('🎳', p.x, p.y); });
+      if (ball) x.fillText('⚫', ball.x, ball.y);
+      x.font = '700 13px sans-serif'; x.fillStyle = '#fff'; x.textAlign = 'left'; x.fillText('Сбито: ' + n, 8, 16);
+    } };
+};
+const tPiano = (x, sc, st) => {
+  let tiles = [], fr = 0, n = 0, over = 0, sp = 3;
+  st('Жми на чёрные плитки по порядку. Пропуск — конец');
+  return { click(a, b) { if (over) return; const lane = Math.floor(a / 75); let best = null; tiles.forEach(t => { if (t.lane === lane && !t.done && (!best || t.y > best.y)) best = t; }); if (!best) return; if (best.y > 280 && best.y < 400) { best.done = 1; sc(++n); } else { over = 1; st(OVER); } },
+    t() {
+      if (!over) { fr++; sp = 3 + n * .05; if (fr % 40 === 0) tiles.push({ lane: rnd(4), y: -60 });
+        tiles.forEach(t => t.y += sp);
+        if (tiles.some(t => !t.done && t.y > 420)) { over = 1; st(OVER); }
+        tiles = tiles.filter(t => !t.done || t.y < 420); }
+      for (let i = 0; i < 4; i++) R(x, '#eceff1', i * 75, 0, 2, 400);
+      tiles.forEach(t => { if (!t.done) R(x, '#212121', t.lane * 75 + 4, t.y, 67, 56); });
+      x.font = '700 13px sans-serif'; x.fillStyle = '#333'; x.textAlign = 'left'; x.fillText('Очки: ' + n, 8, 396);
+    } };
+};
+const tRhythm = (x, sc, st) => {
+  let notes = [], fr = 0, n = 0, miss = 0, over = 0;
+  st('Жми по кругу, когда он в центре кольца 🥁');
+  return { click(a, b) { if (over) return; let best = null, bd = 1e9; notes.forEach(o => { const d = Math.abs(o.y - 300); if (!o.done && d < bd) { bd = d; best = o; } }); if (best && bd < 24) { best.done = 1; sc(++n); boom(best.x, best.y, '#ffd13a', 10); } else { miss++; if (miss >= 5) { over = 1; st(OVER); } } },
+    t() {
+      if (!over) { fr++; const sp = 2.6 + n * .03; if (fr % 36 === 0) notes.push({ x: 60 + rnd(180), y: -20, sp }); notes.forEach(o => o.y += o.sp);
+        notes = notes.filter(o => { if (o.done) return false; if (o.y > 340) { miss++; if (miss >= 5 && !over) { over = 1; st(OVER); } return false; } return true; }); }
+      x.strokeStyle = '#62c8ff'; x.lineWidth = 3; x.beginPath(); x.arc(150, 300, 30, 0, 7); x.stroke();
+      notes.forEach(o => { x.strokeStyle = '#ff8a65'; x.lineWidth = 4; x.beginPath(); x.arc(o.x, o.y, 22, 0, 7); x.stroke(); });
+      x.font = '700 13px sans-serif'; x.fillStyle = '#fff'; x.textAlign = 'left'; x.fillText('Попаданий: ' + n + ' · промахов: ' + miss + '/5', 8, 16);
+    } };
+};
+const cFarm = (x, sc, st) => {
+  let eggs = 0, hens = 1, tot = 0, lastT = 0, fr = 0;
+  st('Кликай по курице 🐔 за яйца. Покупай кур кнопкой внизу');
+  return { click(a, b) { if (b > 330) { const cost = 10 * hens; if (a < 150 && eggs >= cost) { eggs -= cost; hens++; st('Новая курица! Всего: ' + hens); } else if (a >= 150 && eggs >= 50) { eggs -= 50; hens += 3; st('Выводок! +3 курицы'); } return; } eggs++; tot++; sc(tot); boom(150, 150, '#fff3c4', 6); },
+    t() { fr++; if (fr % 60 === 0) { eggs += hens; tot += hens; sc(tot); }
+      R(x, '#a5d6a7', 0, 0, 300, 330); x.font = '90px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('🐔', 150, 150);
+      x.font = '700 16px sans-serif'; x.fillStyle = '#333'; x.fillText('🥚 ' + eggs + '   кур: ' + hens, 150, 200);
+      R(x, '#8bc34a', 0, 330, 150, 70); R(x, '#43a047', 150, 330, 150, 70);
+      x.fillStyle = '#fff'; x.font = '700 13px sans-serif'; x.fillText('Курица: 🥚' + 10 * hens, 75, 365); x.fillText('Выводок: 🥚50', 225, 365); } };
+};
+const cRobot = (x, sc, st) => {
+  let parts = 0, bots = 0, tot = 0, fr = 0, rate = 0;
+  st('Кликай 🔩, чтобы собрать деталь. Роботы работают сами');
+  return { click(a, b) { if (b > 330) { const cost = 15 * (bots + 1); if (parts >= cost) { parts -= cost; bots++; st('🤖 Новый робот! Всего: ' + bots); } return; } parts++; boom(150, 170, '#b0bec5', 5); },
+    t() { fr++; if (fr % 50 === 0) { parts += bots; tot += bots; sc(tot); }
+      R(x, '#eceff1', 0, 0, 300, 330); x.font = '90px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('🔩', 150, 150);
+      x.font = '700 16px sans-serif'; x.fillStyle = '#333'; x.fillText('Детали: ' + parts + '   роботов: ' + bots, 150, 200);
+      R(x, '#90a4ae', 0, 330, 300, 70); x.fillStyle = '#fff'; x.font = '700 14px sans-serif'; x.fillText('Купить робота: 🔩' + 15 * (bots + 1), 150, 365); } };
+};
+const cPiggy = (x, sc, st) => {
+  let coins = 0, mult = 1, tot = 0, fr = 0;
+  st('Тапай 🐷 — монетки летят в копилку. Улучшай множитель');
+  return { click(a, b) { if (b > 330) { const cost = 20 * mult * mult; if (a >= 150 && coins >= cost) { coins -= cost; mult++; st('Множитель x' + mult); } return; } coins += mult; tot += mult; sc(tot); boom(a, b, '#ffd13a', 6); },
+    t() { fr++; if (fr % 90 === 0) { coins += Math.max(0, mult - 1); }
+      R(x, '#fce4ec', 0, 0, 300, 330); x.font = '100px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('🐷', 150, 150);
+      x.font = '700 16px sans-serif'; x.fillStyle = '#333'; x.fillText('🪙 ' + coins + '  x' + mult, 150, 210);
+      R(x, '#f48fb1', 0, 330, 150, 70); R(x, '#ec407a', 150, 330, 150, 70); x.fillStyle = '#fff'; x.font = '700 13px sans-serif';
+      x.fillText('Тапай 🐷', 75, 365); x.fillText('Улучшить: 🪙' + 20 * mult * mult, 225, 365); } };
+};
+const raBoat = (x, sc, st) => {
+  let px = 150, buoys = [], n = 0, fr = 0, over = 0;
+  st('A и D — рулите лодкой. Собирайте 🟡 буйки и не врежьтесь в 🪨');
+  return { held: true, t() {
+    if (!over) { fr++; px = cl(px + ((K.KeyD | 0) - (K.KeyA | 0)) * 4, 30, 270);
+      if (fr % 40 === 0) buoys.push({ x: 30 + rnd(240), y: -20, g: rnd(3) > 0 });
+      buoys.forEach(o => o.y += 2.8);
+      buoys = buoys.filter(o => { if (hit(o.x - 10, o.y - 10, 20, 20, px - 20, 330, 40, 30)) { if (o.g) { sc(++n); boom(o.x, o.y, '#ffd13a', 10); } else { over = 1; st(OVER); } return false; } return o.y < 420; }); }
+    R(x, '#0288d1', 0, 0, 300, 400);
+    buoys.forEach(o => { x.font = '22px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(o.g ? '🟡' : '🪨', o.x, o.y); });
+    x.font = '30px sans-serif'; x.fillText('🚤', px, 345);
+    x.font = '700 13px sans-serif'; x.fillStyle = '#fff'; x.textAlign = 'left'; x.fillText('Буйки: ' + n, 8, 16);
+  } };
+};
+const raBike = (x, sc, st) => {
+  let lane = 1, ob = [], n = 0, fr = 0, over = 0, sp = 3;
+  st('A и D — смена полосы. Уворачивайся от 🚧');
+  return { held: true, t() {
+    if (!over) { fr++; if (fr % 60 === 0) n++, sc(n); sp = 3 + n * .04;
+      if (K.KeyA && !K._la) { lane = Math.max(0, lane - 1); } if (K.KeyD && !K._ld) { lane = Math.min(2, lane + 1); }
+      K._la = K.KeyA; K._ld = K.KeyD;
+      if (fr % 45 === 0) ob.push({ lane: rnd(3), y: -30 });
+      ob.forEach(o => o.y += sp);
+      ob = ob.filter(o => { if (o.y > 310 && o.y < 350 && o.lane === lane) { over = 1; boom(lane * 100 + 50, 330, '#ff7043', 24); st(OVER); } return o.y < 420; }); }
+    for (let i = 0; i < 3; i++) R(x, '#37474f', i * 100 + 2, 0, 96, 400);
+    ob.forEach(o => { x.font = '30px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('🚧', o.lane * 100 + 50, o.y); });
+    x.font = '34px sans-serif'; x.fillText('🚴', lane * 100 + 50, 340);
+    x.font = '700 13px sans-serif'; x.fillStyle = '#fff'; x.textAlign = 'left'; x.fillText('Километры: ' + n, 8, 16);
+  } };
+};
+const pConnect4 = (x, sc, st) => {
+  let g, won = 0, turn = 1;
+  const rs = () => { g = Array.from({ length: 6 }, () => Array(7).fill(0)); won = 0; turn = 1; sc(0); st('Ты 🔴, бот 🟡. Ставь 4 в ряд'); };
+  const drop = (c, p) => { for (let r = 5; r >= 0; r--) if (!g[r][c]) { g[r][c] = p; return r; } return -1; };
+  const winner = () => { for (let r = 0; r < 6; r++) for (let c = 0; c < 7; c++) { const v = g[r][c]; if (!v) continue; for (const [dr, dc] of [[0, 1], [1, 0], [1, 1], [1, -1]]) { let k = 1; while (k < 4 && g[r + dr * k] && g[r + dr * k][c + dc * k] === v) k++; if (k === 4) return v; } } return 0; };
+  rs();
+  return { click(a) { if (won) { rs(); return; } if (turn !== 1) return; const c = Math.floor(a / 43); if (c < 0 || c > 6 || drop(c, 1) < 0) return; if (winner()) { won = 1; st('🏆 Ты победил!'); return; }
+      turn = 2; const free = [0, 1, 2, 3, 4, 5, 6].filter(cc => g[0][cc] === 0);
+      if (!free.length) { won = 1; st('Ничья'); return; }
+      const bc = free.find(cc => { const t = g.map(r => r.slice()); let rr = -1; for (let r = 5; r >= 0; r--) if (!t[r][cc]) { rr = r; break; } t[rr][cc] = 2; return t.some((row, r) => row.some((v, c) => v === 2 && t[r][c + 1] === 2 && t[r][c + 2] === 2 && t[r][c + 3] === 2)) || false; }) ?? free[rnd(free.length)];
+      drop(bc, 2); turn = 1; if (winner()) { won = 1; st('🤖 Бот победил. Нажми, чтобы сыграть снова'); } else if (g[0].every(v => v)) { won = 1; st('Ничья'); } },
+    t() { R(x, '#1565c0', 0, 0, 301, 258);
+      for (let r = 0; r < 6; r++) for (let c = 0; c < 7; c++) { x.fillStyle = g[r][c] === 1 ? '#e53935' : g[r][c] === 2 ? '#fdd835' : '#0d47a1'; x.beginPath(); x.arc(c * 43 + 21, r * 43 + 22, 17, 0, 7); x.fill(); } } };
+};
+
+const pSudoku = (x, sc, st) => {
+  const S = [[1, 2, 3, 4], [3, 4, 1, 2], [2, 1, 4, 3], [4, 3, 2, 1]];
+  let g, sel = null, ok = 0, mist = 0;
+  const reset = () => { g = S.map(r => r.map(v => (rnd(10) < 4 ? v : 0))); sel = null; ok = 0; mist = 0; sc(0); st('Выбери клетку, затем цифру снизу. В каждой строке и столбце — 1–4'); };
+  reset();
+  return { click(a, b) {
+      if (b < 240) { sel = [Math.floor(b / 60), Math.floor(a / 75)]; return; }
+      if (b >= 250 && b < 290 && sel) { const v = Math.floor(a / 75) + 1; const [r, c] = sel; if (g[r][c] === S[r][c]) return; if (v === S[r][c]) { g[r][c] = v; ok++; sc(ok); if (g.every((rw, i) => rw.every((vv, j) => vv === S[i][j]))) st('🧮 Судоку решено!'); } else { mist++; st('Ошибка! Ошибок: ' + mist); } }
+    }, t() {
+      for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) {
+        const on = sel && sel[0] === r && sel[1] === c;
+        R(x, on ? '#62c8ff' : (g[r][c] === S[r][c] && g[r][c] ? '#e8f5e9' : '#eceff1'), c * 75 + 2, r * 60 + 2, 71, 56);
+        if (g[r][c]) { x.font = '700 26px sans-serif'; x.fillStyle = '#263238'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(String(g[r][c]), c * 75 + 37, r * 60 + 30); }
+      }
+      for (let v = 1; v <= 4; v++) R(x, '#90a4ae', (v - 1) * 75 + 6, 252, 66, 36);
+      x.font = '700 18px sans-serif'; x.fillStyle = '#fff'; x.textAlign = 'center'; for (let v = 1; v <= 4; v++) x.fillText(String(v), (v - 1) * 75 + 39, 270);
+    } };
+};
+const aStack = (x, sc, st) => {
+  let top = { l: 90, r: 210 }, blocks = [], w = 120, t = 0, over = 0, n = 0, cur = { x: 150, y: 360 };
+  st('Кликай, чтобы поставить блок. Промахнёшься — башня рухнет');
+  return { click() { if (over) return; const mid = cur.x; const l = Math.max(top.l, mid - w / 2), r = Math.min(top.r, mid + w / 2);
+      if (r - l < 6) { over = 1; boom(150, 300, '#ffd13a', 24); st('Башня рухнула! Высота: ' + n + '. Перезапусти игру'); return; }
+      blocks.push({ l, r, y: 380 - (blocks.length + 1) * 20 }); top = { l, r }; w = r - l; n++; sc(n); cur = { x: 150, y: 380 - blocks.length * 20 - 20 }; t = Math.random() * 3; },
+    t() {
+      if (!over) { t += .03; cur.x = 150 + Math.sin(t) * 120 * Math.min(1.8, 1 + n * .04); }
+      R(x, '#e8eaf6', 0, 0, 300, 400); const off = Math.max(0, blocks.length - 8) * 20;
+      R(x, '#5d4037', 90, 380 - off, 120, 20);
+      blocks.forEach((b, i) => R(x, ['#ff8a65', '#ffd54f', '#81c784', '#64b5f6', '#ba68c8'][i % 5], b.l, b.y - off, b.r - b.l, 20));
+      if (!over && cur) R(x, '#90a4ae', cur.x - w / 2, cur.y - off, w, 20);
+    } };
+};
+const aBalance = (x, sc, st) => {
+  let ang = 0, av = 0, bx = 0, bv = 0, t = 0, over = 0;
+  st('A и D — наклоняй доску, удерживай шарик на ней');
+  return { held: true, t() {
+    if (!over) {
+      t++; if (t % 60 === 0) sc(t / 60);
+      av += (((K.KeyD | 0) - (K.KeyA | 0)) * .004); av *= .97; ang += av; ang = cl(ang, -.5, .5);
+      bv += Math.sin(ang) * .9; bv *= .99; bx += bv;
+      if (Math.abs(bx) > 130) { over = 1; boom(150 + bx, 200, '#ffd13a', 20); st(OVER); }
+    }
+    x.save(); x.translate(150, 220); x.rotate(ang); R(x, '#8d6e63', -140, -6, 280, 12); x.restore();
+    x.font = '26px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+    x.fillText('⚪', 150 + bx * Math.cos(ang), 220 - 12 + bx * Math.sin(ang) - 8);
+    x.font = '700 13px sans-serif'; x.fillStyle = '#333'; x.textAlign = 'left'; x.fillText('Время: ' + Math.floor(t / 60), 8, 16);
+  } };
+};
+const aDarts = (x, sc, st) => {
+  let thr = 0, n = 0, t = 0, hits = [], over = 0;
+  st('Кликни, чтобы бросить дротик. 5 бросков');
+  return { click(a, b) { if (over) return; const d = Math.hypot(a - 150, b - 150); const cx = 150 + Math.sin(t * .05) * 110, cy = 150 + Math.cos(t * .07) * 80;
+      const dx = Math.hypot(a - (cx), b - (cy)); const pts = dx < 20 ? 50 : dx < 45 ? 25 : dx < 75 ? 10 : dx < 110 ? 5 : 0; hits.push({ x: a, y: b }); n += pts; thr++; sc(n); boom(a, b, '#ffd13a', 6); if (thr >= 5) { over = 1; st('Итого очков: ' + n + '. Перезапусти игру'); } else st('Попал: +' + pts); },
+    t() { t++;
+      x.fillStyle = '#fff'; x.beginPath(); x.arc(150, 150, 140, 0, 7); x.fill();
+      [[140, '#424242'], [110, '#fff'], [75, '#e53935'], [45, '#ffd54f'], [20, '#e53935']].forEach(([rad, col]) => { x.fillStyle = col; x.beginPath(); x.arc(150, 150, rad, 0, 7); x.fill(); });
+      hits.forEach(h => { x.fillStyle = '#263238'; x.beginPath(); x.arc(h.x, h.y, 4, 0, 7); x.fill(); });
+      if (!over) { const cx = 150 + Math.sin(t * .05) * 110, cy = 150 + Math.cos(t * .07) * 80; x.strokeStyle = '#263238'; x.lineWidth = 2; x.beginPath(); x.moveTo(cx - 10, cy); x.lineTo(cx + 10, cy); x.moveTo(cx, cy - 10); x.lineTo(cx, cy + 10); x.stroke(); }
+      x.font = '700 13px sans-serif'; x.fillStyle = '#333'; x.textAlign = 'left'; x.fillText('Броски: ' + thr + '/5', 8, 16);
+    } };
+};
+const aCannon = (x, sc, st) => {
+  let shot = null, targets = [], n = 0, left = 4, ang = 0;
+  const newT = () => { targets = [0, 1, 2].map(i => ({ x: 160 + i * 45 + rnd(20), alive: 1 })); };
+  newT(); st('Кликни — пушка выстрелит в эту сторону. Сбей все 3 мишени');
+  return { click(a, b) { if (shot || left <= 0) return; const ex = 40, ey = 270, dx = a - ex, dy = b - ey, L = Math.hypot(dx, dy) || 1; const sp = 7; shot = { x: ex, y: ey, vx: dx / L * sp, vy: dy / L * sp, t: 0 }; left--; },
+    t() {
+      if (shot) { shot.vy += .12; shot.x += shot.vx; shot.y += shot.vy; shot.t++;
+        targets.forEach(g => { if (g.alive && Math.hypot(shot.x - g.x, shot.y - 262) < 16) { g.alive = 0; n++; sc(n); boom(g.x, 262, '#ffd13a', 16); } });
+        if (shot.y > 300 || shot.x > 320 || shot.t > 200) shot = null;
+        if (!shot) { if (targets.every(g => !g.alive)) { if (left > 0) newT(); } }
+      }
+      if (!shot && left <= 0 && targets.some(g => g.alive)) st('Снаряды кончились. Очков: ' + n);
+      R(x, '#a5d6a7', 0, 280, 300, 20);
+      targets.forEach(g => { if (g.alive) { x.font = '30px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('🎯', g.x, 260); } });
+      x.font = '28px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('🔫', 40, 270);
+      if (shot) x.fillText('💣', shot.x, shot.y);
+      x.font = '700 13px sans-serif'; x.fillStyle = '#333'; x.textAlign = 'left'; x.fillText('Снарядов: ' + left, 8, 16);
+    } };
+};
+const pPaint = (x, sc, st) => {
+  const N = 10, cs = 30, P = ['#e53935', '#43a047', '#1e88e5', '#fdd835', '#8e24aa', '#ffffff'];
+  let g = Array.from({ length: N }, () => Array(N).fill('#eceff1')), col = P[0];
+  sc(0); st('Выбери цвет внизу и рисуй по клеткам 🖌️');
+  return { click(a, b) { if (b >= N * cs) { const k = Math.floor(a / 50); if (P[k]) col = P[k]; return; } const r = Math.floor(b / cs), c = Math.floor(a / cs); if (r >= 0 && r < N && c >= 0 && c < N) g[r][c] = col; },
+    t() { for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) R(x, g[r][c], c * cs + 1, r * cs + 1, cs - 2, cs - 2);
+      for (let k = 0; k < 6; k++) { if (P[k] === col) R(x, '#263238', k * 50 + 2, N * cs + 4, 46, 44); R(x, P[k], k * 50 + 4, N * cs + 6, 42, 40); } } };
+};
+
+const aJump = (x, sc, st) => {
+  let y = 0, v = 0, obs = [], d = 0, over = 0, fr = 0;
+  st('Кликни — прыжок через кактусы 🌵');
+  return { click() { if (over) return; if (y === 0) v = 11; }, t() {
+    if (!over) { fr++; d++; if (d % 60 === 0) sc(d / 60 | 0);
+      if (fr % 70 === 0 || (fr > 40 && rnd(100) === 0 && fr % 15 === 0)) obs.push({ x: 320, h: 26 + rnd(20) });
+      obs.forEach(o => o.x -= 4 + d / 2000);
+      obs = obs.filter(o => o.x > -30);
+      v -= .6; y += v; if (y < 0) { y = 0; v = 0; }
+      if (obs.some(o => o.x < 90 && o.x > 40 && y < o.h)) { over = 1; boom(60, 260 - y, '#ffd13a', 20); st(OVER); } }
+    R(x, '#ffe0b2', 0, 0, 300, 300); R(x, '#d7a76a', 0, 260, 300, 40);
+    x.font = '32px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+    obs.forEach(o => x.fillText('🌵', o.x, 260 - o.h / 2));
+    x.fillText('🦘', 60, 240 - y);
+    x.font = '700 13px sans-serif'; x.fillStyle = '#333'; x.textAlign = 'left'; x.fillText('Пройдено: ' + (d / 60 | 0) + 'м', 8, 16);
+  } };
+};
+const aSlots = (x, sc, st) => {
+  const SYM = ['🍒', '🍋', '🔔', '⭐', '💎', '7️⃣']; let r = [0, 1, 2], spin = 0, coins = 20, bet = 5, last = '';
+  st('Кликни «Крутить» — ставка 5 монет');
+  return { click(a, b) { if (spin > 0) return; if (coins < bet) { st('Монеты закончились. Перезапусти игру'); return; } coins -= bet; sc(coins); spin = 40; }, t() {
+    if (spin > 0) { spin--; r = r.map(() => rnd(SYM.length)); if (spin === 0) { const ok = r[0] === r[1] && r[1] === r[2]; const pair = r[0] === r[1] || r[1] === r[2] || r[0] === r[2]; const win = ok ? 50 : pair ? 10 : 0; coins += win; sc(coins); last = win ? ('Выигрыш: ' + win) : 'Не повезло'; st(last); } }
+    R(x, '#fff8e1', 0, 0, 300, 300); R(x, '#f9a825', 30, 80, 240, 110);
+    x.font = '46px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+    [0, 1, 2].forEach(i => { R(x, '#ffffff', 45 + i * 75, 95, 60, 80); x.fillText(SYM[r[i]], 75 + i * 75, 135); });
+    R(x, '#e53935', 90, 220, 120, 40); x.font = '700 16px sans-serif'; x.fillStyle = '#fff'; x.fillText('Крутить', 150, 240);
+    x.font = '700 14px sans-serif'; x.fillStyle = '#333'; x.textAlign = 'left'; x.fillText('Монеты: ' + coins, 8, 280);
+  } };
+};
+const aNumberTap = (x, sc, st) => {
+  let nums, next = 1, t = 0, over = 0, ms = 0;
+  const reset = () => { nums = Array.from({ length: 16 }, (_, i) => i + 1).sort(() => Math.random() - .5); next = 1; t = 0; over = 0; sc(0); st('Нажимай числа по порядку от 1 до 16 как можно быстрее'); };
+  reset();
+  return { click(a, b) { if (over) { reset(); return; } const c = Math.floor(a / 75), r = Math.floor(b / 75); if (r < 0 || r > 3 || c < 0 || c > 3) return; const v = nums[r * 4 + c]; if (v === 0) return;
+      if (v === next) { nums[r * 4 + c] = 0; next++; sc(next - 1); if (next > 16) { over = 1; st('🏁 Все числа за ' + (t / 60).toFixed(1) + ' с. Кликни, чтобы сыграть снова'); } } else { over = 0; st('Ошибка: нужно число ' + next); } },
+    t() { if (!over) t++; R(x, '#eceff1', 0, 0, 300, 300);
+      for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) { const v = nums[r * 4 + c]; if (!v) continue; R(x, v === next ? '#ffd54f' : '#90caf9', c * 75 + 4, r * 75 + 4, 67, 67); x.font = '700 26px sans-serif'; x.fillStyle = '#263238'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(String(v), c * 75 + 37, r * 75 + 38); }
+      x.font = '700 13px sans-serif'; x.fillStyle = '#333'; x.textAlign = 'left'; x.fillText('Время: ' + (t / 60).toFixed(1) + ' с', 8, 292);
+    } };
+};
+const aTrampoline = (x, sc, st) => {
+  let p = 150, y = 300, v = 0, stars = [], n = 0, lives = 3, fr = 0, over = 0;
+  st('A и D — двигай батут и лови звёзды ⭐');
+  return { held: true, t() {
+    if (!over) {
+      fr++; p = cl(p + ((K.KeyD | 0) - (K.KeyA | 0)) * 5, 40, 260);
+      v += .45; y += v; if (y > 330) { y = 330; v = -13; }
+      if (fr % 45 === 0) stars.push({ x: 20 + rnd(260), y: -20, g: rnd(4) > 0 });
+      stars.forEach(s => s.y += 2.4);
+      stars = stars.filter(s => { if (!over && s.y > 320 && s.y < 350 && Math.abs(s.x - p) < 34) { if (s.g) { sc(++n); boom(s.x, s.y, '#ffd13a', 10); } return false; } if (s.y > 380) { if (s.g) { lives--; if (lives <= 0) { over = 1; st(OVER); } } return false; } return true; });
+    }
+    R(x, '#e3f2fd', 0, 0, 300, 400);
+    x.font = '24px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+    stars.forEach(s => x.fillText(s.g ? '⭐' : '☁️', s.x, s.y));
+    R(x, '#424242', p - 34, 352, 68, 6); x.font = '26px sans-serif'; x.fillText('🤸', p, y - 14);
+    x.font = '700 13px sans-serif'; x.fillStyle = '#333'; x.textAlign = 'left'; x.fillText('Звёзды: ' + n + ' · ' + '❤️'.repeat(Math.max(0, lives)), 8, 16);
+  } };
+};
+const aHoney = (x, sc, st) => {
+  let p = 150, it = [], n = 0, lives = 3, fr = 0, over = 0;
+  st('A и D — медведь ловит мёд 🍯, пчёлы 🐝 — мимо');
+  return { held: true, t() {
+    if (!over) {
+      fr++; p = cl(p + ((K.KeyD | 0) - (K.KeyA | 0)) * 5, 24, 276);
+      if (fr % 36 === 0) it.push({ x: 20 + rnd(260), y: -12, g: rnd(3) > 0, v: 2.4 + n * .04 });
+      it.forEach(o => o.y += o.v);
+      it = it.filter(o => { if (!o.k && o.y > 350 && Math.abs(o.x - p) < 30) { o.k = 1; if (o.g) { sc(++n); } else { lives--; if (lives <= 0) { over = 1; st(OVER); } } } return !o.k && o.y < 420; });
+    }
+    R(x, '#c8e6c9', 0, 0, 300, 400);
+    x.font = '22px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+    it.forEach(o => x.fillText(o.g ? '🍯' : '🐝', o.x, o.y));
+    x.font = '34px sans-serif'; x.fillText('🐻', p, 366);
+    x.font = '700 13px sans-serif'; x.fillStyle = '#333'; x.textAlign = 'left'; x.fillText('Мёд: ' + n + ' · ' + '❤️'.repeat(Math.max(0, lives)), 8, 16);
+  } };
+};
+const aRabbit = (x, sc, st) => {
+  let holes = Array(6).fill(null), n = 0, lives = 3, fr = 0, over = 0;
+  st('Кликай по морковкам 🥕. Лису 🦊 не трогай — иначе минус жизнь');
+  return { click(a, b) { if (over) return; const i = Math.floor(a / 100), j = Math.floor(b / 100); const k = j * 3 + i; if (i < 0 || i > 2 || j < 0 || j > 1) return; const h = holes[k]; if (!h) return;
+      if (h.kind === 'c') { sc(++n); boom(i * 100 + 50, j * 100 + 50, '#ff9800', 10); } else { lives--; boom(i * 100 + 50, j * 100 + 50, '#8d6e63', 12); if (lives <= 0) { over = 1; st(OVER); } }
+      holes[k] = null; }, t() {
+    if (!over) { fr++; if (fr % 35 === 0) { const k = rnd(6); if (!holes[k]) holes[k] = { kind: rnd(3) === 0 ? 'f' : 'c', life: 70 - Math.min(40, n * 2) }; }
+      holes = holes.map(h => { if (!h) return null; h.life--; if (h.life <= 0) { if (h.kind === 'c') { lives--; if (lives <= 0 && !over) { over = 1; st(OVER); } } return null; } return h; }); }
+    for (let k = 0; k < 6; k++) { const i = k % 3, j = Math.floor(k / 3); x.fillStyle = '#5d4037'; x.beginPath(); x.ellipse(i * 100 + 50, j * 100 + 66, 36, 16, 0, 0, 7); x.fill(); }
+    x.font = '40px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+    holes.forEach((h, k) => { if (h) { const i = k % 3, j = Math.floor(k / 3); x.fillText(h.kind === 'c' ? '🥕' : '🦊', i * 100 + 50, j * 100 + 48); } });
+    x.font = '600 14px sans-serif'; x.fillStyle = '#333'; x.textAlign = 'left'; x.fillText('Морковок: ' + n + ' · ' + '❤️'.repeat(Math.max(0, lives)), 8, 16);
+  } };
+};
+const aRoll = (x, sc, st) => {
+  let cur = rnd(6) + 1, nxt = rnd(6) + 1, streak = 0, over = 0;
+  st('Выше или ниже? Жми ▲ или ▼ — ответ верный, серия растёт');
+  const guess = up => { if (over) return; if (nxt === cur) { nxt = rnd(6) + 1; return; } const ok = up ? nxt > cur : nxt < cur; if (ok) { streak++; sc(streak); cur = nxt; nxt = rnd(6) + 1; } else { over = 1; st('Ошибка! Серия: ' + streak + '. Перезапусти игру'); } };
+  return { click(a, b) { if (b < 200) return; if (a < 150) guess(true); else guess(false); },
+    t() { R(x, '#fffde7', 0, 0, 300, 300);
+      x.font = '90px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'][cur - 1], 150, 110);
+      R(x, '#43a047', 0, 220, 150, 80); R(x, '#e53935', 150, 220, 150, 80);
+      x.font = '700 22px sans-serif'; x.fillStyle = '#fff'; x.fillText('▲ выше', 75, 260); x.fillText('▼ ниже', 225, 260);
+      x.font = '700 14px sans-serif'; x.fillStyle = '#333'; x.fillText('Серия: ' + streak, 150, 190);
+    } };
+};
+
+const aHideSeek = (x, sc, st) => {
+  const EM = ['🍎', '🍐', '🍊', '🍋', '🍇', '🍓', '🫐', '🍒', '🥝'];
+  let lvl = 1, n = 0, grid = [], odd = 0, over = 0, tl = 0;
+  const make = () => { const k = Math.min(4, 2 + Math.floor(lvl / 3)); const base = rnd(EM.length); let other = (base + 1 + rnd(EM.length - 1)) % EM.length; odd = rnd(k * k); grid = Array.from({ length: k * k }, (_, i) => i === odd ? other : base); grid.k = k; };
+  make(); st('Найди отличающийся фрукт. Уровень 1');
+  return { click(a, b) { if (over) return; const k = grid.k, cs = 300 / k; const c = Math.floor(a / cs), r = Math.floor(b / cs); if (r < 0 || c < 0 || r >= k || c >= k) return; if (r * k + c === odd) { sc(++n); lvl++; boom(a, b, '#ffd13a', 12); make(); st('Верно! Уровень ' + lvl); } else { over = 1; st('Не то. Найдено: ' + n + '. Перезапусти игру'); } },
+    t() { tl++; R(x, '#fafafa', 0, 0, 300, 300); const k = grid.k, cs = 300 / k; x.font = (cs * .6 | 0) + 'px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+      grid.forEach((e, i) => x.fillText(EM[e], (i % k) * cs + cs / 2, Math.floor(i / k) * cs + cs / 2)); } };
+};
+const aShips = (x, sc, st) => {
+  const N = 6, cs = 50; let mine, bot, shot, bshot, over = 0, hitsOnBot = 0, hitsOnMe = 0;
+  const place = () => { const s = new Set(); while (s.size < 6) s.add(rnd(N * N)); return s; };
+  const reset = () => { mine = place(); bot = place(); shot = new Set(); bshot = new Set(); over = 0; hitsOnBot = 0; hitsOnMe = 0; sc(0); st('Стреляй по клеткам: найди все 6 кораблей врага'); };
+  reset();
+  return { click(a, b) { if (over) { reset(); return; } if (b >= N * cs) return; const id = Math.floor(b / cs) * N + Math.floor(a / cs); if (shot.has(id)) return; shot.add(id);
+      if (bot.has(id)) { hitsOnBot++; sc(hitsOnBot); boom(a, b, '#ff7043', 10); }
+      if (hitsOnBot >= 6) { over = 1; st('🏆 Победа! Ты потопил все корабли. Кликни, чтобы сыграть снова'); return; }
+      let bid; do { bid = rnd(N * N); } while (bshot.has(bid)); bshot.add(bid); if (mine.has(bid)) hitsOnMe++;
+      if (hitsOnMe >= 6) { over = 1; st('💥 Враг потопил твой флот. Кликни, чтобы сыграть снова'); } },
+    t() { for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) { const id = r * N + c; const ok = shot.has(id); R(x, ok && bot.has(id) ? '#e53935' : ok ? '#90a4ae' : '#bbdefb', c * cs + 2, r * cs + 2, cs - 4, cs - 4); if (ok && bot.has(id)) { x.font = '24px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('💥', c * cs + 25, r * cs + 25); } }
+      x.font = '700 13px sans-serif'; x.fillStyle = '#333'; x.textAlign = 'left'; x.fillText('Попаданий: ' + hitsOnBot + '/6 · твоих потоплено: ' + hitsOnMe + '/6', 4, 316); } };
+};
+const aSpace = (x, sc, st) => {
+  let p = 150, it = [], n = 0, lives = 3, fr = 0, over = 0;
+  st('A и D — лети и собирай ⭐, астероиды 🪨 облетай');
+  return { held: true, t() {
+    if (!over) { fr++; p = cl(p + ((K.KeyD | 0) - (K.KeyA | 0)) * 5.5, 20, 280);
+      if (fr % 30 === 0) it.push({ x: 15 + rnd(270), y: -20, g: rnd(3) > 0, r: Math.random() * .2 - .1 });
+      it.forEach(o => { o.y += 3.2 + n * .03; o.x += o.r * 10; });
+      it = it.filter(o => { if (!o.k && o.y > 330 && o.y < 380 && Math.abs(o.x - p) < 28) { o.k = 1; if (o.g) sc(++n); else { lives--; if (lives <= 0) { over = 1; st(OVER); } } } return !o.k && o.y < 420; }); }
+    R(x, '#0b0b25', 0, 0, 300, 400);
+    x.font = '22px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; it.forEach(o => x.fillText(o.g ? '⭐' : '🪨', o.x, o.y));
+    x.font = '32px sans-serif'; x.fillText('🚀', p, 366);
+    x.font = '700 13px sans-serif'; x.fillStyle = '#fff'; x.textAlign = 'left'; x.fillText('Звёзды: ' + n + ' · ' + '❤️'.repeat(Math.max(0, lives)), 8, 16);
+  } };
+};
+const aTrafficLight = (x, sc, st) => {
+  let hen = { lane: 0 }, cars = [], n = 0, fr = 0, over = 0, green = true;
+  st('Кликни, чтобы шагнуть вперёд на зелёный 🟢. Дойди до верха');
+  return { click() { if (over) return; if (!green) { st('Красный! Подожди'); return; } const nl = hen.lane + 1; if (cars.some(c => c.lane === nl && Math.abs(c.x - 150) < 40)) { over = 1; boom(150, 200 + hen.lane * 0, '#ffd13a', 22); st(OVER); return; } hen.lane = nl; sc(hen.lane); if (hen.lane >= 5) { n++; hen.lane = 0; st('🏁 Перешёл дорогу! Всего: ' + n); } },
+    t() {
+      if (!over) { fr++; green = (fr % 240) < 150; if (fr % 50 === 0) { const L = rnd(4) + 1; const s = rnd(2); cars.push({ lane: L, x: s ? -30 : 330, v: (s ? 1 : -1) * (1.6 + Math.random()) }); }
+        cars.forEach(c => c.x += c.v); cars = cars.filter(c => c.x > -50 && c.x < 350);
+        if (cars.some(c => c.lane === hen.lane && Math.abs(c.x - 150) < 22)) { over = 1; st(OVER); } }
+      for (let i = 0; i < 6; i++) R(x, i === 0 || i === 5 ? '#66bb6a' : '#424242', 0, i * 60, 300, 60);
+      cars.forEach(c => R(x, '#e53935', c.x, (5 - c.lane) * 60 + 18, 36, 24));
+      x.font = '28px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(green ? '🟢' : '🔴', 280, 20); x.fillText('🐔', 150, 360 - hen.lane * 60 - 4);
+      x.font = '700 13px sans-serif'; x.fillStyle = '#fff'; x.textAlign = 'left'; x.fillText('Переходов: ' + n, 8, 16);
+    } };
+};
+const aSpeedTap = (x, sc, st) => {
+  let t = [], n = 0, lives = 3, fr = 0, over = 0;
+  st('Жми на цели, пока они не исчезли. Промах или пропуск — минус жизнь');
+  return { click(a, b) { if (over) return; for (let i = t.length - 1; i >= 0; i--) { const o = t[i]; if (Math.hypot(a - o.x, b - o.y) < 24) { sc(++n); boom(o.x, o.y, '#ffd13a', 10); t.splice(i, 1); return; } } lives--; if (lives <= 0) { over = 1; st(OVER); } },
+    t() { if (!over) { fr++; if (fr % 42 === 0) t.push({ x: 30 + rnd(240), y: 40 + rnd(320), life: 90 - Math.min(50, n * 2) }); t.forEach(o => o.life--); t = t.filter(o => { if (o.life <= 0) { lives--; if (lives <= 0 && !over) { over = 1; st(OVER); } return false; } return true; }); }
+      R(x, '#f3e5f5', 0, 0, 300, 400); t.forEach(o => { x.fillStyle = o.life < 25 ? '#ef5350' : '#7e57c2'; x.beginPath(); x.arc(o.x, o.y, 22, 0, 7); x.fill(); });
+      x.font = '600 14px sans-serif'; x.fillStyle = '#333'; x.textAlign = 'left'; x.fillText('Попаданий: ' + n + ' · ' + '❤️'.repeat(Math.max(0, lives)), 8, 16);
+    } };
+};
+const aPopMath = (x, sc, st) => {
+  let bub = [], tgt = 0, n = 0, lives = 3, fr = 0, over = 0, ex = '';
+  const ask = () => { const a = rnd(9) + 1, b = rnd(9) + 1; tgt = a + b; ex = a + ' + ' + b + ' = ?'; };
+  ask(); st('Лопай пузырь с правильным ответом');
+  return { click(a, b) { if (over) return; for (let i = bub.length - 1; i >= 0; i--) { const o = bub[i]; if (Math.hypot(a - o.x, b - o.y) < 22) { if (o.v === tgt) { sc(++n); boom(o.x, o.y, '#81d4fa', 12); bub = []; ask(); } else { lives--; bub.splice(i, 1); if (lives <= 0) { over = 1; st(OVER); } } return; } } },
+    t() { if (!over) { fr++; if (fr % 50 === 0) { const v = tgt + rnd(7) - 3; bub.push({ x: 30 + rnd(240), y: 420, v: v === tgt ? tgt : (v < 1 ? tgt + 1 : v), s: 1 + Math.random() * .6 }); if (rnd(2)) bub.push({ x: 30 + rnd(240), y: 420, v: tgt, s: 1 + Math.random() * .6 }); }
+        bub.forEach(o => o.y -= o.s); bub = bub.filter(o => o.y > -30); }
+      R(x, '#e1f5fe', 0, 0, 300, 400);
+      bub.forEach(o => { x.fillStyle = '#b3e5fc'; x.beginPath(); x.arc(o.x, o.y, 22, 0, 7); x.fill(); x.fillStyle = '#01579b'; x.font = '700 18px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(String(o.v), o.x, o.y); });
+      x.font = '700 22px sans-serif'; x.fillStyle = '#01579b'; x.textAlign = 'center'; x.fillText(ex, 150, 30);
+      x.font = '600 14px sans-serif'; x.fillText('Верно: ' + n + ' · ' + '❤️'.repeat(Math.max(0, lives)), 150, 56);
+    } };
+};
+const aSnowball = (x, sc, st) => {
+  let man = 150, dir = 1, balls = [], n = 0, lives = 3, over = 0, fr = 0;
+  st('Кликни, чтобы бросить снежок ❄️ в снеговика ⛄. Он прячется');
+  return { click(a, b) { if (over) return; balls.push({ x: 150, y: 370, tx: a, ty: b, t: 0 }); },
+    t() { if (!over) { fr++; man += dir * (1.2 + n * .05); if (man < 40 || man > 260) dir = -dir;
+        balls.forEach(bl => { bl.t += .03; bl.x = 150 + (bl.tx - 150) * bl.t; bl.y = 370 + (bl.ty - 370) * bl.t; });
+        balls = balls.filter(bl => { if (bl.t >= 1) { if (Math.abs(bl.tx - man) < 30 && bl.ty > 120 && bl.ty < 220) { sc(++n); boom(man, 170, '#fff', 14); } return false; } return true; }); }
+      R(x, '#e3f2fd', 0, 0, 300, 400); R(x, '#fff', 0, 330, 300, 70);
+      x.font = '50px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('⛄', man, 170);
+      balls.forEach(bl => { x.font = '20px sans-serif'; x.fillText('❄️', bl.x, bl.y); });
+      x.font = '700 13px sans-serif'; x.fillStyle = '#333'; x.textAlign = 'left'; x.fillText('Попаданий: ' + n, 8, 16);
+    } };
+};
+const aSort = (x, sc, st) => {
+  const C = ['#e53935', '#43a047', '#1e88e5'];
+  let tub, sel = -1, moves = 0, over = 0;
+  const reset = () => { tub = [[0, 1, 2, 0], [1, 2, 0, 1], [2, 1, 0, 2], [], []].map(t => t.slice()); for (let k = 0; k < 20; k++) { const a = rnd(5), b = rnd(5); if (a !== b && tub[b].length < 4 && tub[a].length) tub[b].push(tub[a].pop()); } sel = -1; moves = 0; over = 0; sc(0); st('Раскладывай шарики по цвету: по одному цвету в каждой трубке'); };
+  reset();
+  return { click(a) { if (over) { reset(); return; } const i = Math.floor(a / 60); if (i < 0 || i > 4) return;
+      if (sel < 0) { if (tub[i].length) sel = i; return; }
+      if (sel === i) { sel = -1; return; }
+      if (tub[i].length < 4) { tub[i].push(tub[sel].pop()); moves++; sc(moves); }
+      sel = -1; const cols = tub.filter(t => t.length).map(t => t[0]); if (tub.every(t => t.every(v => v === t[0])) && new Set(cols).size === cols.length) { over = 1; st('✅ Готово за ' + moves + ' ходов. Кликни, чтобы сыграть снова'); } },
+    t() { for (let i = 0; i < 5; i++) { R(x, sel === i ? '#62c8ff' : '#cfd8dc', i * 60 + 6, 60, 48, 200); tub[i].forEach((v, k) => { x.fillStyle = C[v]; x.beginPath(); x.arc(i * 60 + 30, 240 - k * 44, 18, 0, 7); x.fill(); }); } }
+  };
+};
+const aKite = (x, sc, st) => {
+  let y = 200, n = 0, birds = [], fr = 0, over = 0;
+  st('W и S — двигай змея вверх и вниз. Птицы 🐦 мешают');
+  return { held: true, t() {
+    if (!over) { fr++; y = cl(y + ((K.KeyS | 0) - (K.KeyW | 0)) * 3.2, 20, 380); if (fr % 30 === 0) sc(++n);
+      if (fr % 38 === 0) birds.push({ x: 320, y: 30 + rnd(340), v: 3 + Math.random() * 1.5 });
+      birds.forEach(o => o.x -= o.v); birds = birds.filter(o => o.x > -30);
+      if (birds.some(o => hit(o.x - 12, o.y - 10, 24, 20, 40, y - 14, 36, 28))) { over = 1; boom(60, y, '#ffd13a', 20); st(OVER); } }
+    R(x, '#bbdefb', 0, 0, 300, 400);
+    x.font = '22px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; birds.forEach(o => x.fillText('🐦', o.x, o.y));
+    x.font = '30px sans-serif'; x.fillText('🪁', 60, y);
+    x.font = '700 13px sans-serif'; x.fillStyle = '#333'; x.textAlign = 'left'; x.fillText('Время в полёте: ' + n, 8, 16);
+  } };
+};
+
+const cCupcake = (x, sc, st) => {
+  let px = 150, n = 0, lives = 3, it = [], fr = 0, over = 0, sp = 2.7;
+  st('A и D — ловим 🧁, не трогаем 🍋');
+  return { held: true, t() {
+    if (!over) {
+      px = cl(px + ((K.KeyD | 0) - (K.KeyA | 0)) * 5.5, 24, 276); fr++;
+      if (fr % 32 === 0) it.push({ x: 20 + rnd(260), y: -12, g: rnd(3) > 0 });
+      if (fr % 460 === 0) sp += .4;
+      it.forEach(o => o.y += sp);
+      it = it.filter(o => { if (!o.k && o.y > 360 && Math.abs(o.x - px) < 30) { o.k = 1; if (o.g) { sc(++n); boom(o.x, 350, '#f48fb1', 10); } else { lives--; boom(o.x, 350, '#fafafa', 12); if (lives <= 0) { over = 1; st(OVER); } } } return !o.k && o.y < 420; });
+    }
+    x.font = '22px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+    it.forEach(o => x.fillText(o.g ? '🧁' : '🍋', o.x, o.y));
+    x.font = '34px sans-serif'; x.fillText('🧺', px, 366);
+    x.font = '600 14px sans-serif'; x.textAlign = 'left'; x.fillText('❤️'.repeat(Math.max(0, lives)), 8, 18);
+  } };
+};
+
+const dSpaceRock = (x, sc, st) => {
+  let px = 150, t = 0, over = 0, it = [];
+  st('A и D — уворот от камней 🌑');
+  return { held: true, t() {
+    if (!over) {
+      px = cl(px + ((K.KeyD | 0) - (K.KeyA | 0)) * 5.5, 20, 280); t++;
+      if (t % 60 === 0) sc(t / 60);
+      if (t % 26 === 0) it.push({ x: 15 + rnd(270), y: -20, v: 2.6 + Math.random() * 2 + t / 1500, r: 8 + rnd(8) });
+      it.forEach(o => { o.y += o.v; o.a = (o.a || 0) + .05; });
+      it = it.filter(o => { if (!over && hit(o.x - o.r, o.y - o.r, o.r * 2, o.r * 2, px - 14, 350, 28, 32)) { over = 1; boom(px, 360, '#9e9e9e', 30); st(OVER); } return o.y < 420; });
+    }
+    x.font = '24px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+    it.forEach(o => { x.save(); x.translate(o.x, o.y); x.rotate(o.a); x.fillText('🌑', 0, 0); x.restore(); });
+    x.fillText('🧍', px, 366);
+  } };
+};
+
+const cBall = (x, sc, st) => {
+  let px = 150, n = 0, lives = 3, it = [], fr = 0, over = 0, sp = 2.6;
+  st('A и D — корзина. Лови 🏀, камни 🎾 пропускай');
+  return { held: true, t() {
+    if (!over) {
+      px = cl(px + ((K.KeyD | 0) - (K.KeyA | 0)) * 5.5, 24, 276); fr++;
+      if (fr % 36 === 0) it.push({ x: 20 + rnd(260), y: -12, g: rnd(3) > 0 });
+      if (fr % 500 === 0) sp += .35;
+      it.forEach(o => o.y += sp);
+      it = it.filter(o => { if (!o.k && o.y > 360 && Math.abs(o.x - px) < 30) { o.k = 1; if (o.g) { sc(++n); boom(o.x, 350, '#fff3c4', 10); } else { lives--; boom(o.x, 350, '#757575', 12); if (lives <= 0) { over = 1; st(OVER); } } } return !o.k && o.y < 420; });
+    }
+    x.font = '22px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+    it.forEach(o => x.fillText(o.g ? '🏀' : '🎾', o.x, o.y));
+    x.font = '34px sans-serif'; x.fillText('🧺', px, 366);
+    x.font = '600 14px sans-serif'; x.textAlign = 'left'; x.fillText('❤️'.repeat(Math.max(0, lives)), 8, 18);
+  } };
+};
+
+const dBolt = (x, sc, st) => {
+  let px = 150, t = 0, over = 0, it = [];
+  st('A и D — уворот от огненных шаров ⚡');
+  return { held: true, t() {
+    if (!over) {
+      px = cl(px + ((K.KeyD | 0) - (K.KeyA | 0)) * 5.5, 20, 280); t++;
+      if (t % 60 === 0) sc(t / 60);
+      if (t % 24 === 0) it.push({ x: 15 + rnd(270), y: -20, v: 3 + t / 1400 });
+      it.forEach(o => o.y += o.v);
+      it = it.filter(o => { if (!over && hit(o.x - 10, o.y - 10, 20, 20, px - 14, 350, 28, 32)) { over = 1; boom(px, 360, '#ff7043', 30); st(OVER); } return o.y < 420; });
+    }
+    x.font = '24px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+    it.forEach(o => x.fillText('⚡', o.x, o.y));
+    x.fillText('🧍', px, 366);
+  } };
+};
+
+const sPenguin = (x, sc, st) => {
+  let f = null, n = 0, fr = 0, over = 0, lives = 3;
+  st('Лови 🐧 пока он на кувшинке. Опоздал — минус жизнь');
+  const spawn = () => { f = { i: rnd(4), j: rnd(3), t: Math.max(40, 80 - n * 2) }; };
+  spawn();
+  return { click(a, b) { if (over || !f) return; const cx = f.i * 75 + 37, cy = f.j * 100 + 70; if (Math.hypot(a - cx, b - cy) < 34) { sc(++n); boom(cx, cy, '#81c784', 14); f = null; fr = 0; } else { lives--; if (lives <= 0) { over = 1; st(OVER); } } }, t() {
+    if (!over) { fr++; if (f) { f.t--; if (f.t <= 0) { lives--; f = null; if (lives <= 0) { over = 1; st(OVER); } } } else if (fr > 30) { spawn(); fr = 0; } }
+    for (let i = 0; i < 4; i++) for (let j = 0; j < 3; j++) { x.fillStyle = '#2e7d32'; x.beginPath(); x.ellipse(i * 75 + 37, j * 100 + 70, 28, 14, 0, 0, 7); x.fill(); }
+    if (f) { x.font = '36px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('🐧', f.i * 75 + 37, f.j * 100 + 58); }
+    x.font = '600 14px sans-serif'; x.textAlign = 'left'; x.fillText('❤️'.repeat(Math.max(0, lives)), 8, 14);
+  } };
+};
+
+const dCar = (x, sc, st) => {
+  let px = 150, t = 0, over = 0, it = [];
+  st('A и D — уворачивайся от мячей');
+  return { held: true, t() {
+    if (!over) {
+      px = cl(px + ((K.KeyD | 0) - (K.KeyA | 0)) * 5.5, 20, 280); t++;
+      if (t % 60 === 0) sc(t / 60);
+      if (t % 30 === 0) it.push({ x: 15 + rnd(270), y: -20, v: 2.8 + t / 1500 });
+      it.forEach(o => o.y += o.v);
+      it = it.filter(o => { if (!over && hit(o.x - 11, o.y - 11, 22, 22, px - 14, 350, 28, 32)) { over = 1; boom(px, 360, '#ffd13a', 24); st(OVER); } return o.y < 420; });
+    }
+    x.font = '24px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+    it.forEach(o => x.fillText('🚗', o.x, o.y));
+    x.fillText('🧍', px, 366);
+  } };
+};
+
+const cFlower = (x, sc, st) => {
+  let px = 150, n = 0, lives = 3, it = [], fr = 0, over = 0, sp = 2.5;
+  st('A и D двигают ковш. Собирай 🌸, не трогай 🥀');
+  return { held: true, t() {
+    if (!over) {
+      px = cl(px + ((K.KeyD | 0) - (K.KeyA | 0)) * 5, 24, 276); fr++;
+      if (fr % 42 === 0) it.push({ x: 20 + rnd(260), y: -12, g: rnd(3) > 0 });
+      if (fr % 480 === 0) sp += .4;
+      it.forEach(o => o.y += sp);
+      it = it.filter(o => { if (!o.k && o.y > 360 && Math.abs(o.x - px) < 30) { o.k = 1; if (o.g) { sc(++n); boom(o.x, 350, '#62c8ff', 12); } else { lives--; boom(o.x, 350, '#ff7043', 20); if (lives <= 0) { over = 1; st(OVER); } } } return !o.k && o.y < 420; });
+    }
+    x.font = '22px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+    it.forEach(o => x.fillText(o.g ? '🌸' : '🥀', o.x, o.y));
+    x.font = '34px sans-serif'; x.fillText('🧺', px, 366);
+    x.font = '600 14px sans-serif'; x.textAlign = 'left'; x.fillText('❤️'.repeat(Math.max(0, lives)), 8, 18);
+  } };
+};
+
+
 const games = [
   { id: 'snake', name: 'Змейка', icon: '🐍', bg: '#c8f2ea', tag: 'Аркада', desc: 'Собирай яблоки и не врезайся в себя.', run: snake, label: 'Счёт', pad: true },
   { id: 'g2048', name: '2048', icon: '🔢', bg: '#ffe7a8', tag: 'Головоломка', desc: 'Складывай одинаковые плитки и дойди до 2048.', run: g2048, label: 'Счёт', pad: true },
@@ -987,7 +2039,77 @@ const games = [
   { id: 'slide', name: 'Пятнашки', icon: '🔳', bg: '#d2e3fc', tag: 'Головоломка', desc: 'Расставь плитки по порядку.', run: slide, label: 'Ходы', pad: false },
   { id: 'calc', name: 'Устный счёт', icon: '➕', bg: '#c8f2ea', tag: 'Математика', desc: 'Решай примеры на скорость за 30 секунд.', run: calc, label: 'Верно', pad: false },
   { id: 'lander', name: 'Посадка на Луну', icon: '🌙', bg: '#d2e3fc', tag: 'Симулятор', desc: 'Посади корабль мягко на площадку.', run: L(300, 400, lander), label: 'Топливо', pad: true },
-  { id: 'timing', name: 'Снайпер-таймер', icon: '⏱️', bg: '#fff1c2', tag: 'Скорость', desc: 'Останови метку точно в зелёной зоне.', run: L(300, 160, timing), label: 'Попадания', pad: false }
+  { id: 'timing', name: 'Снайпер-таймер', icon: '⏱️', bg: '#fff1c2', tag: 'Скорость', desc: 'Останови метку точно в зелёной зоне.', run: L(300, 160, timing), label: 'Попадания', pad: false },
+  { id: "cStars", name: "Ловец звёзд", icon: "⭐", bg: "#fff1c2", tag: "Аркада", desc: "Лови звёзды в корзину, кометы не трогай.", run: L(300, 400, cStars), label: "Счёт", pad: true },
+  { id: "cSnow", name: "Снежинки", icon: "❄️", bg: "#dff3ff", tag: "Аркада", desc: "Лови снежинки, камни пропускай.", run: L(300, 400, cSnow), label: "Счёт", pad: true },
+  { id: "cFish", name: "Рыбалка", icon: "🐟", bg: "#d6f5ff", tag: "Аркада", desc: "Лови рыбок в удочку, ботинки не трогай.", run: L(300, 400, cFish), label: "Счёт", pad: true },
+  { id: "cEggs", name: "Ловец яиц", icon: "🥚", bg: "#fff6dc", tag: "Аркада", desc: "Лови яйца, камни пропускай.", run: L(300, 400, cEggs), label: "Счёт", pad: true },
+  { id: "cGems", name: "Самоцветы", icon: "💎", bg: "#e0f0ff", tag: "Аркада", desc: "Собирай драгоценные камни, бомбы не лови.", run: L(300, 400, cGems), label: "Счёт", pad: true },
+  { id: "cMush", name: "Грибной сбор", icon: "🍄", bg: "#ffe3d6", tag: "Аркада", desc: "Собирай грибы, избегай пауков.", run: L(300, 400, cMush), label: "Счёт", pad: true },
+  { id: "cLeaf", name: "Осенние листья", icon: "🍂", bg: "#ffe9c2", tag: "Аркада", desc: "Лови листья на ветру.", run: L(300, 400, cLeaf), label: "Счёт", pad: true },
+  { id: "cCandy", name: "Сладкий дождь", icon: "🍬", bg: "#ffe1ef", tag: "Аркада", desc: "Лови конфеты, не трогай соль.", run: L(300, 400, cCandy), label: "Счёт", pad: true },
+  { id: "dIce", name: "Сосульки", icon: "🧊", bg: "#e3f6ff", tag: "Уворот", desc: "Уворачивайся от падающего льда. Сколько продержишься?", run: L(300, 400, dIce), label: "Секунды", pad: true },
+  { id: "dRock", name: "Камнепад", icon: "🪨", bg: "#e8e8e8", tag: "Уворот", desc: "Уходи от падающих камней.", run: L(300, 400, dRock), label: "Секунды", pad: true },
+  { id: "dBall", name: "Волейбол", icon: "🏐", bg: "#fff5d6", tag: "Уворот", desc: "Уворачивайся от мячей.", run: L(300, 400, dBall), label: "Секунды", pad: true },
+  { id: "dMeteor", name: "Метеоры", icon: "☄️", bg: "#e3e8ff", tag: "Уворот", desc: "Уклоняйся от метеоритов на ракете.", run: L(300, 400, dMeteor), label: "Секунды", pad: true },
+  { id: "dBee", name: "Пчёлы", icon: "🐝", bg: "#fff8d6", tag: "Уворот", desc: "Пчёлы летают поперёк поля. Не попадись.", run: L(300, 400, dBee), label: "Секунды", pad: true },
+  { id: "dFire", name: "Огненные шары", icon: "🔥", bg: "#ffe0d6", tag: "Уворот", desc: "Уворачивайся от огненных шаров.", run: L(300, 400, dFire), label: "Секунды", pad: true },
+  { id: "sDuck", name: "Охота на уток", icon: "🦆", bg: "#d9f2e0", tag: "Стрельба", desc: "Кликай по уткам, улетевшие отнимают жизнь.", run: L(300, 400, sDuck), label: "Счёт", pad: false },
+  { id: "sBalloon", name: "Воздушные шары", icon: "🎈", bg: "#e6f0ff", tag: "Стрельба", desc: "Лопай шарики кликом, не дай им улететь.", run: L(300, 400, sBalloon), label: "Счёт", pad: false },
+  { id: "sMonster", name: "Монстры", icon: "👾", bg: "#e8ffe0", tag: "Скорость", desc: "Лови монстров, пока они не спрятались.", run: L(300, 400, sMonster), label: "Счёт", pad: false },
+  { id: "sFrog", name: "Лягушки", icon: "🐸", bg: "#e3f7e0", tag: "Скорость", desc: "Лови лягушек на кувшинках.", run: L(300, 400, sFrog), label: "Счёт", pad: false },
+  { id: "sBottle", name: "Бутылки", icon: "🍾", bg: "#f0e6ff", tag: "Стрельба", desc: "Разбей бутылки, пока не упали.", run: L(300, 400, sBottle), label: "Счёт", pad: false },
+  { id: "sWater", name: "Арбузный разрез", icon: "🍉", bg: "#ffe0e0", tag: "Стрельба", desc: "Разрезай арбузы кликом.", run: L(300, 400, sWater), label: "Счёт", pad: false },
+  { id: "pLights", name: "Огни", icon: "💡", bg: "#fff8d6", tag: "Головоломка", desc: "Погаси все огни. Клик меняет клетку и соседей.", run: L(300, 300, pLights), label: "Ходы", pad: false },
+  { id: "pHanoi", name: "Ханойские башни", icon: "🗼", bg: "#efe6d6", tag: "Головоломка", desc: "Перенеси пирамиду на правый столбик.", run: L(300, 300, pHanoi), label: "Ходы", pad: false },
+  { id: "pFlood", name: "Заливка цвета", icon: "🎨", bg: "#e6fff2", tag: "Головоломка", desc: "Закрась всё поле одним цветом за меньше ходов.", run: L(300, 340, pFlood), label: "Ходы", pad: false },
+  { id: "pBubbles", name: "Пузыри", icon: "🫧", bg: "#e3f6ff", tag: "Головоломка", desc: "Лопай группы одинаковых пузырей.", run: L(300, 300, pBubbles), label: "Очки", pad: false },
+  { id: "pCode", name: "Код цветов", icon: "🔐", bg: "#f1efff", tag: "Логика", desc: "Угадай код из 4 цветов за 8 попыток.", run: L(300, 400, pCode), label: "Попытки", pad: false },
+  { id: "rFrog", name: "Лягушка на дороге", icon: "🐸", bg: "#e8f8e0", tag: "Аркада", desc: "WASD — шаги. Перейди дорогу, не попав под машину.", run: L(300, 350, rFrog), label: "Переходы", pad: true },
+  { id: "rLogs", name: "Переправа", icon: "🪵", bg: "#dff3ff", tag: "Аркада", desc: "Прыгай по брёвнам через реку.", run: L(300, 400, rLogs), label: "Высота", pad: true },
+  { id: "rLift", name: "Ракетный полёт", icon: "🚀", bg: "#dfe9ff", tag: "Аркада", desc: "Зажми W — ракета взлетает. Метеориты не трогай.", run: L(300, 400, rLift), label: "Очки", pad: true },
+  { id: "rPlane", name: "Самолётик", icon: "✈️", bg: "#e3f6ff", tag: "Аркада", desc: "W и S — лети между облаками.", run: L(300, 400, rPlane), label: "Очки", pad: true },
+  { id: "rTunnel", name: "Туннель", icon: "🛸", bg: "#f1e6ff", tag: "Аркада", desc: "Держись в проходе, стены сужаются.", run: L(300, 400, rTunnel), label: "Дистанция", pad: true },
+  { id: "spBasket", name: "Баскетбол", icon: "🏀", bg: "#ffe9d6", tag: "Спорт", desc: "Кликни, куда бросить мяч. Попади в кольцо.", run: L(300, 400, spBasket), label: "Попадания", pad: false },
+  { id: "spPenalty", name: "Пенальти", icon: "⚽", bg: "#e0f5e0", tag: "Спорт", desc: "Кликни в створ. Вратарь пытается угадать.", run: L(300, 400, spPenalty), label: "Голы", pad: false },
+  { id: "spBowling", name: "Боулинг", icon: "🎳", bg: "#f5ecd6", tag: "Спорт", desc: "Кликай, куда катится шар. 3 броска.", run: L(300, 400, spBowling), label: "Сбито", pad: false },
+  { id: "tPiano", name: "Плитки", icon: "🎹", bg: "#eceff1", tag: "Ритм", desc: "Жми на чёрные плитки, пока они не ушли вниз.", run: L(300, 400, tPiano), label: "Очки", pad: false },
+  { id: "tRhythm", name: "Барабаны", icon: "🥁", bg: "#fff0e6", tag: "Ритм", desc: "Жми, когда круг совпадает с кольцом.", run: L(300, 400, tRhythm), label: "Очки", pad: false },
+  { id: "cFarm", name: "Курятник", icon: "🐔", bg: "#e8f5e9", tag: "Кликер", desc: "Кликай по курице, покупай кур.", run: L(300, 400, cFarm), label: "Яйца", pad: false },
+  { id: "cRobot", name: "Фабрика роботов", icon: "🤖", bg: "#eceff1", tag: "Кликер", desc: "Собирай детали и покупай роботов.", run: L(300, 400, cRobot), label: "Детали", pad: false },
+  { id: "cPiggy", name: "Копилка", icon: "🐷", bg: "#fce4ec", tag: "Кликер", desc: "Тапай по свинке и улучшай множитель.", run: L(300, 400, cPiggy), label: "Монеты", pad: false },
+  { id: "raBoat", name: "Лодка", icon: "🚤", bg: "#e1f5fe", tag: "Аркада", desc: "A и D — собирай буйки, избегай камней.", run: L(300, 400, raBoat), label: "Буйки", pad: true },
+  { id: "raBike", name: "Велогонка", icon: "🚴", bg: "#fff3e0", tag: "Гонки", desc: "A и D — смена полосы, уворачивайся от 🚧.", run: L(300, 400, raBike), label: "Километры", pad: true },
+  { id: "pConnect4", name: "Четыре в ряд", icon: "🔴", bg: "#e3f2fd", tag: "Логика", desc: "Ставь фишки и собери 4 в ряд раньше бота.", run: L(301, 258, pConnect4), label: "Очки", pad: false },
+  { id: "pSudoku", name: "Судоку 4×4", icon: "🧮", bg: "#e8f5e9", tag: "Головоломка", desc: "Заполни 4×4 цифрами 1–4 без повторов в строках и столбцах.", run: L(300, 340, pSudoku), label: "Заполнено", pad: false },
+  { id: "aStack", name: "Башня", icon: "📦", bg: "#fff3e0", tag: "Ловкость", desc: "Ставь блоки точно друг на друга. Промах рушит башню.", run: L(300, 400, aStack), label: "Высота", pad: false },
+  { id: "aBalance", name: "Баланс", icon: "⚖️", bg: "#e1f5fe", tag: "Ловкость", desc: "A и D — наклоняй доску и удержи шарик.", run: L(300, 300, aBalance), label: "Секунды", pad: true },
+  { id: "aDarts", name: "Дартс", icon: "🎯", bg: "#fff8e1", tag: "Меткость", desc: "Кликни, чтобы бросить дротик. 5 бросков.", run: L(300, 300, aDarts), label: "Очки", pad: false },
+  { id: "aCannon", name: "Пушка", icon: "💥", bg: "#fbe9e7", tag: "Меткость", desc: "Кликни, чтобы выстрелить. Сбей все мишени.", run: L(300, 300, aCannon), label: "Очки", pad: false },
+  { id: "pPaint", name: "Раскраска", icon: "🖌️", bg: "#fce4ec", tag: "Творчество", desc: "Рисуй по клеткам. Здесь нет проигрыша.", run: L(300, 340, pPaint), label: "Очки", pad: false },
+  { id: "aJump", name: "Прыжки через кактусы", icon: "🦘", bg: "#ffe0b2", tag: "Аркада", desc: "Кликни, чтобы прыгнуть через кактусы.", run: L(300, 300, aJump), label: "Метры", pad: false },
+  { id: "aSlots", name: "Автомат", icon: "🎰", bg: "#fff8e1", tag: "Казино", desc: "Крути барабан и собирай комбинации.", run: L(300, 300, aSlots), label: "Монеты", pad: false },
+  { id: "aNumberTap", name: "Числа по порядку", icon: "🔢", bg: "#e3f2fd", tag: "Скорость", desc: "Нажимай числа от 1 до 16 как можно быстрее.", run: L(300, 300, aNumberTap), label: "Числа", pad: false },
+  { id: "aTrampoline", name: "Батут", icon: "🤸", bg: "#e8f5e9", tag: "Аркада", desc: "A и D — двигай батут и лови звёзды.", run: L(300, 400, aTrampoline), label: "Звёзды", pad: true },
+  { id: "aHoney", name: "Медведь и мёд", icon: "🍯", bg: "#f1f8e9", tag: "Аркада", desc: "A и D — лови мёд, пчёлы не трогай.", run: L(300, 400, aHoney), label: "Мёд", pad: true },
+  { id: "aRabbit", name: "Морковки", icon: "🥕", bg: "#fff3e0", tag: "Скорость", desc: "Кликай по морковкам, лису не трогай.", run: L(300, 200, aRabbit), label: "Морковки", pad: false },
+  { id: "aRoll", name: "Выше или ниже", icon: "🎲", bg: "#fffde7", tag: "Логика", desc: "Угадай, выпадет ли больше или меньше. Серия растёт.", run: L(300, 300, aRoll), label: "Серия", pad: false },
+  { id: "aHideSeek", name: "Найди отличие", icon: "🔎", bg: "#fafafa", tag: "Внимание", desc: "Найди фрукт, который отличается от остальных.", run: L(300, 300, aHideSeek), label: "Найдено", pad: false },
+  { id: "aShips", name: "Морской бой", icon: "🚢", bg: "#e1f5fe", tag: "Логика", desc: "Стреляй по клеткам и найди все корабли врага.", run: L(300, 320, aShips), label: "Попаданий", pad: false },
+  { id: "aSpace", name: "Космос", icon: "🚀", bg: "#e8eaf6", tag: "Аркада", desc: "A и D — собирай звёзды, облетай астероиды.", run: L(300, 400, aSpace), label: "Звёзды", pad: true },
+  { id: "aTrafficLight", name: "Светофор", icon: "🚦", bg: "#e8f5e9", tag: "Аркада", desc: "Перейди дорогу на зелёный свет и не попади под машину.", run: L(300, 360, aTrafficLight), label: "Переходы", pad: false },
+  { id: "aSpeedTap", name: "Быстрые тапы", icon: "👆", bg: "#f3e5f5", tag: "Скорость", desc: "Жми на цели, пока они не исчезли.", run: L(300, 400, aSpeedTap), label: "Попаданий", pad: false },
+  { id: "aPopMath", name: "Пузыри-примеры", icon: "🫧", bg: "#e1f5fe", tag: "Математика", desc: "Лопай пузырь с правильным ответом на пример.", run: L(300, 400, aPopMath), label: "Верно", pad: false },
+  { id: "aSnowball", name: "Снежки", icon: "⛄", bg: "#e3f2fd", tag: "Меткость", desc: "Кликни, чтобы бросить снежок в снеговика.", run: L(300, 400, aSnowball), label: "Попаданий", pad: false },
+  { id: "aSort", name: "Сортировка шариков", icon: "🧪", bg: "#ede7f6", tag: "Логика", desc: "Разложи шарики по трубкам: один цвет в каждой.", run: L(300, 300, aSort), label: "Ходы", pad: false },
+  { id: "aKite", name: "Воздушный змей", icon: "🪁", bg: "#bbdefb", tag: "Аркада", desc: "W и S — двигай змея, птицы мешают.", run: L(300, 400, aKite), label: "Секунды", pad: true },
+  { id: "cCupcake", name: "Ловец кексов", icon: "🧁", bg: "#fff0f5", tag: "Аркада", desc: "Лови кексы, лимоны не трогай.", run: L(300, 400, cCupcake), label: "Счёт", pad: true },
+  { id: "dSpaceRock", name: "Астероиды", icon: "🌑", bg: "#e8eaf6", tag: "Уворот", desc: "Уворачивайся от астероидов.", run: L(300, 400, dSpaceRock), label: "Секунды", pad: true },
+  { id: "cBall", name: "Ловец мячей", icon: "🏀", bg: "#fff3e0", tag: "Аркада", desc: "Лови мячи в корзину, камни пропускай.", run: L(300, 400, cBall), label: "Счёт", pad: true },
+  { id: "dBolt", name: "Молнии", icon: "⚡", bg: "#fffde7", tag: "Уворот", desc: "Уворачивайся от молний.", run: L(300, 400, dBolt), label: "Секунды", pad: true },
+  { id: "sPenguin", name: "Пингвины на льдине", icon: "🐧", bg: "#e0f7fa", tag: "Скорость", desc: "Лови пингвинов, пока они не спрятались.", run: L(300, 400, sPenguin), label: "Счёт", pad: false },
+  { id: "dCar", name: "Уворот от машин", icon: "🚗", bg: "#eceff1", tag: "Уворот", desc: "Уворачивайся от машин на дороге.", run: L(300, 400, dCar), label: "Секунды", pad: true },
+  { id: "cFlower", name: "Цветочный ловец", icon: "🌸", bg: "#fce4ec", tag: "Аркада", desc: "Собирай цветы, листья-ловушки не трогай.", run: L(300, 400, cFlower), label: "Счёт", pad: true }
 ];
 const installed = new Set();
 let cur = null, game = null;
@@ -1617,9 +2739,9 @@ $('clMute').onclick = () => { if (!call || !call.stream) return; const t = call.
 if (acc) boot();
 
 /* ---------- Скачивание игр: каждая игра собирается в отдельный файл ---------- */
-const DL = { snake: ['snake'], g2048: ['g2048'], mem: ['memory'], flap: ['flappy', 300, 400], pong: ['pong', 400, 300], brick: ['brick', 300, 400], dodge: ['dodge', 300, 400], shoot: ['shoot', 300, 400], coins: ['coins', 300, 300], ttt: ['ttt'], react: ['react'], mole: ['mole'], guess: ['guess'], tetris: ['tetris', 200, 400], sweeper: ['sweeper'], racer: ['racer', 300, 400], maze: ['maze', 300, 300], simon: ['simon'], jumper: ['jumper', 300, 400], clicker: ['clicker'], bj: ['bj'], rps: ['rps'], hang: ['hang'], gallery: ['gallery', 400, 300], runner: ['runner', 400, 300], slide: ['slide'], calc: ['calc'], lander: ['lander', 300, 400], timing: ['timing', 300, 160] };
+const DL = { snake: ['snake'], g2048: ['g2048'], mem: ['memory'], flap: ['flappy', 300, 400], pong: ['pong', 400, 300], brick: ['brick', 300, 400], dodge: ['dodge', 300, 400], shoot: ['shoot', 300, 400], coins: ['coins', 300, 300], ttt: ['ttt'], react: ['react'], mole: ['mole'], guess: ['guess'], tetris: ['tetris', 200, 400], sweeper: ['sweeper'], racer: ['racer', 300, 400], maze: ['maze', 300, 300], simon: ['simon'], jumper: ['jumper', 300, 400], clicker: ['clicker'], bj: ['bj'], rps: ['rps'], hang: ['hang'], gallery: ['gallery', 400, 300], runner: ['runner', 400, 300], slide: ['slide'], calc: ['calc'], lander: ['lander', 300, 400], timing: ['timing', 300, 160], cStars: ['cStars', 300, 400], cSnow: ['cSnow', 300, 400], cFish: ['cFish', 300, 400], cEggs: ['cEggs', 300, 400], cGems: ['cGems', 300, 400], cMush: ['cMush', 300, 400], cLeaf: ['cLeaf', 300, 400], cCandy: ['cCandy', 300, 400], dIce: ['dIce', 300, 400], dRock: ['dRock', 300, 400], dBall: ['dBall', 300, 400], dMeteor: ['dMeteor', 300, 400], dBee: ['dBee', 300, 400], dFire: ['dFire', 300, 400], sDuck: ['sDuck', 300, 400], sBalloon: ['sBalloon', 300, 400], sMonster: ['sMonster', 300, 400], sFrog: ['sFrog', 300, 400], sBottle: ['sBottle', 300, 400], sWater: ['sWater', 300, 400], pLights: ['pLights', 300, 300], pHanoi: ['pHanoi', 300, 300], pFlood: ['pFlood', 300, 340], pBubbles: ['pBubbles', 300, 300], pCode: ['pCode', 300, 400], rFrog: ['rFrog', 300, 350], rLogs: ['rLogs', 300, 400], rLift: ['rLift', 300, 400], rPlane: ['rPlane', 300, 400], rTunnel: ['rTunnel', 300, 400], spBasket: ['spBasket', 300, 400], spPenalty: ['spPenalty', 300, 400], spBowling: ['spBowling', 300, 400], tPiano: ['tPiano', 300, 400], tRhythm: ['tRhythm', 300, 400], cFarm: ['cFarm', 300, 400], cRobot: ['cRobot', 300, 400], cPiggy: ['cPiggy', 300, 400], raBoat: ['raBoat', 300, 400], raBike: ['raBike', 300, 400], pConnect4: ['pConnect4', 301, 258], pSudoku: ['pSudoku', 300, 340], aStack: ['aStack', 300, 400], aBalance: ['aBalance', 300, 300], aDarts: ['aDarts', 300, 300], aCannon: ['aCannon', 300, 300], pPaint: ['pPaint', 300, 340], aJump: ['aJump', 300, 300], aSlots: ['aSlots', 300, 300], aNumberTap: ['aNumberTap', 300, 300], aTrampoline: ['aTrampoline', 300, 400], aHoney: ['aHoney', 300, 400], aRabbit: ['aRabbit', 300, 200], aRoll: ['aRoll', 300, 300], aHideSeek: ['aHideSeek', 300, 300], aShips: ['aShips', 300, 320], aSpace: ['aSpace', 300, 400], aTrafficLight: ['aTrafficLight', 300, 360], aSpeedTap: ['aSpeedTap', 300, 400], aPopMath: ['aPopMath', 300, 400], aSnowball: ['aSnowball', 300, 400], aSort: ['aSort', 300, 300], aKite: ['aKite', 300, 400], cCupcake: ['cCupcake', 300, 400], dSpaceRock: ['dSpaceRock', 300, 400], cBall: ['cBall', 300, 400], dBolt: ['dBolt', 300, 400], sPenguin: ['sPenguin', 300, 400], dCar: ['dCar', 300, 400], cFlower: ['cFlower', 300, 400] };
 const HELP = { rnd, sh, R, C, hit, cl, boom, stepFx, loop };
-const SRCS = { worldGame, snake, g2048, memory, flappy, pong, brick, dodge, shoot, coins, ttt, react, mole, guess, tetris, sweeper, racer, maze, simon, jumper, clicker, bj, rps, hang, gallery, runner, slide, calc, lander, timing, catchGame, quizGame };
+const SRCS = { worldGame, snake, g2048, memory, flappy, pong, brick, dodge, shoot, coins, ttt, react, mole, guess, tetris, sweeper, racer, maze, simon, jumper, clicker, bj, rps, hang, gallery, runner, slide, calc, lander, timing, catchGame, quizGame, cStars, cSnow, cFish, cEggs, cGems, cMush, cLeaf, cCandy, dIce, dRock, dBall, dMeteor, dBee, dFire, sDuck, sBalloon, sMonster, sFrog, sBottle, sWater, pLights, pHanoi, pFlood, pBubbles, pCode, rFrog, rLogs, rLift, rPlane, rTunnel, spBasket, spPenalty, spBowling, tPiano, tRhythm, cFarm, cRobot, cPiggy, raBoat, raBike, pConnect4, pSudoku, aStack, aBalance, aDarts, aCannon, pPaint, aJump, aSlots, aNumberTap, aTrampoline, aHoney, aRabbit, aRoll, aHideSeek, aShips, aSpace, aTrafficLight, aSpeedTap, aPopMath, aSnowball, aSort, aKite, cCupcake, dSpaceRock, cBall, dBolt, sPenguin, dCar, cFlower };
 const srcOf = (n, f) => { const t = f.toString(); return /^(async\s+)?function/.test(t) ? t : 'const ' + n + ' = ' + t + ';'; };
 function buildGame(g) {
   let fn, run; const extra = [];
