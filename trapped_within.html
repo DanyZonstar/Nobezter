@@ -74,12 +74,12 @@ const TX = {
   ru: { start: 'Начать', set: 'Настройки', lang: 'Язык: русский', sub: 'демо · глава 0', tip: 'Наушники · тёмная комната · полный экран (F11)',
     intro: ['Ты согласился.', 'Белый халат. Бумага. Подпись.', 'На что именно — ты не помнишь.', 'Теперь только холодный бетон. И тьма.', 'И где-то далеко — тонкая полоска света.'],
     skip: 'Клик — пропустить', hint: 'WASD — идти · мышь — осмотреться · Shift — быстрее', open: 'E — открыть', pause: 'Пауза', sens: 'Чувствительность', vol: 'Громкость', bri: 'Яркость', q: 'Качество', resume: 'Продолжить',
-    s1: 'Темно... Я ничего не вижу.', s2: 'Там, далеко... свет. Тонкая линия.', s3: 'Дверь.', s4: 'Холодная... Металл.', s5: 'Что бы там ни было — хуже, чем здесь, быть не может.', wall: 'Стена. Сырая, холодная.', door2: 'Она не заперта.',
+    s1: 'Темно... Я ничего не вижу.', s2: 'Там, далеко... свет. Тонкая линия.', s3: 'Дверь.', s4: 'Холодная... Металл.', s5: 'Что бы там ни было — хуже, чем здесь, быть не может.', wall: 'Стена. Сырая, холодная.', open1: 'Она… открывается. Сама.', m1: 'Здесь кто-нибудь есть?.. Эй?', m2: 'Я помню запах хлорки… и чей-то голос.', m3: 'Нет. Не помню, на что я согласился. И не надо было.', m4: 'Дверь. Она должна открыться. Должна.', door2: 'Она не заперта.',
     end: 'Конец демо. Продолжение следует.', steam: 'Добавить в желаемое в Steam', again: 'Начать заново', nosteam: 'Страница в Steam появится после публикации', nowebgl: 'Для игры нужен браузер с поддержкой WebGL 2.' },
   en: { start: 'Start', set: 'Settings', lang: 'Language: English', sub: 'demo · chapter 0', tip: 'Headphones · dark room · fullscreen (F11)',
     intro: ['You agreed.', 'White coat. A paper. A signature.', 'What exactly you agreed to — you can’t remember.', 'Now there is only cold concrete. And darkness.', 'And far away — a thin line of light.'],
     skip: 'Click to skip', hint: 'WASD — move · mouse — look · Shift — faster', open: 'E — open', pause: 'Paused', sens: 'Sensitivity', vol: 'Volume', bri: 'Brightness', q: 'Quality', resume: 'Resume',
-    s1: 'It’s dark... I can’t see anything.', s2: 'There, far away... light. A thin line.', s3: 'A door.', s4: 'Cold... Metal.', s5: 'Whatever is out there — it can’t be worse than this.', wall: 'A wall. Damp and cold.', door2: 'It isn’t locked.',
+    s1: 'It’s dark... I can’t see anything.', s2: 'There, far away... light. A thin line.', s3: 'A door.', s4: 'Cold... Metal.', s5: 'Whatever is out there — it can’t be worse than this.', wall: 'A wall. Damp and cold.', open1: 'It’s… opening. By itself.', m1: 'Is anyone here?.. Hello?', m2: 'I remember the smell of bleach… and someone’s voice.', m3: 'No. I don’t remember what I agreed to. I shouldn’t have.', m4: 'The door. It has to open. It has to.', door2: 'It isn’t locked.',
     end: 'End of the demo. To be continued.', steam: 'Wishlist on Steam', again: 'Play again', nosteam: 'The Steam page will appear after release', nowebgl: 'This game needs a browser with WebGL 2.' }
 };
 let lang = 'ru', S = { sens: 1, vol: .8, bri: 1.1, q: 1 };
@@ -203,16 +203,22 @@ const amb = new THREE.AmbientLight(0x2a2f3a, .55); scene.add(amb);
 
 /* ---------------- Тело и руки существа ---------------- */
 const skin = skinTex(), skinMat = new THREE.MeshStandardMaterial({ map: mkTex(skin.alb, true), normalMap: mkTex(skin.nrm, false), normalScale: new THREE.Vector2(1.2, 1.2), roughness: .55, metalness: 0, color: 0xc2c4c3 });
-function finger(len, rad, curl) { const g = new THREE.Group(); let parent = g, off = 0; [1, .78, .62].forEach((k, i) => { const seg = new THREE.Group(); seg.position.y = off; seg.rotation.x = curl * (1 + i * .45); const m = new THREE.Mesh(new THREE.CapsuleGeometry(rad * (1 - i * .12), len * k, 4, 8), skinMat); m.position.y = len * k / 2 + rad; seg.add(m); parent.add(seg); parent = seg; off = len * k * .93 + rad * .5; const kn = new THREE.Mesh(new THREE.SphereGeometry(rad * (1 - i * .1) * 1.12, 10, 8), skinMat); kn.position.y = off - rad * .2; parent.parent && seg.add(kn); }); return g; }
-function makeArm(side) {
-  const arm = new THREE.Group(); const fore = new THREE.Mesh(new THREE.CylinderGeometry(.034, .05, .38, 18), skinMat); fore.position.y = -.13; arm.add(fore); const elb = new THREE.Mesh(new THREE.SphereGeometry(.05, 12, 10), skinMat); elb.position.y = -.32; arm.add(elb);
-  const wrist = new THREE.Mesh(new THREE.SphereGeometry(.037, 12, 10), skinMat); wrist.position.y = .05; arm.add(wrist);
-  const palm = new THREE.Mesh(new THREE.CapsuleGeometry(.046, .06, 4, 10), skinMat); palm.scale.set(1.45, 1, .7); palm.position.y = .1; arm.add(palm);
-  [[-.042, .15, .72, .55], [-.014, .162, .85, .6], [.014, .16, .8, .62], [.04, .146, .68, .5]].forEach(([x, y, k, c]) => { const f = finger(.058 * k * 1.3, .0112, c); f.position.set(x, y, 0); arm.add(f); });
-  const th = finger(.045, .0125, .45); th.position.set(side * .052, .08, .01); th.rotation.z = -side * 1.05; th.rotation.y = side * .3; arm.add(th);
-  arm.rotation.x = -Math.PI / 2 + .1; arm.rotation.z = side * -.03; arm.position.set(side * .17, -.33, -.3); return arm;
+function finger(lens, rad, curls, spread) {
+  const g = new THREE.Group(); g.rotation.z = spread || 0; let parent = g;
+  for (let i = 0; i < 3; i++) { const L = lens[i], r = rad * (1 - i * .13), seg = new THREE.Group(); seg.rotation.x = curls[i]; seg.position.y = i ? lens[i - 1] + rad * (1 - (i - 1) * .13) * .5 : 0;
+    const m = new THREE.Mesh(new THREE.CapsuleGeometry(r, L, 4, 10), skinMat); m.position.y = L / 2; seg.add(m); const kn = new THREE.Mesh(new THREE.SphereGeometry(r * 1.08, 10, 8), skinMat); kn.position.y = L; seg.add(kn); parent.add(seg); parent = seg; }
+  return g;
 }
-const armL = makeArm(-1), armR = makeArm(1); camera.add(armL, armR); const handLight = new THREE.PointLight(0xb8b2a8, .5, 2.6, 2); handLight.position.set(0, -.05, .1); camera.add(handLight);
+function makeArm(side) {
+  const arm = new THREE.Group(), hand = new THREE.Group(); arm.add(hand); hand.rotation.y = -side * Math.PI / 2;
+  const fore = new THREE.Mesh(new THREE.CylinderGeometry(.03, .047, .5, 18), skinMat); fore.position.y = -.27; arm.add(fore);
+  const wrist = new THREE.Mesh(new THREE.SphereGeometry(.033, 12, 10), skinMat); wrist.scale.set(1.1, .8, .9); hand.add(wrist);
+  const palm = new THREE.Mesh(new THREE.CapsuleGeometry(.04, .045, 4, 12), skinMat); palm.scale.set(1.5, 1, .58); palm.position.y = .065; hand.add(palm);
+  [[-.046, .115, [.9, .7, .55], .07, .3], [-.016, .122, [1.05, .8, .6], .02, .4], [.014, .12, [1, .78, .58], -.02, .5], [.043, .112, [.8, .6, .46], -.07, .6]].forEach(([x, y, k, sp, c]) => { const f = finger(k.map(v => v * .042), .0098, [c * .5, c * 1.1, c * .8], sp); f.position.set(x, y, 0); hand.add(f); });
+  const th = finger([.036, .03, .0], .0115, [.25, .35, .2], 0); th.position.set(side * .05, .03, .012); th.rotation.z = side * .95; th.rotation.y = side * -.25; hand.add(th);
+  arm.rotation.x = -1.78; arm.rotation.z = side * -.05; arm.position.set(side * .2, -.36, -.4); return arm;
+}
+const armL = makeArm(-1), armR = makeArm(1); camera.add(armL, armR); const handLight = new THREE.PointLight(0xb8b2a8, .55, 2.6, 2); handLight.position.set(0, .05, .15); camera.add(handLight);
 const body = new THREE.Group(); scene.add(body);
 const torso = new THREE.Mesh(new THREE.CapsuleGeometry(.17, .5, 6, 14), skinMat); torso.scale.set(1, 1, .72); torso.position.set(0, 1.1, .02); body.add(torso);
 const hips = new THREE.Mesh(new THREE.SphereGeometry(.17, 14, 10), skinMat); hips.scale.set(1.05, .8, .8); hips.position.set(0, .78, .03); body.add(hips);
@@ -280,7 +286,8 @@ const sfx = {
 const G = { mode: 'title', yaw: 0, pitch: 0, pos: new THREE.Vector3(2.4, 1.6, 12), vel: new THREE.Vector3(), phase: 0, lastStep: 0, side: 1, t: 0, locked: false, keys: {}, mdx: 0, mdy: 0, dist: 99, open: 0, opening: false, handle: 0, subT: 0, said: {}, nextDrip: 6, nextLamp: 14, lampT: 0, beat: 0, swayX: 0, swayY: 0, endTimer: 0, wallMsg: 0, rattled: false };
 const subEl = $('sub'), promptEl = $('prompt'), hintEl = $('hint');
 let subTimer = 0;
-function say(key, ms = 3800) { subEl.textContent = t(key); subEl.classList.add('on'); clearTimeout(subTimer); subTimer = setTimeout(() => subEl.classList.remove('on'), ms); }
+function speakLine(text) { if (!('speechSynthesis' in window)) return; try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(text); u.lang = lang === 'ru' ? 'ru-RU' : 'en-US'; u.rate = .8; u.pitch = .55; u.volume = Math.min(1, S.vol * 1.1); const vs = speechSynthesis.getVoices() || []; const pick = vs.find(v => v.lang && v.lang.toLowerCase().startsWith(lang === 'ru' ? 'ru' : 'en')); if (pick) u.voice = pick; speechSynthesis.speak(u); } catch (e) {} }
+function say(key, ms = 3800) { const text = t(key); subEl.textContent = text; subEl.classList.add('on'); clearTimeout(subTimer); subTimer = setTimeout(() => subEl.classList.remove('on'), ms); speakLine(text); }
 function playerReset() { G.pos.set(2.4, 1.6, 12); G.yaw = 0.24; G.pitch = -.04; G.vel.set(0, 0, 0); G.said = {}; G.open = 0; G.opening = false; G.handle = 0; doorPivot.rotation.y = 0; lever.rotation.z = 0; openGlow.visible = false; matComp.uniforms.uFlash.value = 0; glowMat.color.setRGB(1 * 5.5, .9 * 5.5, .72 * 5.5); doorLight.intensity = 38; haloMat.opacity = .18; $('end').classList.remove('on'); G.endTimer = 0; G.rattled = false; }
 function setMode(m) { G.mode = m; }
 
@@ -324,24 +331,23 @@ function update(dt, time) {
       const speed = Math.hypot(G.vel.x, G.vel.z); if (speed > .15) { G.phase += dt * speed * 3.4; const sidx = Math.floor(G.phase / Math.PI); if (sidx !== G.lastStep) { G.lastStep = sidx; G.side = -G.side; sfx.step(G.side, running); } }
       const bob = Math.sin(G.phase * 2) * .022 * Math.min(1, speed / 1.6), breath = Math.sin(time * 1.1) * .004;
       G.pos.y = 1.62 + bob + breath;
-      G.dist = Math.hypot(G.pos.x, G.pos.z - DZ);
+      G.dist = Math.hypot(G.pos.x, G.pos.z - DZ); G.playT = (G.playT || 0) + dt; [[22, 'm1'], [50, 'm2'], [82, 'm3'], [118, 'm4']].forEach(([at, k]) => { if (!G.said[k] && G.playT > at && !G.opening) { G.said[k] = 1; say(k, 4600); } });
       /* события */
       if (!G.said.s2 && G.pos.z < 3) { G.said.s2 = 1; say('s2', 4200); } if (!G.said.s3 && G.dist < 11) { G.said.s3 = 1; say('s3', 3000); } if (!G.said.s4 && G.dist < 3.4) { G.said.s4 = 1; say('s4', 3400); }
-      const fwd = v3.set(-Math.sin(G.yaw) * Math.cos(G.pitch), Math.sin(G.pitch), -Math.cos(G.yaw) * Math.cos(G.pitch)), to = new THREE.Vector3(0, 1.05, DZ).sub(G.pos).normalize(); const near = G.dist < 2.7 && fwd.dot(to) > .82 && !G.opening && G.open === 0; promptEl.textContent = t('open'); promptEl.classList.toggle('on', near);
+      const near = G.dist < 2.1 && !G.opening && G.open === 0; promptEl.classList.remove('on'); if (near) { G.opening = true; G.openT = 0; }
       /* звук-атмосфера */
       if (Au.ctx) { const prox = Math.max(0, 1 - G.dist / 16); Au.humG.gain.value += (prox * .05 - Au.humG.gain.value) * .05; G.beat -= dt; if (G.beat <= 0) { const bpm = 56 + prox * 60 + (running ? 14 : 0); G.beat = 60 / bpm; sfx.thump(); setTimeout(() => tone(48, .18, 'sine', .14, 28), 140); } G.nextDrip -= dt; if (G.nextDrip <= 0) { G.nextDrip = rnd(5, 14); sfx.drip(); } }
       G.nextLamp -= dt; if (G.nextLamp <= 0 && G.dist < 26 && !G.opening) { G.nextLamp = rnd(11, 24); G.lampT = rnd(.35, .8); sfx.zap(); }
       /* открытие двери */
-      if (G.opening) { G.openT += dt; const T = G.openT; if (T < .5) { G.handle = Math.min(1, T / .35); lever.rotation.z = -G.handle * .6; if (T < .06 && !G.rattled) { G.rattled = true; sfx.rattle(); } } if (T > .65 && T < .7 && !G.said.l) { G.said.l = 1; sfx.latch(); say('door2', 2600); } if (T > 1.1) { if (!G.said.c) { G.said.c = 1; sfx.creak(5.2); sfx.swell(); } const k = Math.min(1, (T - 1.1) / 4.6), e = k * k * (3 - 2 * k); G.open = e; doorPivot.rotation.y = -e * 1.75; openGlow.visible = true; const b = 5.5 + e * 22; glowMat.color.setRGB(b, b * .9, b * .72); doorLight.intensity = 38 + e * 1500; haloMat.opacity = .18 + e * .5; if (T > 3.6) { matComp.uniforms.uFlash.value = Math.min(1, (T - 3.6) / 2.4); } if (T > 6.4 && !G.endShown) { G.endShown = true; $('end').classList.add('on'); document.exitPointerLock && document.exitPointerLock(); setMode('end'); } } }
+      if (G.opening) { G.openT += dt; const T = G.openT; if (T < .5) { G.handle = Math.min(1, T / .35); lever.rotation.z = -G.handle * .6; if (T < .06 && !G.rattled) { G.rattled = true; sfx.rattle(); } } if (T > .65 && T < .7 && !G.said.l) { G.said.l = 1; sfx.latch(); say('door2', 2600); } if (T > 1.1) { if (!G.said.c) { G.said.c = 1; sfx.creak(5.2); sfx.swell(); say('open1', 3400); } const k = Math.min(1, (T - 1.1) / 4.6), e = k * k * (3 - 2 * k); G.open = e; doorPivot.rotation.y = -e * 1.75; openGlow.visible = true; const b = 5.5 + e * 22; glowMat.color.setRGB(b, b * .9, b * .72); doorLight.intensity = 38 + e * 1500; haloMat.opacity = .18 + e * .5; if (T > 3.6) { matComp.uniforms.uFlash.value = Math.min(1, (T - 3.6) / 2.4); } if (T > 6.4 && !G.endShown) { G.endShown = true; $('end').classList.add('on'); document.exitPointerLock && document.exitPointerLock(); setMode('end'); } } }
     }
     const lamp = G.lampT > 0 ? (Math.random() < .55 ? 1 : .1) : 0; if (G.lampT > 0) G.lampT -= dt; lampL.intensity = lamp * 14; bulb.material.emissive.setRGB(lamp * .55, lamp * .7, lamp * .6);
     ledL.intensity = .03 + (Math.sin(time * 2.2) > .6 ? .06 : 0); led.material.color.setRGB(Math.sin(time * 2.2) > .6 ? 1 : .22, .06, .04);
     camera.position.copy(G.pos); camera.rotation.set(G.pitch, G.yaw, Math.sin(G.phase) * .004 * Math.min(1, Math.hypot(G.vel.x, G.vel.z) / 1.6));
     body.visible = true; body.position.set(G.pos.x, 0, G.pos.z); body.rotation.y = G.yaw; body.position.x += Math.sin(G.yaw) * .0; torso.position.z = .06 + .0; body.position.add(v3.set(Math.sin(G.yaw) * .13, 0, Math.cos(G.yaw) * .13));
     const lg = Math.sin(G.phase) * .35 * Math.min(1, Math.hypot(G.vel.x, G.vel.z) / 1.6); legs[0].rotation.x = lg; legs[1].rotation.x = -lg;
-    armL.visible = armR.visible = true; G.swayX += (-G.mdx * .0004 - G.swayX) * Math.min(1, dt * 6); G.swayY += (G.mdy * .0004 - G.swayY) * Math.min(1, dt * 6); G.mdx *= .7; G.mdy *= .7; const ab = Math.sin(G.phase * 2) * .012 * Math.min(1, Math.hypot(G.vel.x, G.vel.z) / 1.6);
-    armL.position.set(-.17 + G.swayX * 2, -.33 + ab - G.swayY + Math.sin(time * 1.1) * .002, -.3); armR.position.set(.17 + G.swayX * 2, -.33 - ab - G.swayY + Math.sin(time * 1.1 + 1) * .002, -.3);
-    const reach = G.opening ? Math.min(1, G.openT / .4) : 0; armR.position.x -= reach * .04; armR.position.y += reach * .1; armR.position.z -= reach * .1; armR.rotation.x = -Math.PI / 2 + .1 + reach * .12; armR.rotation.z = -.03 + reach * .06;
+    armL.visible = armR.visible = true; G.swayX += (-G.mdx * .0004 - G.swayX) * Math.min(1, dt * 6); G.swayY += (G.mdy * .0004 - G.swayY) * Math.min(1, dt * 6); G.mdx *= .7; G.mdy *= .7; const spd = Math.min(1, Math.hypot(G.vel.x, G.vel.z) / 1.6), sw = Math.sin(G.phase) * .12 * spd, ab = Math.sin(G.phase * 2) * .012 * spd, br = Math.sin(time * 1.1) * .004;
+    armL.position.set(-.2 + G.swayX * 2, -.36 + ab - G.swayY + br, -.4 + sw * .6); armR.position.set(.2 + G.swayX * 2, -.36 - ab - G.swayY - br, -.4 - sw * .6); armL.rotation.x = -1.78 + sw * .5; armR.rotation.x = -1.78 - sw * .5;
   }
   /* свет/пыль/поток */
   const fl = 1 + Math.sin(time * 23) * .015 + Math.sin(time * 7.3) * .03; doorLight.intensity = (doorLight.intensity) * 0 + (G.open > 0 ? 38 + G.open * 1500 : 38 * fl); streak.material.opacity = .2 * fl + G.open * .6;
