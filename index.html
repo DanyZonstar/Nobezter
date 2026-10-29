@@ -1263,10 +1263,13 @@ function wRender(ctx, c, cam, pl, got, tm, W, H) {
     box(x - .23, y + .84, z - .2, .46, .42, .4, '#f2c14e');
     const e1 = P(x - .1, y + 1.05, z + .2), e2 = P(x + .1, y + 1.05, z + .2); ctx.fillStyle = '#151515'; ctx.fillRect(e1[0] - 1.5, e1[1] - 2, 3, 4); ctx.fillRect(e2[0] - 1.5, e2[1] - 2, 3, 4);
   };
-  const pd = pl ? Math.max(0, Math.min(2 * n - 2, Math.floor(pl.x) + Math.floor(pl.z))) : -1;
+  const pd = pl ? Math.max(0, Math.min(2 * n - 2, Math.floor(pl.x) + Math.floor(pl.z))) : -1, pcx = pl ? Math.floor(pl.x) : 0;
   for (let d = 0; d <= 2 * n - 2; d++) {
+    let drew = false;
     for (let x = Math.max(0, d - n + 1); x <= Math.min(n - 1, d); x++) {
-      const z = d - x, i = z * n + x, t = c.t[i]; if (!t) continue;
+      const z = d - x, i = z * n + x, t = c.t[i];
+      if (d === pd && !drew && x >= pcx) { drawPl(); drew = true; }
+      if (!t) continue;
       const h = c.h[i], col = WCOL[t][0]; box(x, 0, z, 1, h, 1, col, 'rgba(0,0,0,.14)');
       if (t === 4) { const a = .15 + .12 * Math.sin(tm * 4 + x + z); poly([P(x, h, z), P(x + 1, h, z), P(x + 1, h, z + 1), P(x, h, z + 1)], 'rgba(255,230,80,' + a + ')'); }
       if (t === 5) { const p = P(x + .5, h, z + .5); ctx.fillStyle = '#146a4c'; ctx.beginPath(); ctx.ellipse(p[0], p[1], s * .3, s * .15, 0, 0, 7); ctx.fill(); ctx.fillStyle = '#c7ffe8'; ctx.beginPath(); ctx.ellipse(p[0], p[1] - 2, s * .2, s * .1, 0, 0, 7); ctx.fill(); }
@@ -1275,7 +1278,7 @@ function wRender(ctx, c, cam, pl, got, tm, W, H) {
       if (c.fin && c.fin[0] === x && c.fin[1] === z) { poly([P(x, h, z), P(x + .5, h, z), P(x + .5, h, z + .5), P(x, h, z + .5)], '#111'); poly([P(x + .5, h, z + .5), P(x + 1, h, z + .5), P(x + 1, h, z + 1), P(x + .5, h, z + 1)], '#111'); flag(x + .5, h, z + .5, '#2ecf7a'); }
       if (c.k[i] && !(got && got.has(i))) { const p = P(x + .5, h + .75 + Math.sin(tm * 3 + i) * .08, z + .5), w = Math.abs(Math.cos(tm * 3 + i)) * s * .2 + 2; ctx.fillStyle = '#ffd13a'; ctx.strokeStyle = '#b8860b'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.ellipse(p[0], p[1], w, s * .22, 0, 0, 7); ctx.fill(); ctx.stroke(); }
     }
-    if (d === pd) drawPl();
+    if (d === pd && !drew) drawPl();
   }
   if (pl && pd < 0) drawPl();
 }
