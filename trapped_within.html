@@ -59,6 +59,7 @@ button.m:hover{border-color:rgba(230,235,240,.7);color:#fff;background:rgba(255,
     <label id="lVol"></label><input type="range" id="sVol" min="0" max="100" value="80">
     <label id="lBri"></label><input type="range" id="sBri" min="70" max="160" value="110">
     <label id="lQ"></label><input type="range" id="sQ" min="50" max="100" value="100">
+    <label id="lVoice"></label><input type="checkbox" id="sVoice" style="width:18px;height:18px;accent-color:#9aa4ab">
   </div>
   <div class="btns"><button class="m" id="bResume"></button><button class="m" id="bLang2"></button></div>
 </div>
@@ -74,22 +75,22 @@ const STEAM_URL = ''; // ← сюда вставь ссылку на стран�
 const TX = {
   ru: { start: 'Начать', set: 'Настройки', lang: 'Язык: русский', sub: 'демо · глава 0', tip: 'Наушники · тёмная комната · полный экран (F11)',
     intro: ['Ты согласился.', 'Белый халат. Бумага. Подпись.', 'На что именно — ты не помнишь.', 'Теперь только холодный бетон. И тьма.', 'И где-то далеко — тонкая полоска света.'],
-    skip: 'Клик — пропустить', hint: 'WASD — идти · мышь — осмотреться · Shift — быстрее', open: 'E — открыть', pause: 'Пауза', sens: 'Чувствительность', vol: 'Громкость', bri: 'Яркость', q: 'Качество', resume: 'Продолжить',
+    skip: 'Клик — пропустить', hint: 'WASD — идти · мышь — осмотреться · Shift — быстрее', open: 'E — открыть', pause: 'Пауза', sens: 'Чувствительность', vol: 'Громкость', bri: 'Яркость', q: 'Качество', resume: 'Продолжить', voice: 'Озвучка (системная)',
     s1: 'Темно... Я ничего не вижу.', s2: 'Там, далеко... свет. Тонкая линия.', s3: 'Дверь.', s4: 'Холодная... Металл.', s5: 'Что бы там ни было — хуже, чем здесь, быть не может.', wall: 'Стена. Сырая, холодная.', open1: 'Она… открывается. Сама.', m1: 'Здесь кто-нибудь есть?.. Эй?', m2: 'Я помню запах хлорки… и чей-то голос.', m3: 'Нет. Не помню, на что я согласился. И не надо было.', m4: 'Дверь. Она должна открыться. Должна.', door2: 'Она не заперта.',
     end: 'Конец демо. Продолжение следует.', steam: 'Добавить в желаемое в Steam', again: 'Начать заново', nosteam: 'Страница в Steam появится после публикации', nowebgl: 'Для игры нужен браузер с поддержкой WebGL 2.' },
   en: { start: 'Start', set: 'Settings', lang: 'Language: English', sub: 'demo · chapter 0', tip: 'Headphones · dark room · fullscreen (F11)',
     intro: ['You agreed.', 'White coat. A paper. A signature.', 'What exactly you agreed to — you can’t remember.', 'Now there is only cold concrete. And darkness.', 'And far away — a thin line of light.'],
-    skip: 'Click to skip', hint: 'WASD — move · mouse — look · Shift — faster', open: 'E — open', pause: 'Paused', sens: 'Sensitivity', vol: 'Volume', bri: 'Brightness', q: 'Quality', resume: 'Resume',
+    skip: 'Click to skip', hint: 'WASD — move · mouse — look · Shift — faster', open: 'E — open', pause: 'Paused', sens: 'Sensitivity', vol: 'Volume', bri: 'Brightness', q: 'Quality', resume: 'Resume', voice: 'Voice (system)',
     s1: 'It’s dark... I can’t see anything.', s2: 'There, far away... light. A thin line.', s3: 'A door.', s4: 'Cold... Metal.', s5: 'Whatever is out there — it can’t be worse than this.', wall: 'A wall. Damp and cold.', open1: 'It’s… opening. By itself.', m1: 'Is anyone here?.. Hello?', m2: 'I remember the smell of bleach… and someone’s voice.', m3: 'No. I don’t remember what I agreed to. I shouldn’t have.', m4: 'The door. It has to open. It has to.', door2: 'It isn’t locked.',
     end: 'End of the demo. To be continued.', steam: 'Wishlist on Steam', again: 'Play again', nosteam: 'The Steam page will appear after release', nowebgl: 'This game needs a browser with WebGL 2.' }
 };
-let lang = 'ru', S = { sens: 1, vol: .8, bri: 1.1, q: 1 };
+let lang = 'ru', S = { sens: 1, vol: .8, bri: 1.1, q: 1, voice: false };
 try { const d = JSON.parse(localStorage.getItem('tw-set') || 'null'); if (d) { lang = d.lang || lang; S = Object.assign(S, d.S || {}); } } catch (e) {}
 const $ = id => document.getElementById(id), t = k => TX[lang][k];
 const saveSet = () => { try { localStorage.setItem('tw-set', JSON.stringify({ lang, S })); } catch (e) {} };
 function applyText() {
   $('bStart').textContent = t('start'); $('bSet').textContent = t('set'); $('bLang').textContent = t('lang'); $('bLang2').textContent = t('lang'); $('tSub').textContent = t('sub'); $('tTip').textContent = t('tip'); $('introSkip').textContent = t('skip');
-  $('pTitle').textContent = t('pause'); $('lSens').textContent = t('sens'); $('lVol').textContent = t('vol'); $('lBri').textContent = t('bri'); $('lQ').textContent = t('q'); $('bResume').textContent = t('resume'); $('endP').textContent = t('end'); $('bSteam').textContent = t('steam'); $('bAgain').textContent = t('again'); $('hint').textContent = t('hint');
+  $('pTitle').textContent = t('pause'); $('lSens').textContent = t('sens'); $('lVol').textContent = t('vol'); $('lBri').textContent = t('bri'); $('lQ').textContent = t('q'); $('bResume').textContent = t('resume'); $('lVoice').textContent = t('voice'); $('sVoice').checked = !!S.voice; $('endP').textContent = t('end'); $('bSteam').textContent = t('steam'); $('bAgain').textContent = t('again'); $('hint').textContent = t('hint');
   $('sSens').value = S.sens * 100; $('sVol').value = S.vol * 100; $('sBri').value = S.bri * 100; $('sQ').value = S.q * 100;
 }
 applyText();
@@ -202,12 +203,12 @@ const dustGeo = new THREE.BufferGeometry(); dustGeo.setAttribute('position', new
 const dust = new THREE.Points(dustGeo, new THREE.PointsMaterial({ size: .035, map: softSprite(), vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, sizeAttenuation: true, opacity: .8, fog: false })); scene.add(dust);
 const amb = new THREE.AmbientLight(0x2a2f3a, .55); scene.add(amb);
 /* ---------------- Глава 2: тёмная комната, генератор, безопасный круг ---------------- */
-const CH = { z0: -52 }, GEN = new THREE.Vector3(-4, 0, -42), BENCH = new THREE.Vector3(-1, 0, -47), HAMMER = new THREE.Vector3(9, 0, -34), GEN_R = 6.5;
+const CH = { x0: -75, x1: 75, z0: -180 }, GEN = new THREE.Vector3(-4, 0, -42), BENCH = new THREE.Vector3(-1, 0, -47), HAMMER = new THREE.Vector3(9, 0, -34), GEN_R = 6.5;
 const chGroup = new THREE.Group(); scene.add(chGroup);
 const chLen = DZ - CH.z0, chCz = (CH.z0 + DZ) / 2;
 const chW = (w, h, d, x, y, z) => { const q = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), wallMat); q.position.set(x, y, z); chGroup.add(q); return q; };
-{ const fl = new THREE.Mesh(new THREE.PlaneGeometry(RX1 - RX0, chLen), floorMat); fl.rotation.x = -Math.PI / 2; fl.position.set(0, 0, chCz); chGroup.add(fl); const ce = new THREE.Mesh(new THREE.PlaneGeometry(RX1 - RX0, chLen), wallMat); ce.rotation.x = Math.PI / 2; ce.position.set(0, RH, chCz); chGroup.add(ce); }
-chW(.4, RH, chLen, RX0 - .2, RH / 2, chCz); chW(.4, RH, chLen, RX1 + .2, RH / 2, chCz); chW(RX1 - RX0, RH, .4, 0, RH / 2, CH.z0 - .2);
+{ const fl = new THREE.Mesh(new THREE.PlaneGeometry(CH.x1 - CH.x0, chLen), floorMat); fl.rotation.x = -Math.PI / 2; fl.position.set(0, 0, chCz); chGroup.add(fl); const ce = new THREE.Mesh(new THREE.PlaneGeometry(CH.x1 - CH.x0, chLen), wallMat); ce.rotation.x = Math.PI / 2; ce.position.set(0, RH, chCz); chGroup.add(ce); }
+chW(.4, RH, chLen, CH.x0 - .2, RH / 2, chCz); chW(.4, RH, chLen, CH.x1 + .2, RH / 2, chCz); chW(CH.x1 - CH.x0, RH, .4, 0, RH / 2, CH.z0 - .2);
 const woodMat = new THREE.MeshStandardMaterial({ color: 0x6b4a2b, roughness: .85, metalness: 0 });
 const metalMat = new THREE.MeshStandardMaterial({ color: 0x3a4046, roughness: .45, metalness: .75 });
 const gen = new THREE.Group(); gen.position.copy(GEN); chGroup.add(gen);
@@ -246,7 +247,7 @@ function makeArm(side) {
   const wrist = new THREE.Mesh(new THREE.SphereGeometry(.033, 12, 10), skinMat); wrist.scale.set(1.1, .8, .9); hand.add(wrist);
   const palm = new THREE.Mesh(new THREE.CapsuleGeometry(.04, .045, 4, 12), skinMat); palm.scale.set(1.5, 1, .58); palm.position.y = .065; hand.add(palm);
   [[-.046, .115, [.9, .7, .55], .07, .3], [-.016, .122, [1.05, .8, .6], .02, .4], [.014, .12, [1, .78, .58], -.02, .5], [.043, .112, [.8, .6, .46], -.07, .6]].forEach(([x, y, k, sp, c]) => { const f = finger(k.map(v => v * .042), .0098, [c * .5, c * 1.1, c * .8], sp); f.position.set(x, y, 0); hand.add(f); });
-  const th = finger([.036, .03, .0], .0115, [.25, .35, .2], 0); th.position.set(side * .05, .03, .012); th.rotation.z = side * .95; th.rotation.y = side * -.25; hand.add(th);
+  const th = finger([.036, .03, .0], .0115, [.04, .06, 0], 0); th.position.set(side * .05, .03, .012); th.rotation.z = side * .7; th.rotation.y = side * -.25; hand.add(th);
   arm.rotation.x = -1.78; arm.rotation.z = side * -.05; arm.position.set(side * .2, -.36, -.4); return arm;
 }
 const armL = makeArm(-1), armR = makeArm(1); camera.add(armL, armR); const handLight = new THREE.PointLight(0xb8b2a8, .55, 2.6, 2); handLight.position.set(0, .05, .15); camera.add(handLight);
@@ -318,7 +319,7 @@ const sfx = {
 const G = { mode: 'title', yaw: 0, pitch: 0, pos: new THREE.Vector3(2.4, 1.6, 12), vel: new THREE.Vector3(), phase: 0, lastStep: 0, side: 1, t: 0, locked: false, keys: {}, mdx: 0, mdy: 0, dist: 99, open: 0, opening: false, handle: 0, subT: 0, said: {}, nextDrip: 6, nextLamp: 14, lampT: 0, beat: 0, swayX: 0, swayY: 0, endTimer: 0, wallMsg: 0, rattled: false };
 const subEl = $('sub'), promptEl = $('prompt'), hintEl = $('hint');
 let subTimer = 0;
-function speakLine(text) { if (!('speechSynthesis' in window)) return; try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(text); u.lang = lang === 'ru' ? 'ru-RU' : 'en-US'; u.rate = .8; u.pitch = .55; u.volume = Math.min(1, S.vol * 1.1); const vs = speechSynthesis.getVoices() || []; const pick = vs.find(v => v.lang && v.lang.toLowerCase().startsWith(lang === 'ru' ? 'ru' : 'en')); if (pick) u.voice = pick; speechSynthesis.speak(u); } catch (e) {} }
+function speakLine(text) { if (!S.voice || !('speechSynthesis' in window)) return; try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(text); u.lang = lang === 'ru' ? 'ru-RU' : 'en-US'; u.rate = .8; u.pitch = .55; u.volume = Math.min(1, S.vol * 1.1); const vs = speechSynthesis.getVoices() || []; const pick = vs.find(v => v.lang && v.lang.toLowerCase().startsWith(lang === 'ru' ? 'ru' : 'en')); if (pick) u.voice = pick; speechSynthesis.speak(u); } catch (e) {} }
 function sayRaw(text, ms = 3800) { subEl.textContent = text; subEl.classList.add('on'); clearTimeout(subTimer); subTimer = setTimeout(() => subEl.classList.remove('on'), ms); speakLine(text); }
 function say(key, ms = 3800) { const text = t(key); subEl.textContent = text; subEl.classList.add('on'); clearTimeout(subTimer); subTimer = setTimeout(() => subEl.classList.remove('on'), ms); speakLine(text); }
 function playerReset() { G.pos.set(2.4, 1.6, 12); G.yaw = 0.24; G.pitch = -.04; G.vel.set(0, 0, 0); G.said = {}; G.open = 0; G.opening = false; G.handle = 0; doorPivot.rotation.y = 0; lever.rotation.z = 0; openGlow.visible = false; matComp.uniforms.uFlash.value = 0; glowMat.color.setRGB(1 * 5.5, .9 * 5.5, .72 * 5.5); doorLight.intensity = 38; haloMat.opacity = .18; $('end').classList.remove('on'); G.endTimer = 0; G.rattled = false; }
@@ -360,6 +361,7 @@ $('bSet').onclick = () => { $('pause').classList.remove('off'); };
 $('bLang').onclick = $('bLang2').onclick = () => { lang = lang === 'ru' ? 'en' : 'ru'; saveSet(); applyText(); };
 $('bResume').onclick = () => { $('pause').classList.add('off'); if (G.mode === 'play') lockPointer(); };
 $('sSens').oninput = e => { S.sens = e.target.value / 100; saveSet(); }; $('sVol').oninput = e => { S.vol = e.target.value / 100; if (Au.master) Au.master.gain.value = S.vol; saveSet(); }; $('sBri').oninput = e => { S.bri = e.target.value / 100; saveSet(); }; $('sQ').oninput = e => { S.q = e.target.value / 100; saveSet(); resize(); };
+$('sVoice').onchange = e => { S.voice = e.target.checked; saveSet(); };
 $('bSteam').onclick = () => { if (STEAM_URL) window.open(STEAM_URL, '_blank'); else { $('endP').textContent = t('nosteam'); setTimeout(() => { $('endP').textContent = t('end'); }, 2600); } };
 $('bAgain').onclick = () => { $('end').classList.remove('on'); startIntro(); };
 
@@ -378,11 +380,11 @@ function update(dt, time) {
   if (G.mode === 'title') { camera.position.set(2.4, 1.6, 12); camera.rotation.set(-.04, .24 + Math.sin(time * .1) * .04, 0); body.visible = false; armL.visible = armR.visible = false; matComp.uniforms.uFade.value = 1 - Math.min(1, matComp.uniforms.uFade.value * 0 + 0); matComp.uniforms.uFade.value = .55; }
   if (G.mode === 'play' || G.mode === 'intro') {
     if (G.mode === 'play') {
-      const paused = !G.locked && !$('pause').classList.contains('off') === false; const running = G.keys.ShiftLeft || G.keys.ShiftRight; const can = G.locked && !G.opening && G.open === 0;
+      const paused = !G.locked && !$('pause').classList.contains('off') === false; const running = G.keys.ShiftLeft || G.keys.ShiftRight; const can = G.locked && !G.opening && (G.open === 0 || G.ch2);
       const mx = (G.keys.KeyD || G.keys.ArrowRight ? 1 : 0) - (G.keys.KeyA || G.keys.ArrowLeft ? 1 : 0), mz = (G.keys.KeyW || G.keys.ArrowUp ? 1 : 0) - (G.keys.KeyS || G.keys.ArrowDown ? 1 : 0);
       const sp = running ? 3.1 : 1.65; let tvx = 0, tvz = 0; if (can && (mx || mz)) { const l = Math.hypot(mx, mz); tvx = (mx / l * Math.cos(G.yaw) - mz / l * Math.sin(G.yaw)) * sp; tvz = (-mx / l * Math.sin(G.yaw) - mz / l * Math.cos(G.yaw)) * sp; }
       G.vel.x += (tvx - G.vel.x) * Math.min(1, dt * 7); G.vel.z += (tvz - G.vel.z) * Math.min(1, dt * 7);
-      let nx = G.pos.x + G.vel.x * dt, nz = G.pos.z + G.vel.z * dt; const R = .32; const cx = Math.max(RX0 + R, Math.min(RX1 - R, nx)), cz = Math.max(G.ch2 ? CH.z0 + .5 + R : DZ + .5 + R, Math.min(RZ1 - R, nz)); if ((cx !== nx || cz !== nz) && G.wallMsg <= 0 && G.vel.length() > 1) { G.wallMsg = 9; say('wall', 2800); sfx.thump(); } G.wallMsg -= dt; G.pos.x = cx; G.pos.z = cz;
+      let nx = G.pos.x + G.vel.x * dt, nz = G.pos.z + G.vel.z * dt; const R = .32; const bx0 = G.ch2 ? CH.x0 : RX0, bx1 = G.ch2 ? CH.x1 : RX1; const cx = Math.max(bx0 + R, Math.min(bx1 - R, nx)), cz = Math.max(G.ch2 ? CH.z0 + .5 + R : DZ + .5 + R, Math.min(RZ1 - R, nz)); if ((cx !== nx || cz !== nz) && G.wallMsg <= 0 && G.vel.length() > 1) { G.wallMsg = 9; say('wall', 2800); sfx.thump(); } G.wallMsg -= dt; G.pos.x = cx; G.pos.z = cz;
       const speed = Math.hypot(G.vel.x, G.vel.z); if (speed > .15) { G.phase += dt * speed * 3.4; const sidx = Math.floor(G.phase / Math.PI); if (sidx !== G.lastStep) { G.lastStep = sidx; G.side = -G.side; sfx.step(G.side, running); } }
       const bob = Math.sin(G.phase * 2) * .022 * Math.min(1, speed / 1.6), breath = Math.sin(time * 1.1) * .004;
       G.pos.y = 1.62 + bob + breath;
