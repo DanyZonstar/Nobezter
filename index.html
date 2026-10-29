@@ -1512,113 +1512,121 @@ const APPLES = { hero: '🧺', good: '🍎', bad: '💣', speed: 3, lives: 3 };
 
 /* ---------- Каталог ---------- */
 const pLights = (x, sc, st) => {
-  const N = 5, cs = 60; let g, moves = 0, won = 0;
-  const flip = (r, c) => { [[r, c], [r - 1, c], [r + 1, c], [r, c - 1], [r, c + 1]].forEach(([i, j]) => { if (i >= 0 && j >= 0 && i < N && j < N) g[i][j] ^= 1; }); };
-  const reset = () => { g = Array.from({ length: N }, () => Array(N).fill(0)); for (let k = 0; k < 12; k++) flip(rnd(N), rnd(N)); moves = 0; won = 0; sc(0); st('Нажимай на клетки: они и соседи меняются. Погаси все огни'); };
-  reset();
-  return { click(a, b) { if (won) { reset(); return; } const c = Math.floor(a / cs), r = Math.floor(b / cs); if (r < 0 || c < 0 || r >= N || c >= N) return; flip(r, c); moves++; sc(moves); if (g.every(row => row.every(v => !v))) { won = 1; st('💡 Победа за ' + moves + ' ходов. Нажми, чтобы сыграть снова'); } },
-    t() { for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) R(x, g[r][c] ? '#ffd13a' : '#2b3446', c * cs + 4, r * cs + 4, cs - 8, cs - 8); } };
+  const W = 300, H = 380, N = 5, CS = 52, X0 = 20, Y0 = 70;
+  let g, mv = 0, lvl = 0, fr = 0, won = 0, glow = [];
+  const tog = (r, c) => { [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([a, b]) => { const rr = r + a, cc = c + b; if (rr >= 0 && cc >= 0 && rr < N && cc < N) g[rr][cc] ^= 1; }); };
+  const gen = () => { g = Array.from({ length: N }, () => Array(N).fill(0)); for (let k = 0; k < 4 + lvl * 2; k++) tog(rnd(N), rnd(N)); if (g.flat().every(v => !v)) tog(2, 2); mv = 0; won = 0; };
+  gen(); sc(0); st('Погаси все лампы. Нажатие переключает лампу и её соседей');
+  return { click(a, b) { if (won) return; const c = Math.floor((a - X0) / CS), r = Math.floor((b - Y0) / CS); if (r < 0 || c < 0 || r >= N || c >= N) return; tog(r, c); mv++; S.p('click'); glow.push({ r, c, l: 12 }); if (g.flat().every(v => !v)) { won = 1; lvl++; sc(lvl); S.p('win'); boom(150, 200, '#ffd13a', 30); setTimeout(gen, 1300); } }, t() {
+    fr++; glow.forEach(q => q.l--); glow = glow.filter(q => q.l > 0);
+    const bg = x.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#1b1f3a'); bg.addColorStop(1, '#0b0d1f'); x.fillStyle = bg; x.fillRect(0, 0, W, H);
+    A.box(x, X0 - 8, Y0 - 8, N * CS + 16, N * CS + 16, '#2a2f55', 14, { nogloss: 1 });
+    for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) { const X = X0 + c * CS + CS / 2, Y = Y0 + r * CS + CS / 2, on = g[r][c]; if (on) { const gl = x.createRadialGradient(X, Y, 4, X, Y, 30); gl.addColorStop(0, 'rgba(255,220,100,.55)'); gl.addColorStop(1, 'rgba(255,220,100,0)'); x.fillStyle = gl; A.circ(x, X, Y, 30); x.fill(); } A.orb(x, X, Y, 19, on ? '#ffd23f' : '#3a3f62', { flat: 1 }); x.fillStyle = on ? '#fff6c0' : '#2a2f4a'; A.rr(x, X - 6, Y + 14, 12, 7, 2); x.fill(); }
+    A.txt(x, 'Ходов: ' + mv, 150, 352, 14, '#cfd6ff', 'center'); A.hud(x, W, '💡 Уровень ' + (lvl + 1), 'Горит ' + g.flat().filter(v => v).length);
+  } };
 };
 const pHanoi = (x, sc, st) => {
-  let T, sel = -1, moves = 0, won = 0;
-  const reset = () => { T = [[4, 3, 2, 1], [], []]; sel = -1; moves = 0; won = 0; sc(0); st('Клик по столбику — выбрать, клик по другому — положить диск. Все диски на правый столбик'); };
-  reset();
-  return { click(a) { if (won) { reset(); return; } const i = Math.floor(a / 100); if (i < 0 || i > 2) return;
-    if (sel < 0) { if (T[i].length) sel = i; return; }
-    if (sel === i) { sel = -1; return; }
-    const d = T[sel][T[sel].length - 1], top = T[i][T[i].length - 1];
-    if (top === undefined || d < top) { T[i].push(T[sel].pop()); moves++; sc(moves); if (T[2].length === 4) { won = 1; st('🏆 Победа за ' + moves + ' ходов. Нажми, чтобы сыграть снова'); } }
-    sel = -1; },
-    t() {
-      R(x, '#5d4037', 0, 250, 300, 14);
-      for (let i = 0; i < 3; i++) { R(x, sel === i ? '#62c8ff' : '#8d6e63', i * 100 + 46, 110, 8, 140); }
-      const cols = ['#ff8a65', '#ffd54f', '#81c784', '#64b5f6'];
-      T.forEach((tw, i) => tw.forEach((d, k) => { const w = 20 + d * 20; R(x, cols[d - 1], i * 100 + 50 - w / 2, 232 - k * 24, w, 20); }));
-    } };
+  const W = 300, H = 320, PX = [55, 150, 245], BASE = 270, COL = ['#ff5470', '#ff9a3c', '#ffd23f', '#4be07a', '#35c3ff', '#b266ff', '#ff6fa5'];
+  let n = 3, pegs, sel = -1, mv = 0, won = 0, fr = 0, lift = 0;
+  const gen = () => { pegs = [[], [], []]; for (let i = n; i >= 1; i--) pegs[0].push(i); mv = 0; won = 0; sel = -1; };
+  gen(); sc(0); st('Перенеси пирамиду на правый стержень. Большой диск нельзя класть на маленький');
+  return { click(a) { if (won) return; const p = a < 102 ? 0 : a < 198 ? 1 : 2; if (sel < 0) { if (pegs[p].length) { sel = p; S.p('tick'); } return; } if (p === sel) { sel = -1; return; } const d = pegs[sel][pegs[sel].length - 1], top = pegs[p][pegs[p].length - 1]; if (top && top < d) { S.p('hit'); A.pop(PX[p], 120, 'Нельзя!', '#ff8a8a'); sel = -1; return; } pegs[p].push(pegs[sel].pop()); sel = -1; mv++; S.p('click');
+    if (pegs[2].length === n) { won = 1; S.p('win'); boom(245, 200, '#ffd13a', 30); sc(n - 2); A.pop(150, 80, 'Готово за ' + mv + ' (минимум ' + (2 ** n - 1) + ')', '#7dff9a'); setTimeout(() => { if (n < 7) { n++; gen(); } else st(WIN + 'Все башни собраны!'); }, 1800); } }, t() {
+    fr++; const bg = x.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#f3e3c3'); bg.addColorStop(1, '#d9bf8f'); x.fillStyle = bg; x.fillRect(0, 0, W, H);
+    A.box(x, 10, BASE, 280, 16, '#8a5a30', 6); PX.forEach(px => { A.box(x, px - 4, 110, 8, BASE - 110, '#a06a38', 4, { nogloss: 1 }); });
+    const dw = 80 / n; pegs.forEach((pg, p) => pg.forEach((d, i) => { const up = sel === p && i === pg.length - 1, w = 24 + d * (68 / n) * 1, Y = up ? 80 + Math.sin(fr * .2) * 3 : BASE - 18 - i * 18; A.box(x, PX[p] - w / 2, Y, w, 16, COL[d - 1], 8); }));
+    A.txt(x, 'Ходов: ' + mv + '  ·  минимум ' + (2 ** n - 1), 150, 300, 13, '#5a3a1e', 'center'); A.hud(x, W, '🗼 Дисков ' + n, null);
+  } };
 };
 const pFlood = (x, sc, st) => {
-  const N = 8, cs = 37, P = ['#e57373', '#64b5f6', '#81c784', '#ffd54f', '#ba68c8'];
-  let g, moves = 0, won = 0;
-  const reset = () => { g = Array.from({ length: N }, () => Array.from({ length: N }, () => rnd(5))); moves = 0; won = 0; sc(0); st('Выбирай цвет внизу: закрашиваешь область из левого верхнего угла'); };
-  const fill = c => { const from = g[0][0]; if (from === c) return; const q = [[0, 0]], seen = new Set(['0,0']); g[0][0] = c; for (let k = 0; k < q.length; k++) { const [i, j] = q[k]; [[i - 1, j], [i + 1, j], [i, j - 1], [i, j + 1]].forEach(([a, b]) => { if (a >= 0 && b >= 0 && a < N && b < N && !seen.has(a + ',' + b) && g[a][b] === from) { seen.add(a + ',' + b); g[a][b] = c; q.push([a, b]); } }); } };
-  reset();
-  return { click(a, b) { if (won) { reset(); return; } if (b >= N * cs) { const k = Math.floor(a / (300 / 5)); if (k >= 0 && k < 5 && g[0][0] !== k) { fill(k); moves++; sc(moves); if (g.every(row => row.every(v => v === g[0][0]))) { won = 1; st('🎨 Готово за ' + moves + ' ходов. Нажми, чтобы сыграть снова'); } } } },
-    t() {
-      for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) R(x, P[g[i][j]], j * cs + 2, i * cs + 2, cs - 4, cs - 4);
-      for (let k = 0; k < 5; k++) R(x, P[k], k * 60 + 6, N * cs + 8, 48, 36);
-    } };
+  const W = 300, H = 400, N = 12, CS = 22, X0 = 18, Y0 = 50, COL = ['#ff5470', '#ffd23f', '#4be07a', '#35c3ff', '#b266ff', '#ff9a3c'], LIM = 22;
+  let g, mv = 0, over = 0, fr = 0, lvl = 0;
+  const gen = () => { g = Array.from({ length: N }, () => Array.from({ length: N }, () => rnd(6))); mv = 0; };
+  const fill = c => { const o = g[0][0]; if (o === c) return; const q = [[0, 0]], seen = new Set(['0,0']); while (q.length) { const [r, cc] = q.pop(); g[r][cc] = c; [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([a, b]) => { const rr = r + a, c2 = cc + b; if (rr >= 0 && c2 >= 0 && rr < N && c2 < N && !seen.has(rr + ',' + c2) && g[rr][c2] === o) { seen.add(rr + ',' + c2); q.push([rr, c2]); } }); } };
+  gen(); sc(0); st('Заливай поле от левого верхнего угла. Сделай всё одного цвета за ' + LIM + ' ходов');
+  return { click(a, b) { if (over || b < 330) return; const k = Math.floor((a - 12) / 47); if (k < 0 || k > 5 || g[0][0] === k) return; fill(k); mv++; S.p('pop'); if (g.flat().every(v => v === k)) { lvl++; sc(lvl); S.p('win'); boom(150, 180, '#ffd13a', 30); A.pop(150, 180, 'Уровень пройден!', '#7dff9a'); gen(); } else if (mv >= LIM) { over = 1; S.p('lose'); st(OVER); } }, t() {
+    fr++; const bg = x.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#24304f'); bg.addColorStop(1, '#121a30'); x.fillStyle = bg; x.fillRect(0, 0, W, H);
+    A.box(x, X0 - 5, Y0 - 5, N * CS + 10, N * CS + 10, '#3a4780', 10, { nogloss: 1 });
+    for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) { const cc = COL[g[r][c]], X = X0 + c * CS, Y = Y0 + r * CS; const gr = x.createLinearGradient(X, Y, X, Y + CS); gr.addColorStop(0, A.lit(cc, .2)); gr.addColorStop(1, A.drk(cc, .15)); x.fillStyle = gr; x.fillRect(X, Y, CS, CS); }
+    COL.forEach((c, k) => A.orb(x, 35 + k * 47, 358, 18, c, {}));
+    A.hud(x, W, '🎨 Уровень ' + (lvl + 1), 'Ходов ' + mv + ' / ' + LIM);
+  } };
 };
 const pBubbles = (x, sc, st) => {
-  const N = 8, cs = 37.5, PAL = ['#e57373', '#64b5f6', '#81c784', '#ffd54f', '#ba68c8'];
-  let g, sco = 0, over = 0;
-  const grp = (r, c) => { const col = g[r][c], seen = new Set([r * N + c]), q = [[r, c]]; for (let k = 0; k < q.length; k++) { const [i, j] = q[k]; [[i - 1, j], [i + 1, j], [i, j - 1], [i, j + 1]].forEach(([a, b]) => { if (a >= 0 && b >= 0 && a < N && b < N && !seen.has(a * N + b) && g[a][b] === col) { seen.add(a * N + b); q.push([a, b]); } }); } return q; };
-  const canMove = () => { for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) if (g[i][j] >= 0 && grp(i, j).length >= 2) return true; return false; };
-  const reset = () => { g = Array.from({ length: N }, () => Array.from({ length: N }, () => rnd(5))); sco = 0; over = 0; sc(0); st('Нажимай на группы одинаковых пузырей (от 2 штук)'); };
-  reset();
-  return { click(a, b) { if (over) { reset(); return; } const c = Math.floor(a / cs), r = Math.floor(b / cs); if (r < 0 || c < 0 || r >= N || c >= N || g[r][c] < 0) return; const q = grp(r, c); if (q.length < 2) return;
-      q.forEach(([i, j]) => { g[i][j] = -1; boom(j * cs + cs / 2, i * cs + cs / 2, PAL[0], 2); });
-      for (let j = 0; j < N; j++) { const col = []; for (let i = N - 1; i >= 0; i--) if (g[i][j] >= 0) col.push(g[i][j]); for (let i = N - 1; i >= 0; i--) g[i][j] = col[N - 1 - i] !== undefined ? col[N - 1 - i] : -1; }
-      sco += q.length * q.length; sc(sco);
-      if (!canMove()) { over = 1; st('Конец! Очки: ' + sco + '. Нажми, чтобы сыграть снова'); } },
-    t() { for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) if (g[i][j] >= 0) C(x, PAL[g[i][j]], j * cs + cs / 2, i * cs + cs / 2, cs / 2 - 3); } };
+  const W = 300, H = 380, C = 10, R = 11, CS = 28, X0 = 10, Y0 = 50, COL = ['#ff5470', '#ffd23f', '#4be07a', '#35c3ff', '#b266ff'];
+  let g, n = 0, fr = 0, over = 0, hov = null;
+  g = Array.from({ length: C }, () => Array.from({ length: R }, () => rnd(5)));
+  const group = (c, r) => { const t = g[c][r]; if (t < 0) return []; const out = [[c, r]], seen = new Set([c * 20 + r]); for (let i = 0; i < out.length; i++) { const [a, b] = out[i]; [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([dx, dy]) => { const aa = a + dx, bb = b + dy; if (aa >= 0 && bb >= 0 && aa < C && bb < R && !seen.has(aa * 20 + bb) && g[aa][bb] === t) { seen.add(aa * 20 + bb); out.push([aa, bb]); } }); } return out; };
+  const cellAt = (a, b) => { const c = Math.floor((a - X0) / CS), r = R - 1 - Math.floor((b - Y0) / CS); return c >= 0 && r >= 0 && c < C && r < R ? [c, r] : null; };
+  const anyMove = () => { for (let c = 0; c < C; c++) for (let r = 0; r < R; r++) if (g[c][r] >= 0 && group(c, r).length > 1) return true; return false; };
+  sc(0); st('Лопай группы из двух и больше одинаковых пузырей. Чем больше группа — тем больше очков');
+  return { move(a, b) { hov = cellAt(a, b); }, click(a, b) { if (over) return; const p = cellAt(a, b); if (!p) return; const gr = group(p[0], p[1]); if (gr.length < 2) { S.p('hit'); return; } gr.forEach(([c, r]) => { boom(X0 + c * CS + 14, Y0 + (R - 1 - r) * CS + 14, COL[g[c][r]], 3); g[c][r] = -1; }); const v = (gr.length - 1) ** 2 * 5; n += v; sc(n); A.pop(a, b - 12, '+' + v); S.p('pop');
+    g = g.map(col => { const k = col.filter(v2 => v2 >= 0); while (k.length < R) k.push(-1); return k; }).filter(col => col[0] >= 0); while (g.length < C) g.push(Array(R).fill(-1));
+    if (!anyMove()) { const left = g.flat().filter(v2 => v2 >= 0).length; if (!left) { n += 500; sc(n); } over = 1; S.p(left ? 'lose' : 'win'); setTimeout(() => st(left ? OVER : WIN + 'Поле очищено!'), 600); } }, t() {
+    fr++; const bg = x.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#1d3a6b'); bg.addColorStop(1, '#0d1a36'); x.fillStyle = bg; x.fillRect(0, 0, W, H);
+    const hg = hov ? group(hov[0], hov[1]) : []; const hs = new Set(hg.length > 1 ? hg.map(([c, r]) => c * 20 + r) : []);
+    for (let c = 0; c < C; c++) for (let r = 0; r < R; r++) { const v = g[c][r]; if (v < 0) continue; const X = X0 + c * CS + 14, Y = Y0 + (R - 1 - r) * CS + 14; A.orb(x, X, Y + (hs.has(c * 20 + r) ? Math.sin(fr * .3) * 1.5 : 0), hs.has(c * 20 + r) ? 13.5 : 12.5, COL[v], { flat: 1 }); }
+    if (hg.length > 1) A.txt(x, '+' + (hg.length - 1) ** 2 * 5, 150, 40, 12, '#ffe27a', 'center');
+    A.hud(x, W, '🫧 ' + n, null);
+  } };
 };
 const pCode = (x, sc, st) => {
-  const PAL = ['#e57373', '#64b5f6', '#81c784', '#ffd54f', '#ba68c8', '#4db6ac'];
-  let sec, rows, cur, sel = 0, over = 0;
-  const reset = () => { sec = Array.from({ length: 4 }, () => rnd(6)); rows = []; cur = [-1, -1, -1, -1]; sel = 0; over = 0; sc(0); st('Угадай код из 4 цветов за 8 попыток. ⚫ — цвет и место верны, ⚪ — только цвет'); };
-  const check = () => { let ex = 0; const used = [0, 0, 0, 0, 0, 0], sec2 = [0, 0, 0, 0, 0, 0]; sec.forEach((v, i) => { if (v === cur[i]) ex++; else sec2[v]++; }); cur.forEach((v, i) => { if (v !== sec[i]) used[v]++; }); let wp = 0; for (let k = 0; k < 6; k++) wp += Math.min(used[k], sec2[k]); return { ex, wp }; };
-  reset();
-  return { click(a, b) {
-      if (over) { reset(); return; }
-      if (b >= 250 && b < 280) { const i = Math.floor((a - 40) / 50); if (i >= 0 && i < 4) sel = i; return; }
-      if (b >= 290 && b < 320) { const j = Math.floor((a - 5) / 50); if (j >= 0 && j < 6) cur[sel] = j; return; }
-      if (b >= 330 && b < 370 && a >= 90 && a < 210 && cur.every(v => v >= 0)) {
-        const r = check(); rows.push({ g: cur.slice(), r }); cur = [-1, -1, -1, -1]; sc(rows.length);
-        if (r.ex === 4) { over = 1; st('🔓 Угадал за ' + rows.length + ' попыток! Нажми, чтобы сыграть снова'); }
-        else if (rows.length >= 8) { over = 1; st('Код был: ' + sec.map(v => '●').join('') + '. Нажми, чтобы сыграть снова'); }
-      }
-    },
-    t() {
-      rows.forEach((rw, k) => { const y = 20 + k * 26; rw.g.forEach((v, i) => C(x, PAL[v], 40 + i * 50, y + 10, 11)); let p = 0; for (let e = 0; e < rw.r.ex; e++) { x.fillStyle = '#111'; x.beginPath(); x.arc(200 + (p % 2) * 22, y + 2 + (p >= 2 ? 10 : 0), 4, 0, 7); x.fill(); p++; } for (let e = 0; e < rw.r.wp; e++) { x.fillStyle = '#eee'; x.beginPath(); x.arc(200 + (p % 2) * 22, y + 2 + (p >= 2 ? 10 : 0), 4, 0, 7); x.fill(); p++; } });
-      for (let i = 0; i < 4; i++) { x.strokeStyle = sel === i ? '#62c8ff' : '#37474f'; x.lineWidth = 3; x.beginPath(); x.arc(40 + i * 50, 265, 15, 0, 7); x.stroke(); if (cur[i] >= 0) C(x, PAL[cur[i]], 40 + i * 50, 265, 12); }
-      for (let j = 0; j < 6; j++) C(x, PAL[j], 30 + j * 50, 305, 16);
-      R(x, '#43a047', 90, 336, 120, 34); x.fillStyle = '#fff'; x.font = '700 15px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('Проверить', 150, 353);
-    } };
+  const W = 300, H = 440, COL = ['#ff5470', '#ffd23f', '#4be07a', '#35c3ff', '#b266ff', '#ff9a3c'];
+  let code, rows, cur, over = 0, fr = 0, wins = 0;
+  const gen = () => { code = [0, 1, 2, 3].map(() => rnd(6)); rows = []; cur = []; };
+  const check = () => { let bl = 0, wh = 0; const a = {}, b = {}; cur.forEach((v, i) => { if (v === code[i]) bl++; else { a[v] = (a[v] || 0) + 1; b[code[i]] = (b[code[i]] || 0) + 1; } }); Object.keys(a).forEach(k => { wh += Math.min(a[k], b[k] || 0); }); rows.push({ g: cur, bl, wh }); cur = []; S.p('click');
+    if (bl === 4) { wins++; sc(wins); S.p('win'); boom(150, 200, '#ffd13a', 30); A.pop(150, 200, 'Код взломан!', '#7dff9a'); setTimeout(gen, 1500); } else if (rows.length >= 8) { over = 1; S.p('lose'); setTimeout(() => st(OVER), 900); } };
+  gen(); sc(0); st('Угадай код из 4 цветов за 8 попыток. Чёрный кружок — цвет на месте, белый — цвет есть, но не там');
+  return { click(a, b) { if (over) return; if (b > 362 && b < 398) { const k = Math.floor((a - 12) / 47); if (k >= 0 && k < 6 && cur.length < 4) { cur.push(k); S.p('tick'); } return; } if (b > 404) { if (a < 150) cur.pop(); else if (cur.length === 4) check(); } }, t() {
+    fr++; const bg = x.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#3a2a1c'); bg.addColorStop(1, '#1e140c'); x.fillStyle = bg; x.fillRect(0, 0, W, H);
+    A.box(x, 40, 40, 220, 316, '#8a5a30', 14, { nogloss: 1 });
+    for (let i = 0; i < 8; i++) { const Y = 58 + i * 37, R2 = rows[i], isCur = i === rows.length; x.fillStyle = isCur ? 'rgba(255,230,150,.25)' : 'rgba(0,0,0,.15)'; A.rr(x, 48, Y - 15, 204, 30, 10); x.fill(); for (let k = 0; k < 4; k++) { const v = R2 ? R2.g[k] : isCur ? cur[k] : undefined; if (v !== undefined) A.orb(x, 72 + k * 34, Y, 11, COL[v], { flat: 1 }); else { x.fillStyle = 'rgba(0,0,0,.35)'; A.circ(x, 72 + k * 34, Y, 6); x.fill(); } } if (R2) for (let k = 0; k < 4; k++) { const X = 216 + (k % 2) * 12, YY = Y - 6 + Math.floor(k / 2) * 12; x.fillStyle = k < R2.bl ? '#111' : k < R2.bl + R2.wh ? '#fff' : 'rgba(0,0,0,.25)'; A.circ(x, X, YY, 4); x.fill(); } }
+    COL.forEach((c, k) => A.orb(x, 35 + k * 47, 380, 16, c, {}));
+    A.btn(x, 12, 406, 130, 28, '⌫ Стереть', '#d94f6a', 13); A.btn(x, 158, 406, 130, 28, '✔ Проверить', cur.length === 4 ? '#2f9e44' : '#555a70', 13);
+    A.hud(x, W, '🔐 Взломано ' + wins, 'Попытка ' + Math.min(8, rows.length + 1) + '/8');
+  } };
 };
 const rFrog = (x, sc, st) => {
-  let p = { i: 2, j: 6 }, n = 0, cars = [], fr = 0, over = 0, cd = 0;
-  st('W A S D — шаги по клеткам. Перейди дорогу, не попав под машину');
-  return { dir: (dx, dy) => { if (over) return; const i = cl(p.i + dx, 0, 4), j = cl(p.j + dy, 0, 6); if (j === 0 && p.j !== 0) { n++; sc(n); } p.i = i; p.j = j; }, t() {
-    if (!over) {
-      fr++; if (fr % 38 === 0) { const L = rnd(3) + 1, s = rnd(2); cars.push({ row: L, x: s ? -30 : 330, v: (s ? 1 : -1) * (1 + Math.random() * 1.5), w: 46 + rnd(30) }); }
-      cars.forEach(c => c.x += c.v); cars = cars.filter(c => c.x > -80 && c.x < 380);
-      const pl = { x: p.i * 60 + 10, y: p.j * 50 + 20 };
-      if (p.j >= 1 && p.j <= 3 && cars.some(c => c.row === p.j && hit(c.x, c.row * 50 + 22, c.w, 26, pl.x, pl.y, 40, 30))) { over = 1; boom(pl.x + 20, pl.y + 15, '#ff7043', 26); st(OVER); }
-    }
-    for (let j = 0; j < 7; j++) R(x, j === 0 || j === 6 ? '#66bb6a' : '#424242', 0, j * 50, 300, 50);
-    cars.forEach(c => R(x, c.v > 0 ? '#e53935' : '#1e88e5', c.x, c.row * 50 + 22, c.w, 26));
-    x.font = '30px sans-serif'; x.textAlign = 'left'; x.textBaseline = 'top'; x.fillText('🐸', p.i * 60 + 10, p.j * 50 + 8);
-    x.font = '700 14px sans-serif'; x.fillStyle = '#fff'; x.fillText('Переходы: ' + n, 8, 4);
+  const W = 300, H = 400, T = 30, ROWS = 13;
+  let fx = 5, fy = 12, lanes, n = 0, fr = 0, over = 0, lives = 3, hop = 0, homes = [0, 0, 0, 0, 0], dead = 0, best = 12, lvl = 0, onLog = 0;
+  const mkLanes = () => { lanes = []; for (let r = 0; r < ROWS; r++) { if (r >= 7 && r <= 11) { const d = r % 2 ? 1 : -1, sp = (.6 + Math.random() * .7 + lvl * .15) * d, k = rnd(3); lanes[r] = { t: 'road', v: sp, objs: [], w: [34, 40, 60][k], c: ['#e5484d', '#3b82f6', '#f59f00', '#8b5cf6'][rnd(4)] }; for (let i = 0; i < 3; i++) lanes[r].objs.push(i * 110 + rnd(40)); } else if (r >= 1 && r <= 5) { const d = r % 2 ? -1 : 1; lanes[r] = { t: 'river', v: (.5 + Math.random() * .5 + lvl * .1) * d, objs: [], w: r % 3 ? 90 : 66, turtle: r % 3 === 0 }; for (let i = 0; i < 3; i++) lanes[r].objs.push(i * 120 + rnd(30)); } else lanes[r] = { t: r === 0 ? 'home' : 'grass' }; } };
+  mkLanes(); sc(0); st('WASD или стрелки — прыжки. Перейди дорогу, прыгай по брёвнам и займи 5 домиков');
+  const die = () => { if (dead) return; lives--; dead = 40; S.p('hit'); SH = 6; boom(fx * T + 15, fy * T + 15 + 10, '#4be07a', 18); if (lives <= 0) { over = 1; S.p('lose'); st(OVER); } };
+  const move = (dx, dy) => { if (over || dead) return; const nx = Math.round(fx) + dx, ny = fy + dy; if (nx < 0 || nx > 9 || ny > 12) return; fx = nx; fy = ny; hop = 8; S.p('jump'); if (fy < best) { best = fy; n += 10; sc(n); }
+    if (fy === 0) { const h = Math.round((fx - 1) / 2); if (fx % 2 === 1 && h >= 0 && h < 5 && !homes[h]) { homes[h] = 1; n += 50; sc(n); S.p('coin'); boom(fx * T + 15, 25, '#ffd13a', 16); fx = 5; fy = 12; best = 12; if (homes.every(v => v)) { homes = [0, 0, 0, 0, 0]; lvl++; n += 200; sc(n); A.pop(150, 200, 'Уровень ' + (lvl + 1), '#7dff9a'); mkLanes(); S.p('win'); } } else die(); } };
+  let last = {};
+  return { held: false, dir: move, t() {
+    fr++; ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].forEach((k, i) => { if (K[k] && !last[k]) move([-1, 1, 0, 0][i], [0, 0, -1, 1][i]); last[k] = K[k]; });
+    if (hop > 0) hop--; if (dead > 0) { dead--; if (!dead) { fx = 5; fy = 12; best = 12; } }
+    lanes.forEach(l => { if (l.objs) l.objs = l.objs.map(o => { let v = o + l.v; if (v > W + 60) v -= W + 160; if (v < -160) v += W + 160; return v; }); });
+    if (!over && !dead) { const L = lanes[fy], px = fx * T + 15; if (L.t === 'road' && L.objs.some(o => px > o - 4 && px < o + L.w + 4)) die(); if (L.t === 'river') { const on = L.objs.some(o => px > o + 2 && px < o + L.w - 2); if (!on) die(); else { fx += L.v / T; if (fx < -.4 || fx > 9.4) die(); } } }
+    for (let r = 0; r < ROWS; r++) { const L = lanes[r], Y = r * T + 10; if (L.t === 'road') { x.fillStyle = '#3d4250'; x.fillRect(0, Y, W, T); x.fillStyle = 'rgba(255,255,255,.4)'; for (let i = 0; i < W; i += 30) x.fillRect(i, Y + T - 2, 15, 2); } else if (L.t === 'river') { A.water(x, W, Y, T, fr + r * 30, '#3fa9f5', '#1d6fc0'); } else if (L.t === 'home') { x.fillStyle = '#2e7d32'; x.fillRect(0, Y - 10, W, T + 10); for (let h = 0; h < 5; h++) { const X = (1 + h * 2) * T; x.fillStyle = '#1d6fc0'; x.fillRect(X, Y, T, T); if (homes[h]) A.blob(x, X + 15, Y + 15, 10, '#4be07a', 0, 1); else { x.fillStyle = '#7ad66a'; A.ell(x, X + 15, Y + 18, 10, 5); x.fill(); } } } else { A.grass(x, W, Y, T, '#59c24c'); }
+      if (L.objs) L.objs.forEach(o => { if (L.t === 'road') { x.save(); x.translate(o + L.w / 2, Y + T / 2); x.rotate(L.v > 0 ? Math.PI / 2 : -Math.PI / 2); A.car(x, 0, 0, T - 8, L.w - 4, L.c); x.restore(); } else if (L.turtle) { for (let k = 0; k < 3; k++) { A.orb(x, o + 11 + k * 22, Y + T / 2, 10, '#2e8b57', { flat: 1 }); x.fillStyle = '#9be87a'; A.circ(x, o + 11 + k * 22 + (L.v > 0 ? 10 : -10), Y + T / 2, 3); x.fill(); } } else { A.box(x, o, Y + 4, L.w, T - 8, '#8a5a30', 10); x.strokeStyle = 'rgba(60,30,10,.4)'; x.lineWidth = 1.5; x.beginPath(); x.moveTo(o + 8, Y + 11); x.lineTo(o + L.w - 8, Y + 11); x.moveTo(o + 12, Y + 19); x.lineTo(o + L.w - 12, Y + 19); x.stroke(); } }); }
+    if (!over && (!dead || fr % 6 < 3)) A.blob(x, fx * T + 15, fy * T + 10 + 15 - (hop ? Math.sin(hop / 8 * Math.PI) * 6 : 0), 10, '#4be07a', 0, hop ? 1.15 : 1);
+    A.lives(x, W, lives, 3, 392); A.hud(x, W, '🐸 ' + n, 'Уровень ' + (lvl + 1));
   } };
 };
 const rLift = (x, sc, st) => {
-  let y = 200, v = 0, m = [], fr = 0, n = 0, over = 0;
-  st('Зажми W — ракета летит вверх. Не врежься в метеориты');
-  return { held: true, t() {
-    if (!over) {
-      fr++; if (K.KeyW) v -= .5; else v += .32; v = cl(v, -6, 7); y += v;
-      if (fr % 50 === 0) n++, sc(n);
-      if (fr % 45 === 0) m.push({ x: 320, y: 40 + rnd(320), v: 3 + Math.random() * 1.5 });
-      m.forEach(o => o.x -= o.v);
-      m = m.filter(o => o.x > -30);
-      if (y < 0 || y > 380) { over = 1; st(OVER); }
-      if (m.some(o => hit(o.x - 14, o.y - 14, 28, 28, 40, y - 12, 34, 24))) { over = 1; boom(60, y, '#ff7043', 26); st(OVER); }
-    }
-    R(x, '#0b1d3a', 0, 0, 300, 400);
-    x.font = '24px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
-    m.forEach(o => x.fillText('☄️', o.x, o.y));
-    x.fillText('🚀', 52, y);
-    x.font = '700 13px sans-serif'; x.fillStyle = '#fff'; x.textAlign = 'left'; x.fillText('Высота и время: ' + n, 8, 16);
+  const W = 300, H = 400;
+  let y = 200, vy = 0, dist = 0, top = [], bot = [], obs = [], fr = 0, over = 0, n = 0, hold = 0, gap = 230, sm = [], coins = [];
+  for (let i = 0; i <= 31; i++) { top.push(30 + Math.sin(i * .5) * 16); bot.push(370 - Math.sin(i * .4) * 16); }
+  sc(0); st('Держи пробел, W или палец — вертолёт поднимается. Отпусти — снижается');
+  return { held: true, down() { hold = 1; }, up() { hold = 0; }, t() {
+    fr++; const up = hold || K.Space || K.KeyW || K.ArrowUp;
+    if (!over) { vy += up ? -.32 : .28; vy = cl(vy, -5, 5); y += vy; dist += 2.6 + dist / 6000; const sp = 2.6 + dist / 6000;
+      if (fr % 4 === 0) { top.shift(); bot.shift(); gap = Math.max(130, 230 - dist / 60); const c = 200 + Math.sin(dist * .004) * 60 + Math.sin(dist * .011) * 30; top.push(cl(c - gap / 2, 20, 260)); bot.push(cl(c + gap / 2, 140, 385)); if (rnd(14) === 0) obs.push({ x: W + 10, y: c - 30 + rnd(60), h: 40 + rnd(30) }); if (rnd(9) === 0) coins.push({ x: W + 10, y: c + rnd(40) - 20 }); }
+      obs.forEach(o => o.x -= sp); coins.forEach(o => o.x -= sp); obs = obs.filter(o => o.x > -20); coins = coins.filter(o => o.x > -20 && !o.got);
+      const ci = Math.floor(70 / (W / 30)); const tY = top[ci], bY = bot[ci]; if (y - 9 < tY || y + 9 > bY || obs.some(o => Math.abs(o.x - 70) < 18 && Math.abs(o.y - y) < o.h / 2 + 8)) { over = 1; boom(70, y, '#ff7043', 34); SH = 9; S.p('boom'); st(OVER); }
+      coins.forEach(o => { if (Math.hypot(o.x - 70, o.y - y) < 16) { o.got = 1; dist += 150; S.p('coin'); A.pop(70, y - 16, '+15'); } });
+      n = Math.floor(dist / 10); sc(n); if (fr % 3 === 0) sm.push({ x: 50, y: y + 4, l: 20 }); }
+    sm.forEach(s => { s.x -= 2.5; s.l--; }); sm = sm.filter(s => s.l > 0);
+    A.sky(x, W, H, fr, 'dusk');
+    const sw = W / 30; x.fillStyle = '#3b2a4f'; x.beginPath(); x.moveTo(0, 0); top.forEach((t, i) => x.lineTo(i * sw, t)); x.lineTo(W, 0); x.fill(); x.beginPath(); x.moveTo(0, H); bot.forEach((b, i) => x.lineTo(i * sw, b)); x.lineTo(W, H); x.fill();
+    x.strokeStyle = '#7a5aa8'; x.lineWidth = 3; x.beginPath(); top.forEach((t, i) => i ? x.lineTo(i * sw, t) : x.moveTo(0, t)); x.stroke(); x.beginPath(); bot.forEach((b, i) => i ? x.lineTo(i * sw, b) : x.moveTo(0, b)); x.stroke();
+    obs.forEach(o => A.box(x, o.x - 9, o.y - o.h / 2, 18, o.h, '#8a93a8', 5)); coins.forEach(o => A.coin(x, o.x, o.y, 7, fr * .1));
+    sm.forEach(s => { x.fillStyle = 'rgba(255,255,255,' + s.l / 50 + ')'; A.circ(x, s.x, s.y, 4 + (20 - s.l) * .3); x.fill(); });
+    if (!over) { x.save(); x.translate(70, y); x.rotate(cl(vy * .05, -.3, .3)); A.box(x, -16, -8, 30, 16, '#e5484d', 8); x.fillStyle = '#9be8ff'; A.rr(x, 2, -6, 10, 8, 3); x.fill(); x.fillStyle = '#e5484d'; x.fillRect(-30, -3, 16, 4); x.strokeStyle = '#333'; x.lineWidth = 2; x.beginPath(); x.moveTo(-2, -8); x.lineTo(-2, -12); x.stroke(); const bl = Math.abs(Math.sin(fr * .9)) * 20; x.fillStyle = '#444'; x.fillRect(-2 - bl, -14, bl * 2, 2.5); x.fillRect(-10, 8, 22, 2.5); x.restore(); }
+    A.hud(x, W, '🚁 ' + n + ' м', null);
   } };
 };
 const rPlane = (x, sc, st) => {
@@ -1640,266 +1648,360 @@ const rPlane = (x, sc, st) => {
   } };
 };
 const spBasket = (x, sc, st) => {
-  let b = null, n = 0, hoop = { x: 230, y: 90, w: 60 };
-  st('Кликни, куда бросить мяч 🏀. Попади в кольцо!');
-  return { click(a, c) { if (b) return; b = { x: 30, y: 360, vx: (a - 30) / 60, vy: (c - 360) / 60 - .5 * .02 * 60, g: .02, rd: false }; },
-    t() {
-      if (b) { b.x += b.vx; b.y += b.vy; b.vy += b.g;
-        if (!b.rd && b.vy > 0 && Math.abs(b.x - (hoop.x + hoop.w / 2)) < hoop.w / 2 && Math.abs(b.y - hoop.y) < 6) { b.rd = true; n++; sc(n); st('🏀 Попал! Кликай ещё'); }
-        if (b.y > 420 || b.x > 330 || b.x < -30) { if (!b.rd) st('Мимо. Кликай, чтобы бросить снова'); b = null; } }
-      R(x, '#e0e0e0', 0, 0, 300, 400);
-      R(x, '#ff7043', hoop.x, hoop.y, hoop.w, 4); R(x, '#fff', hoop.x + 20, hoop.y + 4, 20, 40);
-      x.font = '26px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
-      if (b) x.fillText('🏀', b.x, b.y);
-      x.fillText('🙋', 30, 380);
-      x.font = '700 13px sans-serif'; x.fillStyle = '#333'; x.textAlign = 'left'; x.fillText('Попаданий: ' + n, 8, 16);
-    } };
+  const W = 300, H = 420, HX = 230, HY = 150, TL = 3600;
+  let ball = null, n = 0, fr = 0, over = 0, drag = null, streak = 0, hoopX = HX, hv = 0, net = 0, sx = 70, sy = 340;
+  const reset = () => { ball = null; sx = 50 + rnd(80); sy = 330 + rnd(30); };
+  reset(); sc(0); st('Оттяни мяч назад и отпусти, чтобы бросить. 60 секунд. Серии дают бонус');
+  return { held: true, down(a, b) { if (!ball && !over && Math.hypot(a - sx, b - sy) < 50) drag = [a, b]; }, move(a, b, btn) { if (drag && btn) drag = [a, b]; }, up() { if (!drag) return; const dx = sx - drag[0], dy = sy - drag[1], d = Math.hypot(dx, dy); if (d > 10) { const p = Math.min(1, d / 110); ball = { x: sx, y: sy, vx: dx / d * p * 9.5, vy: dy / d * p * 13, r: 0, scored: 0, t: 0 }; S.p('jump'); } drag = null; }, t() {
+    fr++; const left = Math.max(0, TL - fr); if (!over && !left && !ball) { over = 1; S.p('win'); st(OVER); }
+    if (n >= 10) { hoopX = HX + Math.sin(fr * .02) * 30; }
+    if (net > 0) net--;
+    if (ball) { const b = ball; b.t++; b.vy += .32; b.x += b.vx; b.y += b.vy; b.r += b.vx * .05;
+      [[hoopX - 26, HY], [hoopX + 26, HY]].forEach(([rx, ry]) => { const dx = b.x - rx, dy = b.y - ry, d = Math.hypot(dx, dy); if (d < 14 && d > 0) { const nx = dx / d, ny = dy / d; b.x = rx + nx * 14; b.y = ry + ny * 14; const vn = b.vx * nx + b.vy * ny; if (vn < 0) { b.vx -= 1.6 * vn * nx; b.vy -= 1.6 * vn * ny; S.tone(300, .05, 'square', .03); } } });
+      if (b.x > hoopX + 40 && b.x < hoopX + 52 && b.y > HY - 80 && b.y < HY + 4) { b.x = hoopX + 40; b.vx = -Math.abs(b.vx) * .5; S.p('hit'); }
+      if (!b.scored && b.vy > 0 && Math.abs(b.x - hoopX) < 20 && b.y > HY - 4 && b.y < HY + 12) { b.scored = 1; streak++; const v = b.t > 0 && streak > 2 ? 3 : 2; n += v; sc(n); net = 20; S.p('coin'); A.pop(hoopX, HY - 30, streak > 2 ? 'Серия! +' + v : '+' + v, '#ffd13a'); boom(hoopX, HY + 10, '#ff9a3c', 12); }
+      if (b.y > H + 20 || b.x < -30 || b.x > W + 30) { if (!b.scored) { streak = 0; S.p('lose'); } reset(); } }
+    const bg = x.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#2b3a67'); bg.addColorStop(1, '#141b36'); x.fillStyle = bg; x.fillRect(0, 0, W, H);
+    for (let i = 0; i < 6; i++) { x.fillStyle = 'rgba(255,255,255,.04)'; A.circ(x, 40 + i * 50, 60, 18); x.fill(); }
+    const fl = x.createLinearGradient(0, 360, 0, H); fl.addColorStop(0, '#d9a35c'); fl.addColorStop(1, '#b0763a'); x.fillStyle = fl; x.fillRect(0, 370, W, 50); x.strokeStyle = 'rgba(120,70,30,.4)'; for (let i = 0; i < W; i += 30) { x.beginPath(); x.moveTo(i, 370); x.lineTo(i, H); x.stroke(); }
+    x.fillStyle = '#8a93a8'; x.fillRect(hoopX + 48, HY - 20, 6, 250); A.box(x, hoopX + 30, HY - 80, 16, 92, '#f4f4f4', 3, { nogloss: 1 }); x.strokeStyle = '#e5484d'; x.lineWidth = 2; x.strokeRect(hoopX + 33, HY - 40, 10, 30);
+    x.strokeStyle = 'rgba(255,255,255,.85)'; x.lineWidth = 1.5; for (let i = 0; i <= 6; i++) { const t = i / 6; x.beginPath(); x.moveTo(hoopX - 26 + t * 52, HY); x.lineTo(hoopX - 16 + t * 32 + (net ? Math.sin(fr) * 2 : 0), HY + 30 + (net ? 6 : 0)); x.stroke(); }
+    x.strokeStyle = '#ff6a1a'; x.lineWidth = 4; x.beginPath(); x.moveTo(hoopX - 28, HY); x.lineTo(hoopX + 30, HY); x.stroke();
+    const drawBall = (X, Y, r) => { x.save(); x.translate(X, Y); x.rotate(r); A.orb(x, 0, 0, 13, '#ff8a2a', { flat: 1 }); x.strokeStyle = '#7a3a10'; x.lineWidth = 1.5; x.beginPath(); x.moveTo(-13, 0); x.lineTo(13, 0); x.moveTo(0, -13); x.lineTo(0, 13); x.stroke(); x.beginPath(); x.arc(-13, 0, 10, -1, 1); x.stroke(); x.beginPath(); x.arc(13, 0, 10, Math.PI - 1, Math.PI + 1); x.stroke(); x.restore(); };
+    if (ball) drawBall(ball.x, ball.y, ball.r); else if (!over) { A.shadow(x, sx, 372, 14, 4, .3); drawBall(drag ? drag[0] : sx, drag ? drag[1] : sy, 0); }
+    if (drag) { const dx = sx - drag[0], dy = sy - drag[1], d = Math.hypot(dx, dy), p = Math.min(1, d / 110); let px = sx, py = sy, vx = dx / (d || 1) * p * 9.5, vy = dy / (d || 1) * p * 13; for (let i = 0; i < 18; i++) { vy += .32; px += vx; py += vy; if (i % 2) { x.fillStyle = 'rgba(255,255,255,' + (.7 - i * .03) + ')'; A.circ(x, px, py, 2.4); x.fill(); } } }
+    A.bar(x, 20, 46, 260, 10, left / TL, left < 600 ? '#ff6b6b' : '#ffd23f'); A.hud(x, W, '🏀 ' + n, streak > 1 ? 'Серия ' + streak : Math.ceil(left / 60) + ' с');
+  } };
 };
 const spPenalty = (x, sc, st) => {
-  let ball = null, gk = 150, dir = 1, n = 0, tries = 0, over = 0;
-  st('Кликни в створ ⚽. Вратарь прыгает — не угадаешь ли?');
-  return { click(a, b) { if (ball || over) return; const tx = a, ty = b; ball = { x: 150, y: 370, tx, ty, t: 0 };
-      if (tries >= 5) return; }, t() {
-    gk += dir * 2.1; if (gk < 60 || gk > 240) dir = -dir;
-    if (ball) { ball.t += 1 / 40; const k = Math.min(1, ball.t); ball.cx = 150 + (ball.tx - 150) * k; ball.cy = 370 + (ball.ty - 370) * k; ball.s = 1 - k * .5;
-      if (k >= 1) { const ok = ball.ty > 80 && ball.ty < 200 && ball.tx > 40 && ball.tx < 260; const saved = Math.abs(ball.tx - gk) < 26 && ball.ty > 80 && ball.ty < 200;
-        tries++; if (ok && !saved) { n++; sc(n); boom(ball.tx, ball.ty, '#ffd13a', 20); st('⚽ Гол! Ещё попытка'); } else if (saved) { st('🧤 Вратарь поймал!'); } else { st('Мимо ворот'); }
-        ball = null; if (tries >= 5) { over = 1; st('Серия окончена. Голов: ' + n + '. Перезапустите игру'); } } }
-    R(x, '#2e7d32', 0, 0, 300, 400); R(x, '#fff', 60, 60, 180, 6); R(x, '#fff', 60, 60, 6, 140); R(x, '#fff', 234, 60, 6, 140);
-    x.font = '34px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('🧤', gk, 130);
-    if (ball) { x.font = '26px sans-serif'; x.fillText('⚽', ball.cx, ball.cy); } else if (!over) { x.font = '26px sans-serif'; x.fillText('⚽', 150, 370); }
-    x.font = '700 13px sans-serif'; x.fillStyle = '#fff'; x.textAlign = 'left'; x.fillText('Голы: ' + n + ' · удары: ' + (5 - tries), 8, 16);
+  const W = 300, H = 420, GX = 40, GY = 90, GW = 220, GH = 110;
+  let shots = 0, goals = 0, ball = null, keeper = 150, kTarget = 150, kDive = 0, aim = null, fr = 0, over = 0, res = '', wait = 0, sway = 0, miss = 0;
+  sc(0); st('Нажми в ворота, куда бить. Вратарь прыгает — обмани его! 3 промаха — конец');
+  return { click(a, b) { if (over || ball || wait) return; if (b > 300) return; const tx = cl(a, GX - 20, GX + GW + 20), ty = cl(b, GY - 30, GY + GH + 10); ball = { x: 150, y: 360, tx: tx + Math.sin(sway) * 8, ty, t: 0 }; kTarget = Math.random() < .45 ? tx : GX + 20 + rnd(GW - 40); kDive = 0; shots++; S.p('jump'); }, move(a, b) { aim = [a, b]; }, t() {
+    fr++; sway += .05;
+    if (wait > 0 && --wait === 0) { ball = null; res = ''; keeper = 150; kDive = 0; }
+    if (ball && !wait) { const b = ball; b.t++; const k = Math.min(1, b.t / 28); b.x = 150 + (b.tx - 150) * k; b.y = 360 + (b.ty - 360) * k - Math.sin(k * Math.PI) * 30; if (b.t > 6) { keeper += cl(kTarget - keeper, -6, 6); kDive = Math.min(1, kDive + .08); }
+      if (k >= 1) { const inGoal = b.tx > GX + 8 && b.tx < GX + GW - 8 && b.ty > GY + 8; const saved = Math.abs(keeper - b.tx) < 34 && b.ty > GY + 4; if (inGoal && !saved) { goals++; sc(goals); res = 'ГОЛ!'; S.p('win'); boom(b.tx, b.ty, '#ffd13a', 24); } else { miss++; res = saved ? 'Сейв!' : 'Мимо!'; S.p('lose'); if (miss >= 3) { over = 1; setTimeout(() => st(OVER), 900); } } wait = 60; } }
+    A.sky(x, W, H, fr, 'day'); x.fillStyle = '#5a6c8a'; x.fillRect(0, 60, W, 40); for (let i = 0; i < 40; i++) { x.fillStyle = ['#ff5470', '#ffd23f', '#35c3ff', '#fff'][i % 4]; A.circ(x, 6 + i * 7.5, 72 + (i % 3) * 8, 3); x.fill(); }
+    const gr = x.createLinearGradient(0, 100, 0, H); gr.addColorStop(0, '#3fae49'); gr.addColorStop(1, '#2a8a36'); x.fillStyle = gr; x.fillRect(0, 100, W, H); for (let i = 0; i < 6; i++) { x.fillStyle = i % 2 ? 'rgba(255,255,255,.05)' : 'rgba(0,0,0,.04)'; x.fillRect(0, 200 + i * 40, W, 40); }
+    x.strokeStyle = 'rgba(255,255,255,.8)'; x.lineWidth = 2; x.strokeRect(10, GY + GH, 280, 70); A.circ(x, 150, 360, 3); x.stroke();
+    x.strokeStyle = 'rgba(255,255,255,.35)'; x.lineWidth = 1; for (let i = 0; i <= 22; i++) { x.beginPath(); x.moveTo(GX + i * 10, GY); x.lineTo(GX + i * 10, GY + GH); x.stroke(); } for (let j = 0; j <= 11; j++) { x.beginPath(); x.moveTo(GX, GY + j * 10); x.lineTo(GX + GW, GY + j * 10); x.stroke(); }
+    x.strokeStyle = '#fff'; x.lineWidth = 6; x.beginPath(); x.moveTo(GX, GY + GH); x.lineTo(GX, GY); x.lineTo(GX + GW, GY); x.lineTo(GX + GW, GY + GH); x.stroke();
+    x.save(); x.translate(keeper, GY + GH - 26); x.rotate((kTarget - 150) / 110 * kDive * .9); A.box(x, -12, -22, 24, 36, '#ff9a3c', 6); x.fillStyle = '#ffd9b0'; A.circ(x, 0, -30, 9); x.fill(); x.strokeStyle = '#ff9a3c'; x.lineWidth = 6; x.lineCap = 'round'; x.beginPath(); x.moveTo(-12, -16); x.lineTo(-26, -34); x.moveTo(12, -16); x.lineTo(26, -34); x.stroke(); x.fillStyle = '#fff'; A.circ(x, -27, -36, 5); x.fill(); A.circ(x, 27, -36, 5); x.fill(); x.fillStyle = '#222'; x.fillRect(-10, 14, 7, 12); x.fillRect(3, 14, 7, 12); x.restore();
+    const bx = ball ? ball.x : 150, by = ball ? ball.y : 360, s = ball ? 1 - Math.min(1, ball.t / 28) * .45 : 1; A.shadow(x, bx, (ball ? 360 - (360 - ball.ty) * Math.min(1, ball.t / 28) : 360) + 8, 10 * s, 3, .25); x.save(); x.translate(bx, by); x.scale(s, s); A.orb(x, 0, 0, 10, '#f4f4f4', { flat: 1 }); x.fillStyle = '#222'; x.beginPath(); for (let i = 0; i < 5; i++) { const a = i * 1.2566 - 1.57; i ? x.lineTo(Math.cos(a) * 4, Math.sin(a) * 4) : x.moveTo(Math.cos(a) * 4, Math.sin(a) * 4); } x.fill(); x.restore();
+    if (aim && !ball && aim[1] < 300) { x.strokeStyle = '#ffd23f'; x.lineWidth = 2; A.circ(x, aim[0], aim[1], 10); x.stroke(); }
+    if (res) A.txt(x, res, 150, 250, 34, res === 'ГОЛ!' ? '#ffd23f' : '#fff', 'center', 'rgba(0,0,0,.5)');
+    for (let i = 0; i < 3; i++) { x.fillStyle = i < miss ? '#e5484d' : 'rgba(255,255,255,.3)'; A.circ(x, 270 - i * 16, 404, 5); x.fill(); }
+    A.hud(x, W, '⚽ Голы ' + goals, 'Удары ' + shots);
   } };
 };
 const spBowling = (x, sc, st) => {
-  let ball = null, pins = [], n = 0, rolls = 0, over = 0;
-  const setPins = () => { pins = []; for (let r = 0; r < 4; r++) for (let k = 0; k <= r; k++) pins.push({ x: 150 + (k - r / 2) * 26, y: 60 + r * 22, up: 1 }); };
-  setPins(); st('Кликни по дорожке — куда катится шар 🎳. 3 броска');
-  return { click(a) { if (ball || over) return; ball = { x: a, y: 370, vx: (a - 150) * 0 + (Math.random() - .5) * 1.6, hit: 0 }; rolls++; },
-    t() {
-      if (ball) { ball.y -= 6; ball.x += ball.vx; if (ball.x < 60 || ball.x > 240) ball.vx = -ball.vx * .4;
-        pins.forEach(p => { if (p.up && Math.hypot(p.x - ball.x, p.y - ball.y) < 15) { p.up = 0; ball.hit++; boom(p.x, p.y, '#fff', 8); } });
-        if (ball.y < 40) { if (ball.hit) { n += ball.hit; sc(n); } ball = null; if (rolls >= 3) { over = 1; st('Игра окончена. Сбито кеглей: ' + n); } else { st('Бросок ' + (rolls + 1) + ' из 3'); if (pins.every(p => !p.up)) setPins(); } } }
-      R(x, '#8d6e63', 110, 0, 80, 400); R(x, '#e0c48c', 118, 0, 64, 400);
-      x.font = '18px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
-      pins.forEach(p => { if (p.up) x.fillText('🎳', p.x, p.y); });
-      if (ball) x.fillText('⚫', ball.x, ball.y);
-      x.font = '700 13px sans-serif'; x.fillStyle = '#fff'; x.textAlign = 'left'; x.fillText('Сбито: ' + n, 8, 16);
-    } };
+  const W = 300, H = 420, LX = 80, LW = 140;
+  let pins, frame = 1, roll = 0, total = 0, ball = null, aimX = 150, aimDir = 1, phase = 'aim', fr = 0, over = 0, spin = 0, msg = '', wait = 0, first = 0, power = 0;
+  const rack = () => { pins = []; const rows = [[0], [-1, 1], [-2, 0, 2], [-3, -1, 1, 3]]; rows.forEach((r, i) => r.forEach(k => pins.push({ x: 150 + k * 13, y: 120 - i * 20, up: 1, vx: 0, vy: 0, a: 0 }))); };
+  rack(); sc(0); st('Нажми, когда стрелка смотрит в нужную сторону. 5 фреймов по 2 броска');
+  const throwB = () => { if (over || ball || wait) return; if (phase === 'aim') { phase = 'go'; ball = { x: aimX, y: 380, vx: (aimX - 150) * -.004, vy: -6.5, r: 0 }; spin = (aimX - 150) * -.01; S.p('click'); } };
+  return { click: throwB, key(k) { if (k === ' ') { throwB(); return true; } return false; }, t() {
+    fr++; if (phase === 'aim' && !ball) { aimX += aimDir * 1.6; if (aimX > LX + LW - 14 || aimX < LX + 14) aimDir = -aimDir; }
+    if (ball) { const b = ball; b.vx += spin * .012; b.x += b.vx; b.y += b.vy; b.r += .2; if (b.x < LX + 10 || b.x > LX + LW - 10) { b.vx = 0; b.x = cl(b.x, LX + 10, LX + LW - 10); spin = 0; } pins.forEach(p => { if (p.up && Math.hypot(p.x - b.x, p.y - b.y) < 17) { p.up = 0; p.vx = (p.x - b.x) * .25 + (Math.random() - .5); p.vy = -2 - Math.random() * 2; S.p('hit'); } });
+      for (let k = 0; k < 2; k++) pins.forEach(p => { if (p.up) return; pins.forEach(q => { if (q.up && Math.hypot(p.x - q.x, p.y - q.y) < 14 && Math.random() < .5) { q.up = 0; q.vx = (q.x - p.x) * .2 + p.vx * .4; q.vy = p.vy * .5 - 1; } }); });
+      if (b.y < 60) { ball = null; wait = 60; } }
+    pins.forEach(p => { if (!p.up) { p.x += p.vx; p.y += p.vy; p.vx *= .92; p.vy *= .92; p.a += p.vx * .2; } });
+    if (wait > 0 && --wait === 0) { const down = pins.filter(p => !p.up && !p.gone).length; pins.forEach(p => { if (!p.up) p.gone = 1; }); const knocked = down; total += knocked; sc(total);
+      if (roll === 0) { first = knocked; if (knocked === 10) { msg = 'СТРАЙК!'; total += 10; sc(total); S.p('win'); boom(150, 110, '#ffd13a', 30); nextFrame(); } else { msg = knocked + ' кегл.'; roll = 1; phase = 'aim'; S.p(knocked ? 'coin' : 'lose'); } } else { if (first + knocked === 10) { msg = 'СПЭР!'; total += 5; sc(total); S.p('win'); } else { msg = 'Ещё ' + knocked; S.p(knocked ? 'coin' : 'lose'); } nextFrame(); } }
+    function nextFrame() { frame++; roll = 0; phase = 'aim'; if (frame > 5) { over = 1; setTimeout(() => st(OVER), 900); return; } rack(); }
+    const bg = x.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#1d1f3a'); bg.addColorStop(1, '#0d0e1f'); x.fillStyle = bg; x.fillRect(0, 0, W, H);
+    x.fillStyle = '#2a2d4a'; x.fillRect(LX - 16, 30, 16, H); x.fillRect(LX + LW, 30, 16, H);
+    const lg = x.createLinearGradient(LX, 0, LX + LW, 0); lg.addColorStop(0, '#d9a35c'); lg.addColorStop(.5, '#f0c886'); lg.addColorStop(1, '#d9a35c'); x.fillStyle = lg; x.fillRect(LX, 30, LW, H); x.strokeStyle = 'rgba(140,90,40,.35)'; for (let i = 1; i < 10; i++) { x.beginPath(); x.moveTo(LX + i * 14, 30); x.lineTo(LX + i * 14, H); x.stroke(); }
+    [0, 1, 2, 3, 4, 5, 6].forEach(i => { x.fillStyle = '#c0392b'; x.beginPath(); const X = LX + 20 + i * 17; x.moveTo(X, 300); x.lineTo(X - 4, 310); x.lineTo(X + 4, 310); x.fill(); });
+    pins.forEach(p => { if (p.gone) return; x.save(); x.translate(p.x, p.y); x.rotate(p.a); x.globalAlpha = p.up ? 1 : .7; A.shadow(x, 2, 8, 6, 3, .2); x.fillStyle = '#fbfbfb'; A.ell(x, 0, 2, 6, 8); x.fill(); x.fillStyle = '#e5484d'; x.fillRect(-5, -3, 10, 2.5); x.fillStyle = '#fbfbfb'; A.circ(x, 0, -6, 4); x.fill(); x.strokeStyle = 'rgba(0,0,0,.2)'; x.lineWidth = 1; A.ell(x, 0, 2, 6, 8); x.stroke(); x.restore(); });
+    if (ball) { x.save(); x.translate(ball.x, ball.y); x.rotate(ball.r); A.orb(x, 0, 0, 11, '#3b5bdb', {}); x.fillStyle = '#111'; A.circ(x, -3, -3, 1.6); x.fill(); A.circ(x, 3, -3, 1.6); x.fill(); A.circ(x, 0, 2, 1.6); x.fill(); x.restore(); }
+    else if (phase === 'aim' && !over) { A.orb(x, aimX, 380, 11, '#3b5bdb', {}); x.strokeStyle = '#ffd23f'; x.lineWidth = 3; x.beginPath(); x.moveTo(aimX, 365); x.lineTo(150 + (aimX - 150) * -.6, 250); x.stroke(); }
+    if (msg) A.txt(x, msg, 150, 210, 24, '#ffd23f', 'center', 'rgba(0,0,0,.6)');
+    A.hud(x, W, '🎳 ' + total, 'Фрейм ' + Math.min(5, frame) + '/5 · бросок ' + (roll + 1));
+  } };
 };
 const tPiano = (x, sc, st) => {
-  let tiles = [], fr = 0, n = 0, over = 0, sp = 3;
-  st('Жми на чёрные плитки по порядку. Пропуск — конец');
-  return { click(a, b) { if (over) return; const lane = Math.floor(a / 75); let best = null; tiles.forEach(t => { if (t.lane === lane && !t.done && (!best || t.y > best.y)) best = t; }); if (!best) return; if (best.y > 280 && best.y < 400) { best.done = 1; sc(++n); } else { over = 1; st(OVER); } },
-    t() {
-      if (!over) { fr++; sp = 3 + n * .05; if (fr % 40 === 0) tiles.push({ lane: rnd(4), y: -60 });
-        tiles.forEach(t => t.y += sp);
-        if (tiles.some(t => !t.done && t.y > 420)) { over = 1; st(OVER); }
-        tiles = tiles.filter(t => !t.done || t.y < 420); }
-      for (let i = 0; i < 4; i++) R(x, '#eceff1', i * 75, 0, 2, 400);
-      tiles.forEach(t => { if (!t.done) R(x, '#212121', t.lane * 75 + 4, t.y, 67, 56); });
-      x.font = '700 13px sans-serif'; x.fillStyle = '#333'; x.textAlign = 'left'; x.fillText('Очки: ' + n, 8, 396);
-    } };
+  const W = 300, H = 440, CW = 75, NOTES = [262, 294, 330, 349, 392, 440, 494, 523];
+  let tiles = [], n = 0, sp = 3, fr = 0, over = 0, next = 0, flash = [], ni = 0;
+  const SONG = [4, 4, 5, 4, 7, 6, 4, 4, 5, 4, 8, 7, 4, 4, 11, 9, 7, 6, 5, 10, 10, 9, 7, 8, 7];
+  const add = y => { tiles.push({ c: rnd(4), y, hit: 0, h: 110 }); };
+  for (let i = 0; i < 5; i++) add(-i * 112 + 220);
+  sc(0); st('Жми только на тёмные плитки снизу вверх. Пропуск или белая клетка — конец');
+  const hitAt = c => { if (over) return; const live = tiles.filter(t => !t.hit).sort((a, b) => b.y - a.y)[0]; if (!live) return; if (live.c === c) { live.hit = 1; n++; sc(n); const f = [262, 294, 330, 349, 392, 440, 494, 523, 587, 659, 698, 784][SONG[ni % SONG.length] % 12]; ni++; S.tone(f, .3, 'triangle', .08); flash.push({ c, y: live.y, l: 10 }); } else { over = 1; flash.push({ c, y: 330, l: 60, bad: 1 }); S.p('lose'); SH = 6; st(OVER); } };
+  return { held: true, down(a) { hitAt(cl(Math.floor(a / CW), 0, 3)); }, key(k) { const i = 'dfjk'.indexOf(k.toLowerCase()); const j = 'вако'.indexOf(k.toLowerCase()); const q = i >= 0 ? i : j; if (q >= 0) { hitAt(q); return true; } return false; }, t() {
+    fr++; if (!over) { sp = 3 + n * .035; tiles.forEach(t => t.y += sp); const top = Math.min(...tiles.map(t => t.y)); if (top > -2) add(top - 112); if (tiles.some(t => !t.hit && t.y > H)) { over = 1; S.p('lose'); SH = 6; st(OVER); } tiles = tiles.filter(t => t.y < H + 120); }
+    flash.forEach(f => f.l--); flash = flash.filter(f => f.l > 0);
+    x.fillStyle = '#f7f7fb'; x.fillRect(0, 0, W, H); x.strokeStyle = '#d5d8e4'; x.lineWidth = 1; for (let i = 1; i < 4; i++) { x.beginPath(); x.moveTo(i * CW, 0); x.lineTo(i * CW, H); x.stroke(); }
+    tiles.forEach(t => { if (t.hit) { x.fillStyle = 'rgba(80,90,130,.18)'; x.fillRect(t.c * CW + 2, t.y + 2, CW - 4, t.h - 4); return; } const g = x.createLinearGradient(0, t.y, 0, t.y + t.h); g.addColorStop(0, '#2a2f4a'); g.addColorStop(1, '#10132a'); x.fillStyle = g; A.rr(x, t.c * CW + 2, t.y + 2, CW - 4, t.h - 4, 8); x.fill(); x.fillStyle = 'rgba(255,255,255,.12)'; A.rr(x, t.c * CW + 6, t.y + 6, CW - 12, 10, 4); x.fill(); });
+    flash.forEach(f => { x.fillStyle = f.bad ? 'rgba(229,72,77,' + Math.min(.8, f.l / 30) + ')' : 'rgba(53,195,255,' + f.l / 14 + ')'; x.fillRect(f.c * CW, f.bad ? 0 : f.y, CW, f.bad ? H : 110); });
+    x.fillStyle = 'rgba(53,195,255,.15)'; x.fillRect(0, H - 40, W, 2);
+    A.hud(x, W, '🎹 ' + n, 'D F J K');
+  } };
 };
 const tRhythm = (x, sc, st) => {
-  let notes = [], fr = 0, n = 0, miss = 0, over = 0;
-  st('Жми по кругу, когда он в центре кольца 🥁');
-  return { click(a, b) { if (over) return; let best = null, bd = 1e9; notes.forEach(o => { const d = Math.abs(o.y - 300); if (!o.done && d < bd) { bd = d; best = o; } }); if (best && bd < 24) { best.done = 1; sc(++n); boom(best.x, best.y, '#ffd13a', 10); } else { miss++; if (miss >= 5) { over = 1; st(OVER); } } },
-    t() {
-      if (!over) { fr++; const sp = 2.6 + n * .03; if (fr % 36 === 0) notes.push({ x: 60 + rnd(180), y: -20, sp }); notes.forEach(o => o.y += o.sp);
-        notes = notes.filter(o => { if (o.done) return false; if (o.y > 340) { miss++; if (miss >= 5 && !over) { over = 1; st(OVER); } return false; } return true; }); }
-      x.strokeStyle = '#62c8ff'; x.lineWidth = 3; x.beginPath(); x.arc(150, 300, 30, 0, 7); x.stroke();
-      notes.forEach(o => { x.strokeStyle = '#ff8a65'; x.lineWidth = 4; x.beginPath(); x.arc(o.x, o.y, 22, 0, 7); x.stroke(); });
-      x.font = '700 13px sans-serif'; x.fillStyle = '#fff'; x.textAlign = 'left'; x.fillText('Попаданий: ' + n + ' · промахов: ' + miss + '/5', 8, 16);
-    } };
+  const W = 300, H = 440, LANE = [60, 120, 180, 240], COL = ['#ff5470', '#ffd23f', '#4be07a', '#35c3ff'], HY = 360, BPM = 110;
+  let notes = [], n = 0, combo = 0, best = 0, fr = 0, over = 0, miss = 0, beat = 0, flash = [0, 0, 0, 0], judge = '', jt = 0, total = 0;
+  const KEYS = ['d', 'f', 'j', 'k'];
+  sc(0); st('Жми по дорожке, когда кружок проходит линию. Клавиши D F J K или касания');
+  const hitL = l => { if (over) return; flash[l] = 8; const c = notes.filter(q => q.l === l && !q.done).sort((a, b) => Math.abs(a.y - HY) - Math.abs(b.y - HY))[0]; if (!c || Math.abs(c.y - HY) > 34) { combo = 0; S.tone(140, .06, 'square', .03); return; } const d = Math.abs(c.y - HY); c.done = 1; const p = d < 10 ? 3 : d < 22 ? 2 : 1; combo++; best = Math.max(best, combo); n += p * (1 + Math.floor(combo / 10)); sc(n); judge = p === 3 ? 'Идеально!' : p === 2 ? 'Хорошо' : 'Норм'; jt = 30; S.tone([196, 247, 294, 392][l] * (p === 3 ? 2 : 1), .12, 'triangle', .07); boom(LANE[l], HY, COL[l], 6); };
+  return { held: true, down(a) { hitL(cl(Math.floor(a / 75), 0, 3)); }, key(k) { const i = KEYS.indexOf(k.toLowerCase()), j = 'вако'.indexOf(k.toLowerCase()), q = i >= 0 ? i : j; if (q >= 0) { hitL(q); return true; } return false; }, t() {
+    fr++; flash = flash.map(v => Math.max(0, v - 1)); if (jt) jt--;
+    if (!over) { const per = Math.round(3600 / BPM / 2); if (fr % per === 0) { beat++; if (beat % 8 === 0) S.tone(80, .1, 'sine', .08); if (Math.random() < .55 + Math.min(.3, n / 400)) { const l = rnd(4); notes.push({ l, y: -10 }); total++; if (Math.random() < .15) notes.push({ l: (l + 2) % 4, y: -10 }); } }
+      const sp = 3 + Math.min(3, n / 150); notes.forEach(q => q.y += sp); notes = notes.filter(q => { if (!q.done && q.y > HY + 40) { combo = 0; miss++; judge = 'Мимо'; jt = 20; S.p('hit'); if (miss >= 10) { over = 1; S.p('lose'); st(OVER); } return false; } return q.y < H + 20 && !q.done; }); }
+    const bg = x.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#1a0f3d'); bg.addColorStop(1, '#2d1b69'); x.fillStyle = bg; x.fillRect(0, 0, W, H);
+    LANE.forEach((lx, i) => { x.fillStyle = flash[i] ? A.mix(COL[i], '#000000', .6) : 'rgba(255,255,255,.04)'; x.fillRect(lx - 30, 0, 60, H); });
+    x.strokeStyle = 'rgba(255,255,255,.6)'; x.lineWidth = 3; x.beginPath(); x.moveTo(0, HY); x.lineTo(W, HY); x.stroke();
+    LANE.forEach((lx, i) => { x.strokeStyle = COL[i]; x.lineWidth = 3; A.circ(x, lx, HY, 22 + (flash[i] ? 3 : 0)); x.stroke(); A.txt(x, KEYS[i].toUpperCase(), lx, HY + 46, 14, 'rgba(255,255,255,.5)', 'center'); });
+    notes.forEach(q => { x.save(); x.shadowColor = COL[q.l]; x.shadowBlur = 10; A.orb(x, LANE[q.l], q.y, 18, COL[q.l], { flat: 1 }); x.restore(); });
+    if (jt) A.txt(x, judge, 150, 250, 22, judge === 'Мимо' ? '#ff8a8a' : '#ffe27a', 'center', 'rgba(0,0,0,.5)'); if (combo > 4) A.txt(x, combo + ' комбо', 150, 280, 16, '#fff', 'center');
+    for (let i = 0; i < 10; i++) { x.fillStyle = i < 10 - miss ? '#7dff9a' : 'rgba(255,255,255,.15)'; x.fillRect(80 + i * 14, 52, 10, 5); }
+    A.hud(x, W, '🥁 ' + n, 'Рекорд комбо ' + best);
+  } };
 };
 const pConnect4 = (x, sc, st) => {
-  let g, won = 0, turn = 1;
-  const rs = () => { g = Array.from({ length: 6 }, () => Array(7).fill(0)); won = 0; turn = 1; sc(0); st('Ты 🔴, бот 🟡. Ставь 4 в ряд'); };
-  const drop = (c, p) => { for (let r = 5; r >= 0; r--) if (!g[r][c]) { g[r][c] = p; return r; } return -1; };
-  const winner = () => { for (let r = 0; r < 6; r++) for (let c = 0; c < 7; c++) { const v = g[r][c]; if (!v) continue; for (const [dr, dc] of [[0, 1], [1, 0], [1, 1], [1, -1]]) { let k = 1; while (k < 4 && g[r + dr * k] && g[r + dr * k][c + dc * k] === v) k++; if (k === 4) return v; } } return 0; };
-  rs();
-  return { click(a) { if (won) { rs(); return; } if (turn !== 1) return; const c = Math.floor(a / 43); if (c < 0 || c > 6 || drop(c, 1) < 0) return; if (winner()) { won = 1; st('🏆 Ты победил!'); return; }
-      turn = 2; const free = [0, 1, 2, 3, 4, 5, 6].filter(cc => g[0][cc] === 0);
-      if (!free.length) { won = 1; st('Ничья'); return; }
-      const bc = free.find(cc => { const t = g.map(r => r.slice()); let rr = -1; for (let r = 5; r >= 0; r--) if (!t[r][cc]) { rr = r; break; } t[rr][cc] = 2; return t.some((row, r) => row.some((v, c) => v === 2 && t[r][c + 1] === 2 && t[r][c + 2] === 2 && t[r][c + 3] === 2)) || false; }) ?? free[rnd(free.length)];
-      drop(bc, 2); turn = 1; if (winner()) { won = 1; st('🤖 Бот победил. Нажми, чтобы сыграть снова'); } else if (g[0].every(v => v)) { won = 1; st('Ничья'); } },
-    t() { R(x, '#1565c0', 0, 0, 301, 258);
-      for (let r = 0; r < 6; r++) for (let c = 0; c < 7; c++) { x.fillStyle = g[r][c] === 1 ? '#e53935' : g[r][c] === 2 ? '#fdd835' : '#0d47a1'; x.beginPath(); x.arc(c * 43 + 21, r * 43 + 22, 17, 0, 7); x.fill(); } } };
+  const C = 7, R = 6, CS = 40, X0 = 10, Y0 = 70, W = 300, H = 380;
+  let b, turn = 1, over = 0, fr = 0, wins = 0, drop = null, line = null, hov = 3, wait = 0;
+  const reset = () => { b = Array.from({ length: R }, () => Array(C).fill(0)); turn = 1; line = null; drop = null; };
+  const low = (bd, c) => { for (let r = R - 1; r >= 0; r--) if (!bd[r][c]) return r; return -1; };
+  const win = (bd, p) => { for (let r = 0; r < R; r++) for (let c = 0; c < C; c++) for (const [dr, dc] of [[0, 1], [1, 0], [1, 1], [1, -1]]) { let k = 0; while (k < 4) { const rr = r + dr * k, cc = c + dc * k; if (rr < 0 || cc < 0 || rr >= R || cc >= C || bd[rr][cc] !== p) break; k++; } if (k === 4) return [[r, c], [r + dr * 3, c + dc * 3]]; } return null; };
+  const score = bd => { let s = 0; for (let r = 0; r < R; r++) for (let c = 0; c < C; c++) for (const [dr, dc] of [[0, 1], [1, 0], [1, 1], [1, -1]]) { let a = 0, h = 0, ok = true; for (let k = 0; k < 4; k++) { const rr = r + dr * k, cc = c + dc * k; if (rr < 0 || cc < 0 || rr >= R || cc >= C) { ok = false; break; } if (bd[rr][cc] === -1) a++; else if (bd[rr][cc] === 1) h++; } if (!ok || (a && h)) continue; s += [0, 1, 5, 50, 1e5][a] - [0, 1, 6, 60, 1e5][h]; } for (let r = 0; r < R; r++) s += (bd[r][3] === -1 ? 3 : bd[r][3] === 1 ? -3 : 0); return s; };
+  const mm = (bd, d, p, a, be) => { if (win(bd, -1)) return 1e6 + d; if (win(bd, 1)) return -1e6 - d; if (!d) return score(bd); const cols = [3, 2, 4, 1, 5, 0, 6].filter(c => low(bd, c) >= 0); if (!cols.length) return 0; if (p === -1) { let v = -1e9; for (const c of cols) { const nb = bd.map(r => r.slice()); nb[low(bd, c)][c] = -1; v = Math.max(v, mm(nb, d - 1, 1, a, be)); a = Math.max(a, v); if (a >= be) break; } return v; } let v = 1e9; for (const c of cols) { const nb = bd.map(r => r.slice()); nb[low(bd, c)][c] = 1; v = Math.min(v, mm(nb, d - 1, -1, a, be)); be = Math.min(be, v); if (a >= be) break; } return v; };
+  const play = (c, p) => { const r = low(b, c); if (r < 0) return false; drop = { c, r, p, y: Y0 - 30 }; return true; };
+  reset(); sc(0); st('Бросай фишки и собери 4 в ряд раньше бота: по горизонтали, вертикали или диагонали');
+  return { move(a) { hov = cl(Math.floor((a - X0) / CS), 0, C - 1); }, click(a) { if (over || turn !== 1 || drop) return; const c = Math.floor((a - X0) / CS); if (c < 0 || c >= C) return; if (play(c, 1)) S.p('click'); }, t() {
+    fr++;
+    if (drop) { drop.y += 12; const ty = Y0 + drop.r * CS + 20; if (drop.y >= ty) { b[drop.r][drop.c] = drop.p; S.p('tick'); const p = drop.p; drop = null; const w = win(b, p); if (w) { line = w; if (p === 1) { wins++; sc(wins); S.p('win'); A.pop(150, 40, 'Победа! Ещё партия', '#7dff9a'); turn = 0; setTimeout(reset, 1700); } else { over = 1; S.p('lose'); setTimeout(() => st(OVER), 1200); } } else if (b[0].every(v => v)) { A.pop(150, 40, 'Ничья', '#ffd13a'); turn = 0; setTimeout(reset, 1500); } else { turn = -p; if (turn === -1) wait = 20; } } }
+    if (!over && turn === -1 && !drop && --wait <= 0) { let best = 3, bv = -1e12; [3, 2, 4, 1, 5, 0, 6].forEach(c => { if (low(b, c) < 0) return; const nb = b.map(r => r.slice()); nb[low(b, c)][c] = -1; const v = mm(nb, 4, 1, -1e12, 1e12); if (v > bv) { bv = v; best = c; } }); play(best, -1); }
+    const bg = x.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#d2e3fc'); bg.addColorStop(1, '#a8c4f0'); x.fillStyle = bg; x.fillRect(0, 0, W, H);
+    if (turn === 1 && !drop && !over) A.orb(x, X0 + hov * CS + 20, Y0 - 20, 16, '#ffd23f', { flat: 1 });
+    if (drop) A.orb(x, X0 + drop.c * CS + 20, drop.y, 16, drop.p === 1 ? '#ffd23f' : '#e5484d', { flat: 1 });
+    for (let r = 0; r < R; r++) for (let c = 0; c < C; c++) if (b[r][c]) A.orb(x, X0 + c * CS + 20, Y0 + r * CS + 20, 16, b[r][c] === 1 ? '#ffd23f' : '#e5484d', { flat: 1 });
+    x.save(); x.fillStyle = '#2f5fd6'; x.beginPath(); x.rect(X0, Y0, C * CS, R * CS); for (let r = 0; r < R; r++) for (let c = 0; c < C; c++) { x.moveTo(X0 + c * CS + 37, Y0 + r * CS + 20); x.arc(X0 + c * CS + 20, Y0 + r * CS + 20, 17, 0, Math.PI * 2, true); } x.fill('evenodd'); x.restore(); x.strokeStyle = '#1b3f9a'; x.lineWidth = 3; x.strokeRect(X0, Y0, C * CS, R * CS);
+    if (line) { x.strokeStyle = '#fff'; x.lineWidth = 5; x.lineCap = 'round'; x.beginPath(); x.moveTo(X0 + line[0][1] * CS + 20, Y0 + line[0][0] * CS + 20); x.lineTo(X0 + line[1][1] * CS + 20, Y0 + line[1][0] * CS + 20); x.stroke(); }
+    A.txt(x, turn === 1 ? 'Твой ход (жёлтые)' : turn === -1 ? 'Бот думает…' : '', 150, 330, 14, '#1b3f9a', 'center'); A.hud(x, W, '🏆 ' + wins, null);
+  } };
 };
 
 const pSudoku = (x, sc, st) => {
-  const S = [[1, 2, 3, 4], [3, 4, 1, 2], [2, 1, 4, 3], [4, 3, 2, 1]];
-  let g, sel = null, ok = 0, mist = 0;
-  const reset = () => { g = S.map(r => r.map(v => (rnd(10) < 4 ? v : 0))); sel = null; ok = 0; mist = 0; sc(0); st('Выбери клетку, затем цифру снизу. В каждой строке и столбце — 1–4'); };
-  reset();
-  return { click(a, b) {
-      if (b < 240) { sel = [Math.floor(b / 60), Math.floor(a / 75)]; return; }
-      if (b >= 250 && b < 290 && sel) { const v = Math.floor(a / 75) + 1; const [r, c] = sel; if (g[r][c] === S[r][c]) return; if (v === S[r][c]) { g[r][c] = v; ok++; sc(ok); if (g.every((rw, i) => rw.every((vv, j) => vv === S[i][j]))) st('🧮 Судоку решено!'); } else { mist++; st('Ошибка! Ошибок: ' + mist); } }
-    }, t() {
-      for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) {
-        const on = sel && sel[0] === r && sel[1] === c;
-        R(x, on ? '#62c8ff' : (g[r][c] === S[r][c] && g[r][c] ? '#e8f5e9' : '#eceff1'), c * 75 + 2, r * 60 + 2, 71, 56);
-        if (g[r][c]) { x.font = '700 26px sans-serif'; x.fillStyle = '#263238'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(String(g[r][c]), c * 75 + 37, r * 60 + 30); }
-      }
-      for (let v = 1; v <= 4; v++) R(x, '#90a4ae', (v - 1) * 75 + 6, 252, 66, 36);
-      x.font = '700 18px sans-serif'; x.fillStyle = '#fff'; x.textAlign = 'center'; for (let v = 1; v <= 4; v++) x.fillText(String(v), (v - 1) * 75 + 39, 270);
-    } };
+  const W = 300, H = 440, CS = 30, X0 = 15, Y0 = 50;
+  let sol, g, fix, sel = null, lvl = 0, err = 0, fr = 0, over = 0, won = 0, notes = 0;
+  const gen = () => { const base = (r, c) => (r * 3 + Math.floor(r / 3) + c) % 9; const nums = [1, 2, 3, 4, 5, 6, 7, 8, 9].sort(() => Math.random() - .5); const rows = [0, 1, 2].sort(() => Math.random() - .5).flatMap(b2 => [0, 1, 2].sort(() => Math.random() - .5).map(r => b2 * 3 + r)), cols = [0, 1, 2].sort(() => Math.random() - .5).flatMap(b2 => [0, 1, 2].sort(() => Math.random() - .5).map(c => b2 * 3 + c)); sol = rows.map(r => cols.map(c => nums[base(r, c)])); const holes = 36 + Math.min(18, lvl * 4); g = sol.map(r => r.slice()); fix = sol.map(r => r.map(() => 1)); const cells = [...Array(81).keys()].sort(() => Math.random() - .5).slice(0, holes); cells.forEach(k => { g[Math.floor(k / 9)][k % 9] = 0; fix[Math.floor(k / 9)][k % 9] = 0; }); err = 0; won = 0; sel = null; };
+  const put = v => { if (!sel || won || over) return; const [r, c] = sel; if (fix[r][c]) return; if (v === 0) { g[r][c] = 0; return; } g[r][c] = v; if (v !== sol[r][c]) { err++; S.p('hit'); SH = 3; if (err >= 3) { over = 1; S.p('lose'); setTimeout(() => st(OVER), 600); } } else { S.p('click'); if (g.every((rw, i) => rw.every((q, j) => q === sol[i][j]))) { won = 1; lvl++; sc(lvl); S.p('win'); boom(150, 190, '#ffd13a', 34); setTimeout(gen, 1800); } } };
+  gen(); sc(0); st('Заполни поле цифрами 1–9: без повторов в строке, столбце и квадрате 3×3. 3 ошибки — конец');
+  return { held: true, key(k) { if (/^[1-9]$/.test(k)) { put(+k); return true; } if (k === 'Backspace' || k === '0') { put(0); return true; } if (sel && k.startsWith('Arrow')) { const d = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] }[k]; sel = [cl(sel[0] + d[0], 0, 8), cl(sel[1] + d[1], 0, 8)]; return true; } return false; }, click(a, b) { if (b > 334) { const i = Math.floor((a - 10) / 28); if (b < 380 && i >= 0 && i < 10) put(i === 9 ? 0 : i + 1); return; } const c = Math.floor((a - X0) / CS), r = Math.floor((b - Y0) / CS); if (r >= 0 && c >= 0 && r < 9 && c < 9) { sel = [r, c]; S.p('tick'); } }, t() {
+    fr++; const bg = x.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#eef2fb'); bg.addColorStop(1, '#d9e2f5'); x.fillStyle = bg; x.fillRect(0, 0, W, H);
+    x.fillStyle = '#fff'; x.fillRect(X0, Y0, CS * 9, CS * 9); const sv = sel ? g[sel[0]][sel[1]] : 0;
+    for (let r = 0; r < 9; r++) for (let c = 0; c < 9; c++) { const X = X0 + c * CS, Y = Y0 + r * CS; if (sel && (sel[0] === r || sel[1] === c || (Math.floor(sel[0] / 3) === Math.floor(r / 3) && Math.floor(sel[1] / 3) === Math.floor(c / 3)))) { x.fillStyle = '#e8eefc'; x.fillRect(X, Y, CS, CS); } if (sv && g[r][c] === sv) { x.fillStyle = '#c9d8fb'; x.fillRect(X, Y, CS, CS); } if (sel && sel[0] === r && sel[1] === c) { x.fillStyle = '#9ec0ff'; x.fillRect(X, Y, CS, CS); } const v = g[r][c]; if (v) A.txt(x, String(v), X + CS / 2, Y + CS / 2 + 1, 17, fix[r][c] ? '#1b2442' : v === sol[r][c] ? '#2f5fd6' : '#e5484d', 'center', null, fix[r][c] ? 800 : 700); }
+    x.strokeStyle = '#c4cde0'; x.lineWidth = 1; for (let i = 0; i <= 9; i++) { x.beginPath(); x.moveTo(X0 + i * CS, Y0); x.lineTo(X0 + i * CS, Y0 + 9 * CS); x.stroke(); x.beginPath(); x.moveTo(X0, Y0 + i * CS); x.lineTo(X0 + 9 * CS, Y0 + i * CS); x.stroke(); } x.strokeStyle = '#1b2442'; x.lineWidth = 2.2; for (let i = 0; i <= 3; i++) { x.beginPath(); x.moveTo(X0 + i * 90, Y0); x.lineTo(X0 + i * 90, Y0 + 270); x.stroke(); x.beginPath(); x.moveTo(X0, Y0 + i * 90); x.lineTo(X0 + 270, Y0 + i * 90); x.stroke(); }
+    for (let i = 0; i < 10; i++) { const left = i < 9 ? 9 - g.flat().filter(v => v === i + 1).length : 0; A.box(x, 10 + i * 28, 340, 26, 38, i === 9 ? '#d94f6a' : left ? '#3b5bdb' : '#9aa3b8', 6); A.txt(x, i === 9 ? '⌫' : String(i + 1), 23 + i * 28, 359, 16, '#fff', 'center'); }
+    for (let i = 0; i < 3; i++) { x.fillStyle = i < err ? '#e5484d' : '#c4cde0'; A.circ(x, 130 + i * 20, 400, 6); x.fill(); } A.txt(x, 'Ошибки', 150, 420, 11, '#6a7390', 'center', null, 600);
+    A.hud(x, W, '🧮 Решено ' + lvl, null);
+  } };
 };
 const aStack = (x, sc, st) => {
-  let top = { l: 90, r: 210 }, blocks = [], w = 120, t = 0, over = 0, n = 0, cur = { x: 150, y: 360 };
-  st('Кликай, чтобы поставить блок. Промахнёшься — башня рухнет');
-  return { click() { if (over) return; const mid = cur.x; const l = Math.max(top.l, mid - w / 2), r = Math.min(top.r, mid + w / 2);
-      if (r - l < 6) { over = 1; boom(150, 300, '#ffd13a', 24); st('Башня рухнула! Высота: ' + n + '. Перезапусти игру'); return; }
-      blocks.push({ l, r, y: 380 - (blocks.length + 1) * 20 }); top = { l, r }; w = r - l; n++; sc(n); cur = { x: 150, y: 380 - blocks.length * 20 - 20 }; t = Math.random() * 3; },
-    t() {
-      if (!over) { t += .03; cur.x = 150 + Math.sin(t) * 120 * Math.min(1.8, 1 + n * .04); }
-      R(x, '#e8eaf6', 0, 0, 300, 400); const off = Math.max(0, blocks.length - 8) * 20;
-      R(x, '#5d4037', 90, 380 - off, 120, 20);
-      blocks.forEach((b, i) => R(x, ['#ff8a65', '#ffd54f', '#81c784', '#64b5f6', '#ba68c8'][i % 5], b.l, b.y - off, b.r - b.l, 20));
-      if (!over && cur) R(x, '#90a4ae', cur.x - w / 2, cur.y - off, w, 20);
-    } };
+  const W = 300, H = 440, BH = 22;
+  let stack = [{ x: 75, w: 150 }], cur, dir = 1, sp = 2, n = 0, fr = 0, over = 0, falls = [], cam = 0, perfect = 0;
+  const hue = i => 'hsl(' + ((i * 14 + 190) % 360) + ',70%,58%)';
+  const spawn = () => { const top = stack[stack.length - 1]; cur = { x: dir > 0 ? -top.w : W, w: top.w }; sp = 2 + Math.min(4, n * .12); };
+  const place = () => { if (over) return; const top = stack[stack.length - 1], l = Math.max(cur.x, top.x), r = Math.min(cur.x + cur.w, top.x + top.w); if (r <= l) { falls.push({ x: cur.x, y: stack.length, w: cur.w, vy: 0, c: hue(stack.length) }); over = 1; S.p('lose'); st(OVER); return; }
+    if (Math.abs(cur.x - top.x) < 4) { cur.x = top.x; perfect++; S.tone(600 + perfect * 60, .15, 'triangle', .07); A.ring(150, 0, '#fff'); if (perfect >= 3) { cur.w = Math.min(160, top.w + 6); cur.x = top.x - 3; } stack.push({ x: cur.x, w: perfect >= 3 ? cur.w : top.w }); } else { perfect = 0; if (cur.x < l) falls.push({ x: cur.x, y: stack.length, w: l - cur.x, vy: 0, c: hue(stack.length) }); if (cur.x + cur.w > r) falls.push({ x: r, y: stack.length, w: cur.x + cur.w - r, vy: 0, c: hue(stack.length) }); stack.push({ x: l, w: r - l }); S.p('click'); }
+    n++; sc(n); dir = -dir; spawn(); };
+  spawn(); sc(0); st('Нажимай, чтобы поставить блок точно на предыдущий. Идеальные попадания расширяют башню');
+  return { click: place, key(k) { if (k === ' ') { place(); return true; } return false; }, t() {
+    fr++; if (!over) { cur.x += dir * sp; if (cur.x > W) dir = -1; if (cur.x + cur.w < 0) dir = 1; }
+    const ty = Math.max(0, (stack.length - 12) * BH); cam += (ty - cam) * .1;
+    const bg = x.createLinearGradient(0, 0, 0, H); const h0 = (200 + n * 4) % 360; bg.addColorStop(0, 'hsl(' + h0 + ',55%,30%)'); bg.addColorStop(1, 'hsl(' + ((h0 + 40) % 360) + ',55%,18%)'); x.fillStyle = bg; x.fillRect(0, 0, W, H); A.stars(x, W, H, fr, 25);
+    const yOf = i => H - 40 - (i + 1) * BH + cam;
+    stack.forEach((b, i) => { const Y = yOf(i); if (Y > H + 30) return; A.box(x, b.x, Y, b.w, BH, hue(i), 4); });
+    falls.forEach(f => { f.vy += .4; f.y -= f.vy / BH; A.box(x, f.x, yOf(f.y), f.w, BH, f.c, 4); }); falls = falls.filter(f => yOf(f.y) < H + 40);
+    if (!over) A.box(x, cur.x, yOf(stack.length), cur.w, BH, hue(stack.length), 4);
+    if (perfect > 1) A.txt(x, 'Идеально ×' + perfect, 150, 70, 16, '#fff', 'center', 'rgba(0,0,0,.4)');
+    A.hud(x, W, '📦 ' + n, null);
+  } };
 };
 const aBalance = (x, sc, st) => {
-  let ang = 0, av = 0, bx = 0, bv = 0, t = 0, over = 0;
-  st('A и D — наклоняй доску, удерживай шарик на ней');
-  return { held: true, t() {
-    if (!over) {
-      t++; if (t % 60 === 0) sc(t / 60);
-      av += (((K.KeyD | 0) - (K.KeyA | 0)) * .004); av *= .97; ang += av; ang = cl(ang, -.5, .5);
-      bv += Math.sin(ang) * .9; bv *= .99; bx += bv;
-      if (Math.abs(bx) > 130) { over = 1; boom(150 + bx, 200, '#ffd13a', 20); st(OVER); }
-    }
-    x.save(); x.translate(150, 220); x.rotate(ang); R(x, '#8d6e63', -140, -6, 280, 12); x.restore();
-    x.font = '26px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
-    x.fillText('⚪', 150 + bx * Math.cos(ang), 220 - 12 + bx * Math.sin(ang) - 8);
-    x.font = '700 13px sans-serif'; x.fillStyle = '#333'; x.textAlign = 'left'; x.fillText('Время: ' + Math.floor(t / 60), 8, 16);
+  const W = 300, H = 340, CX = 150, CY = 210, L = 120;
+  let ang = 0, av = 0, bx = 0, bv = 0, t = 0, fr = 0, over = 0, wind = 0, wv = 0, hold = 0, fallY = 0;
+  sc(0); st('A/D или касание слева/справа — наклоняй доску и держи шарик. Ветер мешает');
+  return { held: true, down(a) { hold = a < 150 ? -1 : 1; }, up() { hold = 0; }, t() {
+    fr++;
+    if (!over) { const inp = (K.KeyD || K.ArrowRight ? 1 : 0) - (K.KeyA || K.ArrowLeft ? 1 : 0) || hold; av += inp * .0026; av *= .9; ang = cl(ang + av, -.6, .6); wv += (Math.random() - .5) * .002; wv *= .98; wind = cl(wind + wv, -.06, .06) * (1 + t / 3000); bv += Math.sin(ang) * .35 + wind; bv *= .995; bx += bv; t++; if (t % 60 === 0) sc(Math.floor(t / 60)); if (Math.abs(bx) > L) { over = 1; S.p('lose'); st(OVER); } }
+    else fallY += 6;
+    A.sky(x, W, H, fr, 'mint'); A.hills(x, W, 260, 0, '#7cc58a', '#5bb06f', 12);
+    x.fillStyle = '#6b4423'; x.beginPath(); x.moveTo(CX - 18, H); x.lineTo(CX, CY + 6); x.lineTo(CX + 18, H); x.fill();
+    x.save(); x.translate(CX, CY); x.rotate(ang); A.box(x, -L - 8, -6, L * 2 + 16, 12, '#c98a4b', 5); x.fillStyle = '#e5484d'; x.fillRect(-L - 8, -6, 8, 12); x.fillRect(L, -6, 8, 12); x.restore();
+    const px = CX + Math.cos(ang) * bx - Math.sin(ang) * -16, py = CY + Math.sin(ang) * bx + Math.cos(ang) * -16 + fallY; A.orb(x, px, py, 10, '#3b82f6', {});
+    x.save(); x.translate(150, 60); x.strokeStyle = '#fff'; x.lineWidth = 3; x.lineCap = 'round'; const wl = wind * 600; x.beginPath(); x.moveTo(-wl, 0); x.lineTo(wl, 0); x.stroke(); A.txt(x, 'ветер', 0, 16, 10, '#fff', 'center', null, 600); x.restore();
+    A.btn(x, 10, 290, 60, 40, '◀', '#4c5aa8', 18); A.btn(x, 230, 290, 60, 40, '▶', '#4c5aa8', 18);
+    A.hud(x, W, '⚖️ ' + Math.floor(t / 60) + ' с', null);
   } };
 };
 const aDarts = (x, sc, st) => {
-  let thr = 0, n = 0, t = 0, hits = [], over = 0;
-  st('Кликни, чтобы бросить дротик. 5 бросков');
-  return { click(a, b) { if (over) return; const d = Math.hypot(a - 150, b - 150); const cx = 150 + Math.sin(t * .05) * 110, cy = 150 + Math.cos(t * .07) * 80;
-      const dx = Math.hypot(a - (cx), b - (cy)); const pts = dx < 20 ? 50 : dx < 45 ? 25 : dx < 75 ? 10 : dx < 110 ? 5 : 0; hits.push({ x: a, y: b }); n += pts; thr++; sc(n); boom(a, b, '#ffd13a', 6); if (thr >= 5) { over = 1; st('Итого очков: ' + n + '. Перезапусти игру'); } else st('Попал: +' + pts); },
-    t() { t++;
-      x.fillStyle = '#fff'; x.beginPath(); x.arc(150, 150, 140, 0, 7); x.fill();
-      [[140, '#424242'], [110, '#fff'], [75, '#e53935'], [45, '#ffd54f'], [20, '#e53935']].forEach(([rad, col]) => { x.fillStyle = col; x.beginPath(); x.arc(150, 150, rad, 0, 7); x.fill(); });
-      hits.forEach(h => { x.fillStyle = '#263238'; x.beginPath(); x.arc(h.x, h.y, 4, 0, 7); x.fill(); });
-      if (!over) { const cx = 150 + Math.sin(t * .05) * 110, cy = 150 + Math.cos(t * .07) * 80; x.strokeStyle = '#263238'; x.lineWidth = 2; x.beginPath(); x.moveTo(cx - 10, cy); x.lineTo(cx + 10, cy); x.moveTo(cx, cy - 10); x.lineTo(cx, cy + 10); x.stroke(); }
-      x.font = '700 13px sans-serif'; x.fillStyle = '#333'; x.textAlign = 'left'; x.fillText('Броски: ' + thr + '/5', 8, 16);
-    } };
+  const W = 300, H = 420, CX = 150, CY = 190, R = 120, SEG = [20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5];
+  let left = 301, darts = 9, n = 0, fr = 0, over = 0, sx = 0, sy = 0, marks = [], fly = null, msg = '';
+  const scoreAt = (px, py) => { const dx = px - CX, dy = py - CY, d = Math.hypot(dx, dy) / R; if (d > 1) return [0, 'Мимо']; if (d < .05) return [50, 'Яблочко!']; if (d < .1) return [25, '25']; let a = Math.atan2(dy, dx) * 180 / Math.PI + 90 + 9; a = (a + 360) % 360; const s = SEG[Math.floor(a / 18)]; if (d > .58 && d < .65) return [s * 3, 'Тройное ' + s]; if (d > .92) return [s * 2, 'Двойное ' + s]; return [s, String(s)]; };
+  const throwD = () => { if (over || fly || darts <= 0) return; fly = { tx: CX + sx, ty: CY + sy, t: 0 }; darts--; S.p('shoot'); };
+  sc(0); st('Прицел качается — нажми, чтобы бросить. Набери как можно больше за 9 дротиков');
+  return { click: throwD, key(k) { if (k === ' ') { throwD(); return true; } return false; }, t() {
+    fr++; sx = Math.sin(fr * .043) * 60 + Math.sin(fr * .11) * 20; sy = Math.cos(fr * .037) * 60 + Math.sin(fr * .09) * 20;
+    if (fly) { fly.t++; if (fly.t >= 14) { const [v, m] = scoreAt(fly.tx, fly.ty); n += v; sc(n); msg = m + (v ? ' +' + v : ''); marks.push([fly.tx, fly.ty]); S.p(v >= 40 ? 'win' : v ? 'coin' : 'lose'); A.pop(fly.tx, fly.ty - 14, v ? '+' + v : 'мимо', v >= 40 ? '#ffd13a' : '#fff'); fly = null; if (!darts) { over = 1; setTimeout(() => st(OVER), 700); } } }
+    const bg = x.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#3a2a1a'); bg.addColorStop(1, '#1d140c'); x.fillStyle = bg; x.fillRect(0, 0, W, H);
+    A.shadow(x, CX + 6, CY + 10, R + 14, R + 10, .4); x.fillStyle = '#1b1b1f'; A.circ(x, CX, CY, R + 12); x.fill();
+    SEG.forEach((s, i) => { const a0 = (i * 18 - 99) * Math.PI / 180, a1 = a0 + Math.PI / 10; [[1, .65, i % 2 ? '#f0e6c8' : '#1b1b1f'], [.65, .58, i % 2 ? '#2f9e44' : '#d62839'], [.58, .1, i % 2 ? '#f0e6c8' : '#1b1b1f'], [1, .92, i % 2 ? '#2f9e44' : '#d62839']].forEach(([o, n2, c]) => { x.fillStyle = c; x.beginPath(); x.arc(CX, CY, R * o, a0, a1); x.arc(CX, CY, R * n2, a1, a0, true); x.fill(); }); const am = a0 + Math.PI / 20; A.txt(x, String(s), CX + Math.cos(am) * (R + 6.5), CY + Math.sin(am) * (R + 6.5), 8, '#fff', 'center', null, 700); });
+    x.fillStyle = '#2f9e44'; A.circ(x, CX, CY, R * .1); x.fill(); x.fillStyle = '#d62839'; A.circ(x, CX, CY, R * .05); x.fill();
+    marks.forEach(([px, py]) => { x.strokeStyle = '#ccc'; x.lineWidth = 2; x.beginPath(); x.moveTo(px, py); x.lineTo(px + 8, py + 14); x.stroke(); x.fillStyle = '#ff7a45'; x.beginPath(); x.moveTo(px + 8, py + 14); x.lineTo(px + 14, py + 22); x.lineTo(px + 4, py + 20); x.fill(); });
+    if (fly) { const k = fly.t / 14, X = 150 + (fly.tx - 150) * k, Y = 400 + (fly.ty - 400) * k, s = 1.8 - k; x.save(); x.translate(X, Y); x.scale(s, s); x.strokeStyle = '#ccc'; x.lineWidth = 2; x.beginPath(); x.moveTo(0, 0); x.lineTo(0, 20); x.stroke(); x.fillStyle = '#ff7a45'; x.fillRect(-4, 16, 8, 6); x.restore(); }
+    else if (!over) { const X = CX + sx, Y = CY + sy; x.strokeStyle = '#7dff9a'; x.lineWidth = 2; A.circ(x, X, Y, 9); x.stroke(); x.beginPath(); x.moveTo(X - 15, Y); x.lineTo(X + 15, Y); x.moveTo(X, Y - 15); x.lineTo(X, Y + 15); x.stroke(); }
+    if (msg) A.txt(x, msg, 150, 345, 18, '#ffe27a', 'center', 'rgba(0,0,0,.5)'); for (let i = 0; i < darts; i++) { x.fillStyle = '#ff7a45'; x.fillRect(80 + i * 16, 386, 4, 18); }
+    A.hud(x, W, '🎯 ' + n, 'Дротиков ' + darts);
+  } };
 };
 const aCannon = (x, sc, st) => {
-  let shot = null, targets = [], n = 0, left = 4, ang = 0;
-  const newT = () => { targets = [0, 1, 2].map(i => ({ x: 160 + i * 45 + rnd(20), alive: 1 })); };
-  newT(); st('Кликни — пушка выстрелит в эту сторону. Сбей все 3 мишени');
-  return { click(a, b) { if (shot || left <= 0) return; const ex = 40, ey = 270, dx = a - ex, dy = b - ey, L = Math.hypot(dx, dy) || 1; const sp = 7; shot = { x: ex, y: ey, vx: dx / L * sp, vy: dy / L * sp, t: 0 }; left--; },
-    t() {
-      if (shot) { shot.vy += .12; shot.x += shot.vx; shot.y += shot.vy; shot.t++;
-        targets.forEach(g => { if (g.alive && Math.hypot(shot.x - g.x, shot.y - 262) < 16) { g.alive = 0; n++; sc(n); boom(g.x, 262, '#ffd13a', 16); } });
-        if (shot.y > 300 || shot.x > 320 || shot.t > 200) shot = null;
-        if (!shot) { if (targets.every(g => !g.alive)) { if (left > 0) newT(); } }
-      }
-      if (!shot && left <= 0 && targets.some(g => g.alive)) st('Снаряды кончились. Очков: ' + n);
-      R(x, '#a5d6a7', 0, 280, 300, 20);
-      targets.forEach(g => { if (g.alive) { x.font = '30px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('🎯', g.x, 260); } });
-      x.font = '28px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('🔫', 40, 270);
-      if (shot) x.fillText('💣', shot.x, shot.y);
-      x.font = '700 13px sans-serif'; x.fillStyle = '#333'; x.textAlign = 'left'; x.fillText('Снарядов: ' + left, 8, 16);
-    } };
+  const W = 400, H = 300, G = .15;
+  let ang = -.7, pw = 0, charging = 0, ball = null, tg = [], n = 0, shots = 10, fr = 0, over = 0, lvl = 0, parts = [];
+  const mkT = () => { tg = []; for (let i = 0; i < 3 + Math.min(3, lvl); i++) tg.push({ x: 200 + rnd(180), y: 70 + rnd(170), r: 12, v: lvl > 1 ? (Math.random() - .5) * 1.2 : 0, hit: 0 }); };
+  const fire = () => { if (ball || over || shots <= 0) return; const sp = 4 + pw * 7; ball = { x: 40 + Math.cos(ang) * 26, y: 250 + Math.sin(ang) * 26, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp }; shots--; pw = 0; S.p('boom'); SH = 3; };
+  mkT(); sc(0); st('Наведи пушку мышью или W/S, зажми и отпусти для выстрела. Сбей все мишени');
+  return { held: true, move(a, b) { ang = cl(Math.atan2(b - 250, a - 40), -1.45, -.05); }, down(a, b) { ang = cl(Math.atan2(b - 250, a - 40), -1.45, -.05); charging = 1; }, up() { if (charging) { charging = 0; fire(); } }, t() {
+    fr++; if (K.KeyW || K.ArrowUp) ang = Math.max(-1.45, ang - .02); if (K.KeyS || K.ArrowDown) ang = Math.min(-.05, ang + .02); if (K.Space) charging = 2; else if (charging === 2) { charging = 0; fire(); }
+    if (charging) pw = Math.min(1, pw + .02);
+    tg.forEach(t => { if (t.v) { t.y += t.v; if (t.y < 60 || t.y > 240) t.v = -t.v; } });
+    if (ball) { ball.vy += G; ball.x += ball.vx; ball.y += ball.vy; parts.push({ x: ball.x, y: ball.y, l: 16 }); tg.forEach(t => { if (!t.hit && Math.hypot(t.x - ball.x, t.y - ball.y) < t.r + 6) { t.hit = 1; n += 10 + lvl * 5; sc(n); boom(t.x, t.y, '#ffd13a', 18); S.p('pop'); A.pop(t.x, t.y - 16, '+' + (10 + lvl * 5)); } }); if (ball.y > 268 || ball.x > W + 20) { if (ball.y > 268) boom(ball.x, 268, '#c79a5c', 8); ball = null; if (tg.every(t => t.hit)) { lvl++; shots += 4; S.p('win'); A.pop(200, 120, 'Все мишени! +4 ядра', '#7dff9a'); mkT(); } else if (shots <= 0) { over = 1; S.p('lose'); st(OVER); } } }
+    parts.forEach(p => p.l--); parts = parts.filter(p => p.l > 0);
+    A.sky(x, W, H, fr, 'day'); A.hills(x, W, 230, 0, '#8fd3a1', '#5cbf7a', 12); A.grass(x, W, 268, 32, '#6bd05a');
+    parts.forEach(p => { x.fillStyle = 'rgba(255,255,255,' + p.l / 30 + ')'; A.circ(x, p.x, p.y, 3); x.fill(); });
+    tg.forEach(t => { if (t.hit) return; x.strokeStyle = '#8a5a30'; x.lineWidth = 3; x.beginPath(); x.moveTo(t.x, t.y + t.r); x.lineTo(t.x, 268); x.stroke(); [[1, '#fff'], [.75, '#e5484d'], [.5, '#fff'], [.25, '#e5484d']].forEach(([k, c]) => { x.fillStyle = c; A.circ(x, t.x, t.y, t.r * k); x.fill(); }); });
+    if (ball) A.orb(x, ball.x, ball.y, 6, '#2a2d36', { flat: 1 });
+    if (!ball && !over) { x.setLineDash([3, 6]); x.strokeStyle = 'rgba(255,255,255,.8)'; x.lineWidth = 2; x.beginPath(); let px = 40 + Math.cos(ang) * 26, py = 250 + Math.sin(ang) * 26, sp = 4 + Math.max(pw, .5) * 7, vx = Math.cos(ang) * sp, vy = Math.sin(ang) * sp; x.moveTo(px, py); for (let i = 0; i < 14; i++) { vy += G; px += vx; py += vy; x.lineTo(px, py); } x.stroke(); x.setLineDash([]); }
+    x.save(); x.translate(40, 250); x.rotate(ang); A.box(x, 0, -7, 32, 14, '#3a3f55', 5); x.restore(); A.orb(x, 40, 252, 14, '#5a3a1e', { flat: 1 }); A.orb(x, 28, 262, 9, '#2a2d36', { flat: 1 }); A.orb(x, 52, 262, 9, '#2a2d36', { flat: 1 });
+    A.bar(x, 10, 280, 80, 10, pw, '#ff7a45'); for (let i = 0; i < shots; i++) A.orb(x, 110 + i * 14, 285, 5, '#2a2d36', { flat: 1 });
+    A.hud(x, W, '💥 ' + n, 'Уровень ' + (lvl + 1));
+  } };
 };
 const pPaint = (x, sc, st) => {
-  const N = 10, cs = 30, P = ['#e53935', '#43a047', '#1e88e5', '#fdd835', '#8e24aa', '#ffffff'];
-  let g = Array.from({ length: N }, () => Array(N).fill('#eceff1')), col = P[0];
-  sc(0); st('Выбери цвет внизу и рисуй по клеткам 🖌️');
-  return { click(a, b) { if (b >= N * cs) { const k = Math.floor(a / 50); if (P[k]) col = P[k]; return; } const r = Math.floor(b / cs), c = Math.floor(a / cs); if (r >= 0 && r < N && c >= 0 && c < N) g[r][c] = col; },
-    t() { for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) R(x, g[r][c], c * cs + 1, r * cs + 1, cs - 2, cs - 2);
-      for (let k = 0; k < 6; k++) { if (P[k] === col) R(x, '#263238', k * 50 + 2, N * cs + 4, 46, 44); R(x, P[k], k * 50 + 4, N * cs + 6, 42, 40); } } };
+  const W = 300, H = 440, N = 16, CS = 17, X0 = 14, Y0 = 50, PAL = ['#1b1f2a', '#ffffff', '#ff5470', '#ff9a3c', '#ffd23f', '#4be07a', '#2fd1b0', '#35c3ff', '#3b5bdb', '#b266ff', '#ff6fa5', '#8a5a30'];
+  let g = Array.from({ length: N }, () => Array(N).fill(1)), col = 2, tool = 0, fr = 0, drag = 0, hist = [], n = 0;
+  try { const d = JSON.parse(localStorage.getItem('nbz-paint') || 'null'); if (d && d.length === N) g = d; } catch (e) {}
+  const save = () => { try { localStorage.setItem('nbz-paint', JSON.stringify(g)); } catch (e) {} };
+  const fill = (r, c, nc) => { const o = g[r][c]; if (o === nc) return; const q = [[r, c]]; while (q.length) { const [a, b] = q.pop(); if (a < 0 || b < 0 || a >= N || b >= N || g[a][b] !== o) continue; g[a][b] = nc; q.push([a + 1, b], [a - 1, b], [a, b + 1], [a, b - 1]); } };
+  const paint = (a, b) => { const c = Math.floor((a - X0) / CS), r = Math.floor((b - Y0) / CS); if (r < 0 || c < 0 || r >= N || c >= N) return; if (tool === 1) { fill(r, c, col); drag = 0; } else g[r][c] = tool === 2 ? 1 : col; n = g.flat().filter(v => v !== 1).length; sc(n); };
+  sc(0); st('Рисуй по клеткам: кисть, заливка и ластик. Рисунок сохраняется');
+  return { held: true, down(a, b) { if (b > 330) { if (b < 380) { const i = Math.floor((a - 6) / 24); if (i >= 0 && i < 12) { col = i; if (tool === 2) tool = 0; S.p('tick'); } } else { const i = Math.floor((a - 6) / 72); if (i >= 0 && i < 4) { if (i === 3) { hist.push(JSON.stringify(g)); g = g.map(r => r.map(() => 1)); save(); } else tool = i; S.p('click'); } } return; } hist.push(JSON.stringify(g)); if (hist.length > 30) hist.shift(); drag = 1; paint(a, b); }, move(a, b, btn) { if (btn && drag && tool !== 1) paint(a, b); }, up() { drag = 0; save(); }, key(k) { if (k === 'z' || k === 'я') { if (hist.length) { g = JSON.parse(hist.pop()); save(); } return true; } return false; }, t() {
+    fr++; const bg = x.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#fde3cf'); bg.addColorStop(1, '#f5c9a8'); x.fillStyle = bg; x.fillRect(0, 0, W, H);
+    A.box(x, X0 - 6, Y0 - 6, N * CS + 12, N * CS + 12, '#8a5a30', 8, { nogloss: 1 });
+    for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) { x.fillStyle = PAL[g[r][c]]; x.fillRect(X0 + c * CS, Y0 + r * CS, CS, CS); } x.strokeStyle = 'rgba(0,0,0,.06)'; x.lineWidth = 1; for (let i = 0; i <= N; i++) { x.beginPath(); x.moveTo(X0 + i * CS, Y0); x.lineTo(X0 + i * CS, Y0 + N * CS); x.stroke(); x.beginPath(); x.moveTo(X0, Y0 + i * CS); x.lineTo(X0 + N * CS, Y0 + i * CS); x.stroke(); }
+    PAL.forEach((c, i) => { A.orb(x, 18 + i * 24, 352, col === i ? 11 : 9, c, { flat: 1 }); if (col === i) { x.strokeStyle = '#2a2d3a'; x.lineWidth = 2; A.circ(x, 18 + i * 24, 352, 13); x.stroke(); } });
+    ['🖌 Кисть', '🪣 Заливка', '🧽 Ластик', '🗑 Очистить'].forEach((l, i) => A.btn(x, 8 + i * 72, 388, 66, 34, l, tool === i ? '#2f9e44' : i === 3 ? '#d94f6a' : '#4c5aa8', 11));
+    A.hud(x, W, '🖌 Клеток ' + n, 'Z — отмена');
+  } };
 };
 
 const aSlots = (x, sc, st) => {
-  const SYM = ['🍒', '🍋', '🔔', '⭐', '💎', '7️⃣']; let r = [0, 1, 2], spin = 0, coins = 20, bet = 5, last = '';
-  st('Кликни «Крутить» — ставка 5 монет');
-  return { click(a, b) { if (spin > 0) return; if (coins < bet) { st('Монеты закончились. Перезапусти игру'); return; } coins -= bet; sc(coins); spin = 40; }, t() {
-    if (spin > 0) { spin--; r = r.map(() => rnd(SYM.length)); if (spin === 0) { const ok = r[0] === r[1] && r[1] === r[2]; const pair = r[0] === r[1] || r[1] === r[2] || r[0] === r[2]; const win = ok ? 50 : pair ? 10 : 0; coins += win; sc(coins); last = win ? ('Выигрыш: ' + win) : 'Не повезло'; st(last); } }
-    R(x, '#fff8e1', 0, 0, 300, 300); R(x, '#f9a825', 30, 80, 240, 110);
-    x.font = '46px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
-    [0, 1, 2].forEach(i => { R(x, '#ffffff', 45 + i * 75, 95, 60, 80); x.fillText(SYM[r[i]], 75 + i * 75, 135); });
-    R(x, '#e53935', 90, 220, 120, 40); x.font = '700 16px sans-serif'; x.fillStyle = '#fff'; x.fillText('Крутить', 150, 240);
-    x.font = '700 14px sans-serif'; x.fillStyle = '#333'; x.textAlign = 'left'; x.fillText('Монеты: ' + coins, 8, 280);
+  const W = 300, H = 420, SYM = ['🍒', '🍋', '🍇', '🔔', '⭐', '💎', '7️⃣'], PAY = [2, 3, 4, 6, 10, 20, 50];
+  let reels = [0, 0, 0].map(() => ({ p: rnd(7) * 1, v: 0, stopAt: 0 })), coins = 100, peak = 100, bet = 5, spinning = 0, fr = 0, over = 0, msg = '', lights = 0;
+  const spin = () => { if (spinning || over || coins < bet) return; coins -= bet; spinning = 1; msg = ''; reels.forEach((r, i) => { r.v = .5 + Math.random() * .1; r.stopAt = fr + 50 + i * 22; }); S.p('click'); };
+  sc(peak); st('Крути барабаны. Три одинаковых — выигрыш, две вишни — тоже приз');
+  return { click(a, b) { if (b > 340) { if (a < 100) { bet = bet === 5 ? 10 : bet === 10 ? 25 : 5; S.p('tick'); } else spin(); } else spin(); }, key(k) { if (k === ' ') { spin(); return true; } return false; }, t() {
+    fr++; if (lights > 0) lights--;
+    if (spinning) { let all = true; reels.forEach(r => { if (r.v > 0) { if (fr >= r.stopAt) { r.p = Math.round(r.p); r.v = 0; S.p('tick'); } else { r.p = (r.p + r.v) % 7; all = false; } } }); if (all) { spinning = 0; const s = reels.map(r => ((Math.round(r.p) % 7) + 7) % 7); let win = 0; if (s[0] === s[1] && s[1] === s[2]) win = bet * PAY[s[0]]; else if (s.filter(v => v === 0).length === 2) win = bet; if (win) { coins += win; msg = 'Выигрыш +' + win; lights = 60; S.p('win'); boom(150, 170, '#ffd13a', 30); } else msg = 'Ещё разок!'; peak = Math.max(peak, coins); sc(peak); if (coins < 5) { over = 1; setTimeout(() => st(OVER), 800); } } }
+    const bg = x.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#5a0f2e'); bg.addColorStop(1, '#260512'); x.fillStyle = bg; x.fillRect(0, 0, W, H);
+    A.box(x, 20, 60, 260, 240, '#d4a017', 22, { nogloss: 1 }); A.box(x, 30, 70, 240, 220, '#7a1430', 16, { nogloss: 1 });
+    for (let i = 0; i < 14; i++) { const on = lights ? (i + Math.floor(fr / 4)) % 2 : i % 2; x.fillStyle = on ? '#fff6b0' : '#8a6a10'; A.circ(x, 34 + i * 18.6, 64, 3.5); x.fill(); A.circ(x, 34 + i * 18.6, 296, 3.5); x.fill(); }
+    A.txt(x, 'NOBEZTER', 150, 98, 18, '#ffd23f', 'center', 'rgba(0,0,0,.5)');
+    reels.forEach((r, i) => { const X = 45 + i * 72; x.save(); x.fillStyle = '#fbfbf5'; A.rr(x, X, 120, 66, 140, 10); x.fill(); x.clip(); for (let k = -1; k <= 1; k++) { const idx = ((Math.floor(r.p) + k) % 7 + 7) % 7, off = (r.p % 1) * 46; x.font = '34px serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(SYM[idx], X + 33, 190 + k * 46 - off + (k ? 0 : 0)); } const sh = x.createLinearGradient(0, 120, 0, 260); sh.addColorStop(0, 'rgba(0,0,0,.35)'); sh.addColorStop(.3, 'rgba(0,0,0,0)'); sh.addColorStop(.7, 'rgba(0,0,0,0)'); sh.addColorStop(1, 'rgba(0,0,0,.35)'); x.fillStyle = sh; x.fillRect(X, 120, 66, 140); x.restore(); });
+    x.strokeStyle = 'rgba(255,80,80,.7)'; x.lineWidth = 2; x.beginPath(); x.moveTo(40, 190); x.lineTo(260, 190); x.stroke();
+    if (msg) A.txt(x, msg, 150, 322, 18, msg[0] === 'В' ? '#7dff9a' : '#ffd1d1', 'center', 'rgba(0,0,0,.5)');
+    A.btn(x, 14, 352, 80, 44, 'Ставка ' + bet, '#4c5aa8', 13); A.btn(x, 104, 352, 182, 44, spinning ? 'Крутится…' : 'Крутить!', spinning ? '#555a70' : '#f59f00', 18);
+    A.hud(x, W, '🪙 ' + coins, null);
   } };
 };
 const aNumberTap = (x, sc, st) => {
-  let nums, next = 1, t = 0, over = 0, ms = 0;
-  const reset = () => { nums = Array.from({ length: 16 }, (_, i) => i + 1).sort(() => Math.random() - .5); next = 1; t = 0; over = 0; sc(0); st('Нажимай числа по порядку от 1 до 16 как можно быстрее'); };
-  reset();
-  return { click(a, b) { if (over) { reset(); return; } const c = Math.floor(a / 75), r = Math.floor(b / 75); if (r < 0 || r > 3 || c < 0 || c > 3) return; const v = nums[r * 4 + c]; if (v === 0) return;
-      if (v === next) { nums[r * 4 + c] = 0; next++; sc(next - 1); if (next > 16) { over = 1; st('🏁 Все числа за ' + (t / 60).toFixed(1) + ' с. Кликни, чтобы сыграть снова'); } } else { over = 0; st('Ошибка: нужно число ' + next); } },
-    t() { if (!over) t++; R(x, '#eceff1', 0, 0, 300, 300);
-      for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) { const v = nums[r * 4 + c]; if (!v) continue; R(x, v === next ? '#ffd54f' : '#90caf9', c * 75 + 4, r * 75 + 4, 67, 67); x.font = '700 26px sans-serif'; x.fillStyle = '#263238'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(String(v), c * 75 + 37, r * 75 + 38); }
-      x.font = '700 13px sans-serif'; x.fillStyle = '#333'; x.textAlign = 'left'; x.fillText('Время: ' + (t / 60).toFixed(1) + ' с', 8, 292);
-    } };
+  const W = 300, H = 380, N = 5, CS = 54, X0 = 15, Y0 = 70;
+  let nums, next = 1, t0 = 0, fr = 0, over = 0, run = 0, done = 0, flash = {}, best = 0, time = 0;
+  const gen = () => { nums = [...Array(N * N).keys()].map(i => i + 1).sort(() => Math.random() - .5); next = 1; run = 0; done = 0; time = 0; };
+  gen(); sc(0); st('Нажимай числа от 1 до 25 по порядку как можно быстрее');
+  return { click(a, b) { if (done) return; const c = Math.floor((a - X0) / CS), r = Math.floor((b - Y0) / CS); if (r < 0 || c < 0 || r >= N || c >= N) return; const v = nums[r * N + c]; if (v === next) { if (!run) run = 1; flash[r * N + c] = 10; next++; S.tone(400 + next * 20, .05, 'triangle', .05); if (next > 25) { done = 1; const s = Math.max(1, Math.round(1000 - time / 60 * 20)); sc(Math.round(time / 6) / 10); S.p('win'); boom(150, 200, '#ffd13a', 30); setTimeout(() => st(WIN + 'Время: ' + (time / 60).toFixed(1) + ' с'), 600); } } else { time += 60; S.p('hit'); SH = 4; A.pop(a, b, '+1 с', '#ff8a8a'); } }, t() {
+    fr++; if (run && !done) time++; Object.keys(flash).forEach(k => { if (--flash[k] <= 0) delete flash[k]; });
+    const bg = x.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#24304f'); bg.addColorStop(1, '#121a30'); x.fillStyle = bg; x.fillRect(0, 0, W, H);
+    nums.forEach((v, i) => { const r = Math.floor(i / N), c = i % N, X = X0 + c * CS, Y = Y0 + r * CS, gone = v < next; A.box(x, X + 3, Y + 3, CS - 6, CS - 6, gone ? '#2a3350' : flash[i] ? '#7dff9a' : 'hsl(' + (v * 13) + ',60%,55%)', 10, { flat: gone, nogloss: gone }); if (!gone) A.txt(x, String(v), X + CS / 2, Y + CS / 2 + 1, 20, '#fff', 'center', 'rgba(0,0,0,.3)'); });
+    A.txt(x, 'Найди: ' + Math.min(25, next), 150, 52, 16, '#ffe27a', 'center'); A.hud(x, W, '🔢 ' + next + '/25', '⏱ ' + (time / 60).toFixed(1) + ' с');
+  } };
 };
 const aRoll = (x, sc, st) => {
-  let cur = rnd(6) + 1, nxt = rnd(6) + 1, streak = 0, over = 0;
-  st('Выше или ниже? Жми ▲ или ▼ — ответ верный, серия растёт');
-  const guess = up => { if (over) return; if (nxt === cur) { nxt = rnd(6) + 1; return; } const ok = up ? nxt > cur : nxt < cur; if (ok) { streak++; sc(streak); cur = nxt; nxt = rnd(6) + 1; } else { over = 1; st('Ошибка! Серия: ' + streak + '. Перезапусти игру'); } };
-  return { click(a, b) { if (b < 200) return; if (a < 150) guess(true); else guess(false); },
-    t() { R(x, '#fffde7', 0, 0, 300, 300);
-      x.font = '90px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'][cur - 1], 150, 110);
-      R(x, '#43a047', 0, 220, 150, 80); R(x, '#e53935', 150, 220, 150, 80);
-      x.font = '700 22px sans-serif'; x.fillStyle = '#fff'; x.fillText('▲ выше', 75, 260); x.fillText('▼ ниже', 225, 260);
-      x.font = '700 14px sans-serif'; x.fillStyle = '#333'; x.fillText('Серия: ' + streak, 150, 190);
-    } };
+  const W = 300, H = 380, PIP = [[], [[.5, .5]], [[.25, .25], [.75, .75]], [[.25, .25], [.5, .5], [.75, .75]], [[.25, .25], [.75, .25], [.25, .75], [.75, .75]], [[.25, .25], [.75, .25], [.5, .5], [.25, .75], [.75, .75]], [[.25, .25], [.75, .25], [.25, .5], [.75, .5], [.25, .75], [.75, .75]]];
+  let cur = 1 + rnd(6), nxt = 0, streak = 0, fr = 0, over = 0, roll = 0, guess = 0, res = '', wait = 0, best = 0;
+  sc(0); st('Угадай: следующий бросок будет больше или меньше? Серия растёт с каждым верным ответом');
+  const go = g => { if (roll || over || wait) return; guess = g; roll = 24; nxt = 1 + rnd(6); S.p('click'); };
+  const die = (X, Y, v, s, r) => { x.save(); x.translate(X, Y); x.rotate(r || 0); A.shadow(x, 4, s * .55, s * .5, s * .12, .25); A.box(x, -s / 2, -s / 2, s, s, '#fbfbfb', s * .2, { nogloss: 1 }); x.fillStyle = '#1b1f2a'; PIP[v].forEach(([px, py]) => { A.circ(x, -s / 2 + px * s, -s / 2 + py * s, s * .09); x.fill(); }); x.restore(); };
+  return { click(a, b) { if (b > 300) go(a < 150 ? -1 : 1); }, key(k) { if (k === 'ArrowUp' || k === 'w') { go(1); return true; } if (k === 'ArrowDown' || k === 's') { go(-1); return true; } return false; }, t() {
+    fr++;
+    if (roll) { roll--; if (!roll) { const ok = (guess > 0 && nxt > cur) || (guess < 0 && nxt < cur); const tie = nxt === cur; if (tie) { res = 'Ничья — серия сохранена'; S.p('tick'); } else if (ok) { streak++; best = Math.max(best, streak); sc(streak); res = 'Верно!'; S.p('coin'); boom(150, 150, '#7dff9a', 14); } else { res = 'Не угадал'; S.p('lose'); over = 1; setTimeout(() => st(OVER), 900); } cur = nxt; wait = 40; } }
+    if (wait > 0) wait--;
+    const bg = x.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#2f6f5c'); bg.addColorStop(1, '#10372d'); x.fillStyle = bg; x.fillRect(0, 0, W, H);
+    x.fillStyle = 'rgba(255,255,255,.06)'; A.circ(x, 150, 150, 110); x.fill();
+    die(150, 150, roll ? 1 + rnd(6) : cur, 100, roll ? (Math.random() - .5) * .8 : 0);
+    if (res && !roll) A.txt(x, res, 150, 240, 18, res === 'Верно!' ? '#7dff9a' : res[0] === 'Н' && res[1] === 'е' ? '#ffb3b3' : '#ffe27a', 'center', 'rgba(0,0,0,.4)');
+    A.btn(x, 14, 306, 130, 56, '▼ Меньше', '#3b5bdb', 17); A.btn(x, 156, 306, 130, 56, '▲ Больше', '#d94f6a', 17);
+    A.hud(x, W, '🎲 Серия ' + streak, 'Рекорд ' + best);
+  } };
 };
 
 const aHideSeek = (x, sc, st) => {
-  const EM = ['🍎', '🍐', '🍊', '🍋', '🍇', '🍓', '🫐', '🍒', '🥝'];
-  let lvl = 1, n = 0, grid = [], odd = 0, over = 0, tl = 0;
-  const make = () => { const k = Math.min(4, 2 + Math.floor(lvl / 3)); const base = rnd(EM.length); let other = (base + 1 + rnd(EM.length - 1)) % EM.length; odd = rnd(k * k); grid = Array.from({ length: k * k }, (_, i) => i === odd ? other : base); grid.k = k; };
-  make(); st('Найди отличающийся фрукт. Уровень 1');
-  return { click(a, b) { if (over) return; const k = grid.k, cs = 300 / k; const c = Math.floor(a / cs), r = Math.floor(b / cs); if (r < 0 || c < 0 || r >= k || c >= k) return; if (r * k + c === odd) { sc(++n); lvl++; boom(a, b, '#ffd13a', 12); make(); st('Верно! Уровень ' + lvl); } else { over = 1; st('Не то. Найдено: ' + n + '. Перезапусти игру'); } },
-    t() { tl++; R(x, '#fafafa', 0, 0, 300, 300); const k = grid.k, cs = 300 / k; x.font = (cs * .6 | 0) + 'px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
-      grid.forEach((e, i) => x.fillText(EM[e], (i % k) * cs + cs / 2, Math.floor(i / k) * cs + cs / 2)); } };
+  const W = 300, H = 400, TL = 3000, EM = ['🍎', '🍊', '🍋', '🍐', '🍇', '🍓', '🍑', '🍒', '🥝', '🍌'];
+  let n = 0, fr = 0, over = 0, grid, odd, set, size = 3, oc = 0, flash = null, time = TL, bonus = 0;
+  const gen = () => { size = Math.min(7, 3 + Math.floor(n / 3)); const a = rnd(EM.length); let b; do { b = rnd(EM.length); } while (b === a); set = [EM[a], EM[b]]; odd = rnd(size * size); flash = null; };
+  gen(); sc(0); st('Найди фрукт, который отличается от остальных. На каждый раунд добавляется время');
+  const geom = () => { const T = Math.floor(260 / size); return { T, ox: (W - T * size) / 2, oy: 80 + (260 - T * size) / 2 }; };
+  return { click(a, b) { if (over || flash) return; const { T, ox, oy } = geom(), c = Math.floor((a - ox) / T), r = Math.floor((b - oy) / T); if (r < 0 || c < 0 || r >= size || c >= size) return; const i = r * size + c; if (i === odd) { n++; sc(n); time = Math.min(TL, time + 120); S.p('coin'); flash = { i, ok: 1, l: 18 }; A.pop(a, b, '+1', '#7dff9a'); } else { time -= 150; S.p('hit'); SH = 4; flash = { i, ok: 0, l: 14 }; A.pop(a, b, '−2 с', '#ff8a8a'); } }, t() {
+    fr++; if (!over) { time--; if (time <= 0) { over = 1; S.p('lose'); st(OVER); } } if (flash && --flash.l <= 0) { if (flash.ok) gen(); else flash = null; }
+    const bg = x.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#f7e8c8'); bg.addColorStop(1, '#e8c98a'); x.fillStyle = bg; x.fillRect(0, 0, W, H);
+    const { T, ox, oy } = geom(); A.bar(x, 20, 52, 260, 10, time / TL, time < 600 ? '#ff6b6b' : '#7dff9a');
+    for (let r = 0; r < size; r++) for (let c = 0; c < size; c++) { const i = r * size + c, X = ox + c * T, Y = oy + r * T, on = flash && flash.i === i; x.fillStyle = on ? (flash.ok ? 'rgba(125,255,154,.6)' : 'rgba(255,100,100,.6)') : 'rgba(255,255,255,.55)'; A.rr(x, X + 2, Y + 2, T - 4, T - 4, 10); x.fill(); x.font = Math.floor(T * .6) + 'px serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(i === odd ? set[1] : set[0], X + T / 2, Y + T / 2 + 2); }
+    A.hud(x, W, '🔎 ' + n, 'Поле ' + size + '×' + size);
+  } };
 };
 const aShips = (x, sc, st) => {
-  const N = 6, cs = 50; let mine, bot, shot, bshot, over = 0, hitsOnBot = 0, hitsOnMe = 0;
-  const place = () => { const s = new Set(); while (s.size < 6) s.add(rnd(N * N)); return s; };
-  const reset = () => { mine = place(); bot = place(); shot = new Set(); bshot = new Set(); over = 0; hitsOnBot = 0; hitsOnMe = 0; sc(0); st('Стреляй по клеткам: найди все 6 кораблей врага'); };
-  reset();
-  return { click(a, b) { if (over) { reset(); return; } if (b >= N * cs) return; const id = Math.floor(b / cs) * N + Math.floor(a / cs); if (shot.has(id)) return; shot.add(id);
-      if (bot.has(id)) { hitsOnBot++; sc(hitsOnBot); boom(a, b, '#ff7043', 10); }
-      if (hitsOnBot >= 6) { over = 1; st('🏆 Победа! Ты потопил все корабли. Кликни, чтобы сыграть снова'); return; }
-      let bid; do { bid = rnd(N * N); } while (bshot.has(bid)); bshot.add(bid); if (mine.has(bid)) hitsOnMe++;
-      if (hitsOnMe >= 6) { over = 1; st('💥 Враг потопил твой флот. Кликни, чтобы сыграть снова'); } },
-    t() { for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) { const id = r * N + c; const ok = shot.has(id); R(x, ok && bot.has(id) ? '#e53935' : ok ? '#90a4ae' : '#bbdefb', c * cs + 2, r * cs + 2, cs - 4, cs - 4); if (ok && bot.has(id)) { x.font = '24px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('💥', c * cs + 25, r * cs + 25); } }
-      x.font = '700 13px sans-serif'; x.fillStyle = '#333'; x.textAlign = 'left'; x.fillText('Попаданий: ' + hitsOnBot + '/6 · твоих потоплено: ' + hitsOnMe + '/6', 4, 316); } };
+  const N = 8, CS = 32, X0 = 22, Y0 = 62, W = 300, H = 420, LEN = [4, 3, 3, 2, 2];
+  let ships, shots, hits, left, fr = 0, over = 0, lvl = 0, ammo, boomP = [], total = 0;
+  const gen = () => { ships = []; const occ = new Set(); LEN.forEach(l => { for (let t = 0; t < 200; t++) { const h = rnd(2), r = rnd(h ? N : N - l + 1), c = rnd(h ? N - l + 1 : N), cells = Array.from({ length: l }, (_, i) => h ? [r, c + i] : [r + i, c]); if (cells.some(([a, b]) => occ.has(a * 20 + b) || [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([da, db]) => occ.has((a + da) * 20 + b + db)))) continue; cells.forEach(([a, b]) => occ.add(a * 20 + b)); ships.push({ cells, hit: new Set() }); break; } }); shots = Array.from({ length: N }, () => Array(N).fill(0)); ammo = 30 - Math.min(8, lvl * 2); };
+  gen(); sc(0); st('Стреляй по клеткам и потопи все корабли врага. Патронов ограниченное число');
+  return { click(a, b) { if (over || b < Y0 || b > Y0 + N * CS) return; const c = Math.floor((a - X0) / CS), r = Math.floor((b - Y0) / CS); if (r < 0 || c < 0 || r >= N || c >= N || shots[r][c]) return; ammo--; const sh = ships.find(s => s.cells.some(([p, q]) => p === r && q === c)); if (sh) { shots[r][c] = 2; sh.hit.add(r * 20 + c); total++; sc(total); S.p('boom'); boom(X0 + c * CS + 16, Y0 + r * CS + 16, '#ff9a3c', 14); if (sh.hit.size === sh.cells.length) { A.pop(150, 50, 'Корабль потоплен!', '#ffd13a'); S.p('win'); sh.cells.forEach(([p, q]) => { shots[p][q] = 3; }); } } else { shots[r][c] = 1; S.p('pop'); A.ring(X0 + c * CS + 16, Y0 + r * CS + 16, '#7ad6ff'); }
+    if (ships.every(s => s.hit.size === s.cells.length)) { lvl++; total += ammo * 2; sc(total); S.p('win'); A.pop(150, 200, 'Флот уничтожен! +' + ammo * 2, '#7dff9a'); setTimeout(gen, 1400); } else if (ammo <= 0) { over = 1; ships.forEach(s => s.cells.forEach(([p, q]) => { if (!shots[p][q]) shots[p][q] = 4; })); S.p('lose'); setTimeout(() => st(OVER), 1200); } }, t() {
+    fr++; const bg = x.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#0e3a6b'); bg.addColorStop(1, '#06182f'); x.fillStyle = bg; x.fillRect(0, 0, W, H);
+    A.box(x, X0 - 6, Y0 - 6, N * CS + 12, N * CS + 12, '#2a3f66', 10, { nogloss: 1 }); x.save(); x.beginPath(); x.rect(X0, Y0, N * CS, N * CS); x.clip(); x.translate(X0, 0); A.water(x, N * CS, Y0, N * CS, fr, '#2ea8ff', '#0b5fb5'); x.restore();
+    x.strokeStyle = 'rgba(255,255,255,.25)'; x.lineWidth = 1; for (let i = 0; i <= N; i++) { x.beginPath(); x.moveTo(X0 + i * CS, Y0); x.lineTo(X0 + i * CS, Y0 + N * CS); x.stroke(); x.beginPath(); x.moveTo(X0, Y0 + i * CS); x.lineTo(X0 + N * CS, Y0 + i * CS); x.stroke(); }
+    for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) { const v = shots[r][c], X = X0 + c * CS + 16, Y = Y0 + r * CS + 16; if (v === 3 || v === 4) { A.box(x, X - 14, Y - 14, 28, 28, v === 4 ? '#8a93a8' : '#6a7390', 6, { nogloss: 1 }); } if (v === 1) { x.fillStyle = 'rgba(255,255,255,.7)'; A.circ(x, X, Y, 4); x.fill(); } if (v === 2 || v === 3) { x.fillStyle = '#ff7a2a'; A.circ(x, X, Y, 9 + Math.sin(fr * .3 + r + c) * 1.5); x.fill(); x.fillStyle = '#ffe27a'; A.circ(x, X, Y, 4.5); x.fill(); } }
+    ships.filter(s => s.hit.size === s.cells.length).forEach(s => { x.strokeStyle = '#ff5470'; x.lineWidth = 2; const a = s.cells[0], b = s.cells[s.cells.length - 1]; A.rr(x, X0 + Math.min(a[1], b[1]) * CS + 2, Y0 + Math.min(a[0], b[0]) * CS + 2, (Math.abs(a[1] - b[1]) + 1) * CS - 4, (Math.abs(a[0] - b[0]) + 1) * CS - 4, 8); x.stroke(); });
+    for (let i = 0; i < ammo; i++) { x.fillStyle = '#ffd23f'; A.rr(x, 24 + i * 8.5, 340, 5, 14, 2); x.fill(); }
+    A.txt(x, 'Осталось кораблей: ' + ships.filter(s => s.hit.size < s.cells.length).length, 150, 382, 13, '#cfe', 'center'); A.hud(x, W, '🚢 ' + total, 'Патроны ' + ammo);
+  } };
 };
 const aPopMath = (x, sc, st) => {
-  let bub = [], tgt = 0, n = 0, lives = 3, fr = 0, over = 0, ex = '';
-  const ask = () => { const a = rnd(9) + 1, b = rnd(9) + 1; tgt = a + b; ex = a + ' + ' + b + ' = ?'; };
-  ask(); st('Лопай пузырь с правильным ответом');
-  return { click(a, b) { if (over) return; for (let i = bub.length - 1; i >= 0; i--) { const o = bub[i]; if (Math.hypot(a - o.x, b - o.y) < 22) { if (o.v === tgt) { sc(++n); boom(o.x, o.y, '#81d4fa', 12); bub = []; ask(); } else { lives--; bub.splice(i, 1); if (lives <= 0) { over = 1; st(OVER); } } return; } } },
-    t() { if (!over) { fr++; if (fr % 50 === 0) { const v = tgt + rnd(7) - 3; bub.push({ x: 30 + rnd(240), y: 420, v: v === tgt ? tgt : (v < 1 ? tgt + 1 : v), s: 1 + Math.random() * .6 }); if (rnd(2)) bub.push({ x: 30 + rnd(240), y: 420, v: tgt, s: 1 + Math.random() * .6 }); }
-        bub.forEach(o => o.y -= o.s); bub = bub.filter(o => o.y > -30); }
-      R(x, '#e1f5fe', 0, 0, 300, 400);
-      bub.forEach(o => { x.fillStyle = '#b3e5fc'; x.beginPath(); x.arc(o.x, o.y, 22, 0, 7); x.fill(); x.fillStyle = '#01579b'; x.font = '700 18px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(String(o.v), o.x, o.y); });
-      x.font = '700 22px sans-serif'; x.fillStyle = '#01579b'; x.textAlign = 'center'; x.fillText(ex, 150, 30);
-      x.font = '600 14px sans-serif'; x.fillText('Верно: ' + n + ' · ' + '❤️'.repeat(Math.max(0, lives)), 150, 56);
-    } };
+  const W = 300, H = 440;
+  let bs = [], q = null, n = 0, lives = 3, fr = 0, over = 0, spawn = 0, lvl = 0, qa = 0;
+  const ask = () => { const op = rnd(3), a = 2 + rnd(8 + lvl * 3), b = 2 + rnd(8 + lvl * 2); q = op === 0 ? { t: a + ' + ' + b, a: a + b } : op === 1 ? { t: (a + b) + ' − ' + b, a } : { t: a + ' × ' + (2 + rnd(5)), a: 0 }; if (op === 2) { const m = 2 + rnd(5); q = { t: a + ' × ' + m, a: a * m }; } bs = []; qa = 0; const used = new Set([q.a]); const items = [q.a]; while (items.length < 5) { const v = q.a + rnd(11) - 5; if (v > 0 && !used.has(v)) { used.add(v); items.push(v); } } items.sort(() => Math.random() - .5).forEach((v, i) => bs.push({ v, x: 40 + i * 55 + rnd(10), y: 440 + i * 50, vy: .55 + lvl * .06 + Math.random() * .2, ok: v === q.a, pop: 0, ph: Math.random() * 6 })); };
+  ask(); sc(0); st('Лопай пузырь с правильным ответом на пример. Ошибка или упущенный ответ — минус жизнь');
+  return { click(a, b) { if (over) return; const bb = bs.filter(p => !p.pop).find(p => Math.hypot(p.x - a, p.y - b) < 26); if (!bb) return; if (bb.ok) { n++; sc(n); S.p('pop'); bb.pop = 12; boom(bb.x, bb.y, '#7dff9a', 14); A.pop(bb.x, bb.y - 14, '+1'); if (n % 5 === 0) lvl++; setTimeout(() => { if (!over) ask(); }, 250); } else { bb.pop = 12; lives--; S.p('hit'); SH = 4; boom(bb.x, bb.y, '#ff5470', 10); if (lives <= 0) { over = 1; S.p('lose'); st(OVER); } } }, t() {
+    fr++; if (!over) { bs.forEach(p => { if (!p.pop) { p.y -= p.vy; p.ph += .05; } else p.pop--; }); const gone = bs.find(p => p.ok && !p.pop && p.y < 70); if (gone) { lives--; S.p('lose'); A.pop(150, 80, 'Ответ улетел!', '#ff8a8a'); if (lives <= 0) { over = 1; st(OVER); } else ask(); } }
+    const bg = x.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#1d6fa8'); bg.addColorStop(1, '#0b3a66'); x.fillStyle = bg; x.fillRect(0, 0, W, H); for (let i = 0; i < 14; i++) { x.fillStyle = 'rgba(255,255,255,.08)'; A.circ(x, (i * 67) % 300, (H - fr * .3 * (1 + i % 3) + i * 97) % H, 3 + i % 4); x.fill(); }
+    bs.forEach(p => { if (p.pop) { x.globalAlpha = p.pop / 12; } x.save(); const sx = 1 + Math.sin(p.ph) * .03; x.translate(p.x + Math.sin(p.ph) * 4, p.y); x.scale(sx, 1 / sx); const g = x.createRadialGradient(-8, -8, 3, 0, 0, 26); g.addColorStop(0, 'rgba(255,255,255,.95)'); g.addColorStop(.4, 'rgba(160,220,255,.55)'); g.addColorStop(1, 'rgba(60,160,255,.55)'); x.fillStyle = g; A.circ(x, 0, 0, 26); x.fill(); x.strokeStyle = 'rgba(255,255,255,.8)'; x.lineWidth = 2; x.stroke(); A.txt(x, String(p.v), 0, 1, 20, '#0b3a66', 'center'); x.restore(); x.globalAlpha = 1; });
+    A.box(x, 50, 44, 200, 40, '#fff7d6', 14, { nogloss: 1 }); A.txt(x, q.t + ' = ?', 150, 65, 22, '#2a2d3a', 'center');
+    A.lives(x, W, lives, 3, 405); A.hud(x, W, '🫧 ' + n, 'Уровень ' + (lvl + 1));
+  } };
 };
 const aSort = (x, sc, st) => {
-  const C = ['#e53935', '#43a047', '#1e88e5'];
-  let tub, sel = -1, moves = 0, over = 0;
-  const reset = () => { tub = [[0, 1, 2, 0], [1, 2, 0, 1], [2, 1, 0, 2], [], []].map(t => t.slice()); for (let k = 0; k < 20; k++) { const a = rnd(5), b = rnd(5); if (a !== b && tub[b].length < 4 && tub[a].length) tub[b].push(tub[a].pop()); } sel = -1; moves = 0; over = 0; sc(0); st('Раскладывай шарики по цвету: по одному цвету в каждой трубке'); };
-  reset();
-  return { click(a) { if (over) { reset(); return; } const i = Math.floor(a / 60); if (i < 0 || i > 4) return;
-      if (sel < 0) { if (tub[i].length) sel = i; return; }
-      if (sel === i) { sel = -1; return; }
-      if (tub[i].length < 4) { tub[i].push(tub[sel].pop()); moves++; sc(moves); }
-      sel = -1; const cols = tub.filter(t => t.length).map(t => t[0]); if (tub.every(t => t.every(v => v === t[0])) && new Set(cols).size === cols.length) { over = 1; st('✅ Готово за ' + moves + ' ходов. Кликни, чтобы сыграть снова'); } },
-    t() { for (let i = 0; i < 5; i++) { R(x, sel === i ? '#62c8ff' : '#cfd8dc', i * 60 + 6, 60, 48, 200); tub[i].forEach((v, k) => { x.fillStyle = C[v]; x.beginPath(); x.arc(i * 60 + 30, 240 - k * 44, 18, 0, 7); x.fill(); }); } }
-  };
+  const W = 300, H = 400, COL = ['#ff5470', '#ffd23f', '#4be07a', '#35c3ff', '#b266ff', '#ff9a3c', '#2fd1b0'], CAP = 4;
+  let tubes, sel = -1, mv = 0, lvl = 0, fr = 0, won = 0, hist = [], lift = null, pour = null;
+  const gen = () => { const nc = Math.min(7, 3 + Math.floor(lvl / 2)); const balls = []; for (let c = 0; c < nc; c++) for (let k = 0; k < CAP; k++) balls.push(c); balls.sort(() => Math.random() - .5); tubes = []; for (let i = 0; i < nc; i++) tubes.push(balls.splice(0, CAP)); tubes.push([], []); mv = 0; sel = -1; won = 0; hist = []; };
+  const isWin = () => tubes.every(t => !t.length || (t.length === CAP && t.every(v => v === t[0])));
+  const geom = i => { const n = tubes.length, per = Math.ceil(n / 2), row = i < per ? 0 : 1, idx = row ? i - per : i, cnt = row ? n - per : per, sp = 280 / cnt; return { X: 10 + sp * (idx + .5), Y: 90 + row * 140 }; };
+  gen(); sc(0); st('Разложи шарики по пробиркам: в каждой — один цвет. Перекладывать можно на такой же цвет или в пустую');
+  return { click(a, b) { if (won) return; if (b > 340) { if (a < 150 && hist.length) { tubes = JSON.parse(hist.pop()); mv--; sel = -1; S.p('tick'); } else if (a >= 150) { gen(); } return; } let hit = -1; tubes.forEach((t, i) => { const g = geom(i); if (Math.abs(a - g.X) < 26 && b > g.Y - 10 && b < g.Y + 130) hit = i; }); if (hit < 0) return; if (sel < 0) { if (tubes[hit].length) { sel = hit; S.p('tick'); } return; } if (hit === sel) { sel = -1; return; } const from = tubes[sel], to = tubes[hit], v = from[from.length - 1]; if (to.length < CAP && (!to.length || to[to.length - 1] === v)) { hist.push(JSON.stringify(tubes)); let k = 0; while (from.length && from[from.length - 1] === v && to.length < CAP) { to.push(from.pop()); k++; } mv++; S.p('click'); sel = -1; if (isWin()) { won = 1; lvl++; sc(lvl); S.p('win'); boom(150, 180, '#ffd13a', 30); setTimeout(gen, 1500); } } else { S.p('hit'); sel = hit; } }, t() {
+    fr++; const bg = x.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#3a2a6b'); bg.addColorStop(1, '#170f35'); x.fillStyle = bg; x.fillRect(0, 0, W, H);
+    tubes.forEach((t, i) => { const g = geom(i), up = sel === i ? -16 + Math.sin(fr * .2) * 2 : 0; x.save(); x.translate(g.X, g.Y + up); x.fillStyle = 'rgba(255,255,255,.1)'; A.rr(x, -20, 0, 40, 124, 18); x.fill(); x.strokeStyle = 'rgba(255,255,255,.55)'; x.lineWidth = 3; A.rr(x, -20, 0, 40, 124, 18); x.stroke(); t.forEach((v, k) => A.orb(x, 0, 104 - k * 28, 12.5, COL[v], { flat: 1 })); x.fillStyle = 'rgba(255,255,255,.25)'; A.rr(x, -14, 8, 5, 100, 3); x.fill(); x.restore(); });
+    A.btn(x, 20, 352, 120, 34, '↶ Отмена', '#4c5aa8', 14); A.btn(x, 160, 352, 120, 34, '⟲ Заново', '#d94f6a', 14); A.hud(x, W, '🧪 Уровень ' + (lvl + 1), 'Ходов ' + mv);
+  } };
 };
 
 
@@ -3170,33 +3272,33 @@ const GAMES = [
   ["calc", calc, "Устный счёт", "➕", "#c8f2ea", "Математика", "Решай примеры на скорость 30 секунд. Серии и растущая сложность.", "Верно", false, 300, 440],
   ["lander", lander, "Посадка на Луну", "🌙", "#d2e3fc", "Симулятор", "Сядь мягко и ровно на площадку. Следи за топливом.", "Очки", true, 300, 400],
   ["timing", timing, "Снайпер-таймер", "⏱️", "#fff1c2", "Скорость", "Останови стрелку в зелёной зоне. Зона сужается.", "Попадания", false, 300, 230],
-  ["pLights", pLights, "Огни", "💡", "#fff8d6", "Головоломка", "Погаси все огни. Клик меняет клетку и соседей.", "Ходы", false, 300, 300],
-  ["pHanoi", pHanoi, "Ханойские башни", "🗼", "#efe6d6", "Головоломка", "Перенеси пирамиду на правый столбик.", "Ходы", false, 300, 300],
-  ["pFlood", pFlood, "Заливка цвета", "🎨", "#e6fff2", "Головоломка", "Закрась всё поле одним цветом за меньше ходов.", "Ходы", false, 300, 340],
-  ["pBubbles", pBubbles, "Пузыри", "🫧", "#e3f6ff", "Головоломка", "Лопай группы одинаковых пузырей.", "Очки", false, 300, 300],
-  ["pCode", pCode, "Код цветов", "🔐", "#f1efff", "Логика", "Угадай код из 4 цветов за 8 попыток.", "Попытки", false, 300, 400],
-  ["rFrog", rFrog, "Лягушка на дороге", "🐸", "#e8f8e0", "Аркада", "WASD — шаги. Перейди дорогу, не попав под машину.", "Переходы", true, 300, 350],
-  ["rLift", rLift, "Ракетный полёт", "🚀", "#dfe9ff", "Аркада", "Зажми W — ракета взлетает. Метеориты не трогай.", "Очки", true, 300, 400],
+  ["pLights", pLights, "Огни", "💡", "#fff1c2", "Головоломка", "Погаси все лампы: нажатие переключает лампу и соседей. Уровни растут.", "Уровень", false, 300, 380],
+  ["pHanoi", pHanoi, "Ханойские башни", "🗼", "#f5e9c8", "Головоломка", "Перенеси пирамиду дисков на правый стержень. От 3 до 7 дисков.", "Башен", false, 300, 320],
+  ["pFlood", pFlood, "Заливка", "🎨", "#d6f0d2", "Головоломка", "Заливай поле от угла, чтобы всё стало одного цвета за 22 хода.", "Уровни", false, 300, 400],
+  ["pBubbles", pBubbles, "Пузырьки", "🫧", "#d2e3fc", "Головоломка", "Лопай группы одинаковых пузырей. Большие группы дают много очков.", "Очки", false, 300, 380],
+  ["pCode", pCode, "Взлом кода", "🔐", "#f5e9c8", "Логика", "Угадай код из 4 цветов по подсказкам за 8 попыток.", "Взломано", false, 300, 440],
+  ["rFrog", rFrog, "Лягушка", "🐸", "#d6f0d2", "Аркада", "Перейди дорогу, прыгай по брёвнам и черепахам, займи все домики.", "Очки", true, 300, 400],
+  ["rLift", rLift, "Вертолёт в пещере", "🚁", "#e9d2fd", "Аркада", "Удерживай, чтобы подняться. Пролети как можно дальше в пещере.", "Метры", false, 300, 400],
   ["rPlane", rPlane, "Самолётик", "✈️", "#e3f6ff", "Аркада", "W и S — лети между облаками.", "Очки", true, 300, 400],
-  ["spBasket", spBasket, "Баскетбол", "🏀", "#ffe9d6", "Спорт", "Кликни, куда бросить мяч. Попади в кольцо.", "Попадания", false, 300, 400],
-  ["spPenalty", spPenalty, "Пенальти", "⚽", "#e0f5e0", "Спорт", "Кликни в створ. Вратарь пытается угадать.", "Голы", false, 300, 400],
-  ["spBowling", spBowling, "Боулинг", "🎳", "#f5ecd6", "Спорт", "Кликай, куда катится шар. 3 броска.", "Сбито", false, 300, 400],
-  ["tPiano", tPiano, "Плитки", "🎹", "#eceff1", "Ритм", "Жми на чёрные плитки, пока они не ушли вниз.", "Очки", false, 300, 400],
-  ["tRhythm", tRhythm, "Барабаны", "🥁", "#fff0e6", "Ритм", "Жми, когда круг совпадает с кольцом.", "Очки", false, 300, 400],
-  ["pConnect4", pConnect4, "Четыре в ряд", "🔴", "#e3f2fd", "Логика", "Ставь фишки и собери 4 в ряд раньше бота.", "Очки", false, 301, 258],
-  ["pSudoku", pSudoku, "Судоку 4×4", "🧮", "#e8f5e9", "Головоломка", "Заполни 4×4 цифрами 1–4 без повторов в строках и столбцах.", "Заполнено", false, 300, 340],
-  ["aStack", aStack, "Башня", "📦", "#fff3e0", "Ловкость", "Ставь блоки точно друг на друга. Промах рушит башню.", "Высота", false, 300, 400],
-  ["aBalance", aBalance, "Баланс", "⚖️", "#e1f5fe", "Ловкость", "A и D — наклоняй доску и удержи шарик.", "Секунды", true, 300, 300],
-  ["aDarts", aDarts, "Дартс", "🎯", "#fff8e1", "Меткость", "Кликни, чтобы бросить дротик. 5 бросков.", "Очки", false, 300, 300],
-  ["aCannon", aCannon, "Пушка", "💥", "#fbe9e7", "Меткость", "Кликни, чтобы выстрелить. Сбей все мишени.", "Очки", false, 300, 300],
-  ["pPaint", pPaint, "Раскраска", "🖌️", "#fce4ec", "Творчество", "Рисуй по клеткам. Здесь нет проигрыша.", "Очки", false, 300, 340],
-  ["aSlots", aSlots, "Автомат", "🎰", "#fff8e1", "Казино", "Крути барабан и собирай комбинации.", "Монеты", false, 300, 300],
-  ["aNumberTap", aNumberTap, "Числа по порядку", "🔢", "#e3f2fd", "Скорость", "Нажимай числа от 1 до 16 как можно быстрее.", "Числа", false, 300, 300],
-  ["aRoll", aRoll, "Выше или ниже", "🎲", "#fffde7", "Логика", "Угадай, выпадет ли больше или меньше. Серия растёт.", "Серия", false, 300, 300],
-  ["aHideSeek", aHideSeek, "Найди отличие", "🔎", "#fafafa", "Внимание", "Найди фрукт, который отличается от остальных.", "Найдено", false, 300, 300],
-  ["aShips", aShips, "Морской бой", "🚢", "#e1f5fe", "Логика", "Стреляй по клеткам и найди все корабли врага.", "Попаданий", false, 300, 320],
-  ["aPopMath", aPopMath, "Пузыри-примеры", "🫧", "#e1f5fe", "Математика", "Лопай пузырь с правильным ответом на пример.", "Верно", false, 300, 400],
-  ["aSort", aSort, "Сортировка шариков", "🧪", "#ede7f6", "Логика", "Разложи шарики по трубкам: один цвет в каждой.", "Ходы", false, 300, 300],
+  ["spBasket", spBasket, "Баскетбол", "🏀", "#ffe0c2", "Спорт", "Оттяни мяч и брось в кольцо. После 10 очков кольцо начинает двигаться.", "Очки", false, 300, 420],
+  ["spPenalty", spPenalty, "Пенальти", "⚽", "#d6f0d2", "Спорт", "Бей по воротам и обманывай вратаря. Три промаха — конец.", "Голы", false, 300, 420],
+  ["spBowling", spBowling, "Боулинг", "🎳", "#e3dcff", "Спорт", "Поймай момент для броска, сбивай кегли. Страйки и спэры дают бонус.", "Сбито", false, 300, 420],
+  ["tPiano", tPiano, "Пианино-плитки", "🎹", "#eceff4", "Музыка", "Жми только на тёмные плитки — сыграется мелодия. Темп растёт.", "Плитки", false, 300, 440],
+  ["tRhythm", tRhythm, "Ритм-барабаны", "🥁", "#e9d2fd", "Музыка", "Попадай в ритм на четырёх дорожках. Комбо умножают очки.", "Очки", false, 300, 440],
+  ["pConnect4", pConnect4, "Четыре в ряд", "🔴", "#d2e3fc", "Настольная", "Бросай фишки и собери 4 в ряд раньше умного бота.", "Победы", false, 300, 380],
+  ["pSudoku", pSudoku, "Судоку", "🧮", "#eef2fb", "Логика", "Классическое судоку 9×9. Сложность растёт, три ошибки — конец.", "Решено", false, 300, 440],
+  ["aStack", aStack, "Башня", "📦", "#e9d2fd", "Ловкость", "Ставь блоки точно друг на друга. Идеальные попадания расширяют башню.", "Высота", false, 300, 440],
+  ["aBalance", aBalance, "Баланс", "⚖️", "#d6f0d2", "Ловкость", "Наклоняй доску и удерживай шарик. Ветер становится сильнее.", "Секунды", true, 300, 340],
+  ["aDarts", aDarts, "Дартс", "🎯", "#fad2cf", "Меткость", "Настоящая мишень с удвоением и утроением. 9 дротиков.", "Очки", false, 300, 420],
+  ["aCannon", aCannon, "Пушка", "💥", "#ffe7a8", "Меткость", "Целься, заряжай и сбивай мишени. Каждый уровень даёт новые ядра.", "Очки", false, 400, 300],
+  ["pPaint", pPaint, "Пиксель-арт", "🖌️", "#fde3cf", "Творчество", "Рисуй по клеткам: кисть, заливка, ластик, 12 цветов. Рисунок сохраняется.", "Клеток", false, 300, 440],
+  ["aSlots", aSlots, "Игровой автомат", "🎰", "#fad2cf", "Казино", "Крути барабаны и собирай три одинаковых символа.", "Монеты", false, 300, 420],
+  ["aNumberTap", aNumberTap, "Таблица Шульте", "🔢", "#d2e3fc", "Внимание", "Найди числа от 1 до 25 по порядку как можно быстрее.", "Время", false, 300, 380],
+  ["aRoll", aRoll, "Выше или ниже", "🎲", "#fff1c2", "Логика", "Угадай, будет ли следующий бросок кубика больше или меньше. Серия растёт.", "Серия", false, 300, 380],
+  ["aHideSeek", aHideSeek, "Найди отличие", "🔎", "#f7e8c8", "Внимание", "Найди фрукт, который отличается от остальных. Поле растёт.", "Найдено", false, 300, 400],
+  ["aShips", aShips, "Морской бой", "🚢", "#d2e8f5", "Стратегия", "Стреляй по клеткам и потопи флот врага. Ограниченный боезапас.", "Попаданий", false, 300, 420],
+  ["aPopMath", aPopMath, "Пузыри-примеры", "🫧", "#d2e8f5", "Математика", "Лопай пузырь с правильным ответом на пример, пока он не улетел.", "Верно", false, 300, 440],
+  ["aSort", aSort, "Сортировка пробирок", "🧪", "#e3dcff", "Логика", "Разложи шарики по цветам в пробирках. Уровни усложняются.", "Уровни", false, 300, 400],
   ["apples", catchGame, "Ловец яблок", "🍎", "#ffd0d7", "Аркада", "Лови яблоки корзиной и обходи бомбы.", "Счёт", true, null, null],
   ["invaders", invaders, "Космические захватчики", "👾", "#e9d2fd", "Аркада", "Расстреляй волны пришельцев, прячься за щитами и лови тарелку-бонус.", "Счёт", true, 300, 400],
   ["asteroids", asteroids, "Астероиды", "☄️", "#e3e8ff", "Экшен", "Лети по инерции, стреляй по камням — они раскалываются на части.", "Счёт", true, 300, 400],
