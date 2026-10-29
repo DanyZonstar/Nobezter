@@ -28,6 +28,7 @@ button.m:hover{border-color:rgba(230,235,240,.7);color:#fff;background:rgba(255,
 #prompt{position:absolute;left:50%;top:60%;transform:translateX(-50%);font-size:14px;letter-spacing:.22em;color:#e6e9eb;text-transform:uppercase;opacity:0;transition:opacity .3s;text-shadow:0 0 10px #000}
 #prompt.on{opacity:.9}
 #dot{position:absolute;left:50%;top:50%;width:3px;height:3px;margin:-1.5px;border-radius:50%;background:rgba(255,255,255,.35)}
+#inv{position:absolute;left:18px;bottom:16px;font-size:12px;letter-spacing:.14em;color:#8b9298;text-transform:uppercase;text-shadow:0 0 8px #000;max-width:70%}
 #hint{position:absolute;left:50%;top:9%;transform:translateX(-50%);font-size:12px;letter-spacing:.2em;color:#8b9298;text-transform:uppercase;opacity:0;transition:opacity 1s}
 #hint.on{opacity:.9}
 #pause{background:rgba(0,0,0,.82);z-index:8}
@@ -45,7 +46,7 @@ button.m:hover{border-color:rgba(230,235,240,.7);color:#fff;background:rgba(255,
 </head>
 <body>
 <canvas id="c"></canvas>
-<div id="hud"><div id="dot"></div><div id="hint"></div><div id="prompt"></div><div id="sub"></div></div>
+<div id="hud"><div id="dot"></div><div id="hint"></div><div id="prompt"></div><div id="sub"></div><div id="inv"></div></div>
 <div class="layer" id="title">
   <h1>TRAPPED WITHIN</h1><div class="sub" id="tSub"></div>
   <div class="btns"><button class="m" id="bStart"></button><button class="m" id="bSet"></button><button class="m" id="bLang"></button></div>
@@ -200,6 +201,36 @@ for (let i = 0; i < dustN; i++) { const x = rnd(-2.6, 2.6), y = rnd(.1, 3.4), z 
 const dustGeo = new THREE.BufferGeometry(); dustGeo.setAttribute('position', new THREE.BufferAttribute(dustPos, 3)); dustGeo.setAttribute('color', new THREE.BufferAttribute(dustCol, 3));
 const dust = new THREE.Points(dustGeo, new THREE.PointsMaterial({ size: .035, map: softSprite(), vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, sizeAttenuation: true, opacity: .8, fog: false })); scene.add(dust);
 const amb = new THREE.AmbientLight(0x2a2f3a, .55); scene.add(amb);
+/* ---------------- Глава 2: тёмная комната, генератор, безопасный круг ---------------- */
+const CH = { z0: -52 }, GEN = new THREE.Vector3(-4, 0, -42), BENCH = new THREE.Vector3(-1, 0, -47), HAMMER = new THREE.Vector3(9, 0, -34), GEN_R = 6.5;
+const chGroup = new THREE.Group(); scene.add(chGroup);
+const chLen = DZ - CH.z0, chCz = (CH.z0 + DZ) / 2;
+const chW = (w, h, d, x, y, z) => { const q = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), wallMat); q.position.set(x, y, z); chGroup.add(q); return q; };
+{ const fl = new THREE.Mesh(new THREE.PlaneGeometry(RX1 - RX0, chLen), floorMat); fl.rotation.x = -Math.PI / 2; fl.position.set(0, 0, chCz); chGroup.add(fl); const ce = new THREE.Mesh(new THREE.PlaneGeometry(RX1 - RX0, chLen), wallMat); ce.rotation.x = Math.PI / 2; ce.position.set(0, RH, chCz); chGroup.add(ce); }
+chW(.4, RH, chLen, RX0 - .2, RH / 2, chCz); chW(.4, RH, chLen, RX1 + .2, RH / 2, chCz); chW(RX1 - RX0, RH, .4, 0, RH / 2, CH.z0 - .2);
+const woodMat = new THREE.MeshStandardMaterial({ color: 0x6b4a2b, roughness: .85, metalness: 0 });
+const metalMat = new THREE.MeshStandardMaterial({ color: 0x3a4046, roughness: .45, metalness: .75 });
+const gen = new THREE.Group(); gen.position.copy(GEN); chGroup.add(gen);
+const gBody = new THREE.Mesh(new THREE.BoxGeometry(1.1, .75, .7), metalMat); gBody.position.y = .45; gen.add(gBody);
+const gTank = new THREE.Mesh(new THREE.CylinderGeometry(.2, .2, .6, 14), metalMat); gTank.rotation.z = Math.PI / 2; gTank.position.y = .95; gen.add(gTank);
+const bulbs = []; for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2; const bl = new THREE.Mesh(new THREE.SphereGeometry(.1, 10, 8), new THREE.MeshBasicMaterial({ color: 0x2a2218 })); bl.position.set(GEN.x + Math.cos(a) * 5.6, 2.6, GEN.z + Math.sin(a) * 5.6); chGroup.add(bl); bulbs.push(bl); }
+const genL = new THREE.PointLight(0xffb566, 0, 10, 1.2); genL.position.set(GEN.x, 2.4, GEN.z); scene.add(genL);
+const bench = new THREE.Group(); bench.position.copy(BENCH); chGroup.add(bench);
+const bTop = new THREE.Mesh(new THREE.BoxGeometry(1.6, .1, .75), woodMat); bTop.position.y = .9; bench.add(bTop);
+[[-.7, -.3], [.7, -.3], [-.7, .3], [.7, .3]].forEach(([x, z]) => { const l = new THREE.Mesh(new THREE.BoxGeometry(.08, .9, .08), woodMat); l.position.set(x, .45, z); bench.add(l); });
+bench.rotation.z = .32;
+const hammer = new THREE.Group(); hammer.position.set(HAMMER.x, .03, HAMMER.z); hammer.rotation.y = .6; chGroup.add(hammer);
+const hH = new THREE.Mesh(new THREE.CylinderGeometry(.018, .018, .42, 8), woodMat); hH.rotation.z = Math.PI / 2; hammer.add(hH);
+const hHead = new THREE.Mesh(new THREE.BoxGeometry(.12, .09, .08), metalMat); hHead.position.set(.19, .03, 0); hammer.add(hHead);
+const fireL = new THREE.PointLight(0xff8a3a, 0, 6, 1.3); fireL.position.set(-4, .7, -38.8); scene.add(fireL);
+const CRAFT_SLOT = { bench: [-7.5, -40], guitar: [-7.8, -44.6], fire: [-4, -38.8], pot: [-1.4, -40.2] };
+const craftMesh = {
+  bench: () => { const g = new THREE.Group(); const seat = new THREE.Mesh(new THREE.BoxGeometry(1.2, .08, .4), woodMat); seat.position.y = .45; g.add(seat); [-.5, .5].forEach(x => { const l = new THREE.Mesh(new THREE.BoxGeometry(.08, .45, .4), woodMat); l.position.set(x, .22, 0); g.add(l); }); return g; },
+  guitar: () => { const g = new THREE.Group(); const body = new THREE.Mesh(new THREE.CylinderGeometry(.22, .27, .08, 18), woodMat); body.rotation.x = Math.PI / 2; body.position.y = .3; g.add(body); const neck = new THREE.Mesh(new THREE.BoxGeometry(.07, .7, .03), woodMat); neck.position.y = .75; g.add(neck); g.rotation.z = .25; return g; },
+  fire: () => { const g = new THREE.Group(); [0, 1, 2].forEach(i => { const lg = new THREE.Mesh(new THREE.CylinderGeometry(.04, .04, .4, 8), woodMat); lg.rotation.z = Math.PI / 2; lg.rotation.y = i * 1.05; lg.position.y = .05; g.add(lg); }); const fl = new THREE.Mesh(new THREE.ConeGeometry(.2, .6, 8), new THREE.MeshBasicMaterial({ color: 0xffa040 })); fl.position.y = .4; g.add(fl); return g; },
+  pot: () => { const g = new THREE.Group(); const p = new THREE.Mesh(new THREE.CylinderGeometry(.25, .21, .28, 16), metalMat); p.position.y = .14; g.add(p); const h = new THREE.Mesh(new THREE.TorusGeometry(.27, .015, 6, 16), metalMat); h.rotation.x = Math.PI / 2; h.position.y = .28; g.add(h); return g; }
+};
+
 
 /* ---------------- Тело и руки существа ---------------- */
 const skin = skinTex(), skinMat = new THREE.MeshStandardMaterial({ map: mkTex(skin.alb, true), normalMap: mkTex(skin.nrm, false), normalScale: new THREE.Vector2(1.2, 1.2), roughness: .55, metalness: 0, color: 0xc2c4c3 });
@@ -267,7 +298,7 @@ function audioStart() {
   Au.rev = c.createConvolver(); Au.rev.buffer = imp; const rg = c.createGain(); rg.gain.value = .6; Au.rev.connect(rg); rg.connect(Au.master);
   [[38, 'sine', .06], [57, 'triangle', .02], [41.2, 'sine', .05]].forEach(([f, ty, g]) => { const o = c.createOscillator(), gn = c.createGain(); o.type = ty; o.frequency.value = f; gn.gain.value = g; const lfo = c.createOscillator(), lg = c.createGain(); lfo.frequency.value = .05 + Math.random() * .08; lg.gain.value = g * .5; lfo.connect(lg); lg.connect(gn.gain); o.connect(gn); gn.connect(Au.master); o.start(); lfo.start(); });
   const ns = c.createBufferSource(); ns.buffer = noiseBuf(4); ns.loop = true; const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 180; const ng = c.createGain(); ng.gain.value = .07; ns.connect(lp); lp.connect(ng); ng.connect(Au.master); ns.start();
-  const ho = c.createOscillator(); ho.type = 'sawtooth'; ho.frequency.value = 100; const hf = c.createBiquadFilter(); hf.type = 'lowpass'; hf.frequency.value = 320; Au.humG = c.createGain(); Au.humG.gain.value = 0; ho.connect(hf); hf.connect(Au.humG); Au.humG.connect(Au.master); ho.start();
+  const ho = c.createOscillator(); ho.type = 'triangle'; ho.frequency.value = 60; const hf = c.createBiquadFilter(); hf.type = 'lowpass'; hf.frequency.value = 320; Au.humG = c.createGain(); Au.humG.gain.value = 0; ho.connect(hf); hf.connect(Au.humG); Au.humG.connect(Au.master); ho.start();
 }
 function tone(f, d, type, v, f2, send) { if (!Au.ctx) return; const c = Au.ctx, o = c.createOscillator(), g = c.createGain(), n = c.currentTime; o.type = type; o.frequency.setValueAtTime(f, n); if (f2) o.frequency.exponentialRampToValueAtTime(f2, n + d); g.gain.setValueAtTime(v, n); g.gain.exponentialRampToValueAtTime(.0001, n + d); o.connect(g); g.connect(Au.master); if (send) g.connect(Au.rev); o.start(n); o.stop(n + d + .05); }
 function burst(freq, q, d, v, pan, send) { if (!Au.ctx) return; const c = Au.ctx, s = c.createBufferSource(); s.buffer = noiseBuf(d + .1); const f = c.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = q; const g = c.createGain(), n = c.currentTime; g.gain.setValueAtTime(v, n); g.gain.exponentialRampToValueAtTime(.0001, n + d); const p = c.createStereoPanner ? c.createStereoPanner() : null; if (p) { p.pan.value = pan; s.connect(f); f.connect(g); g.connect(p); p.connect(Au.master); if (send) p.connect(Au.rev); } else { s.connect(f); f.connect(g); g.connect(Au.master); } s.start(n); s.stop(n + d + .1); }
@@ -275,11 +306,12 @@ const sfx = {
   step(side, run) { burst(rnd(170, 260), 1.1, .14, run ? .2 : .14, side * .3, true); tone(rnd(58, 74), .12, 'sine', .08); if (Math.random() < .3) burst(rnd(2200, 3200), 3, .03, .02, side * .3, true); },
   drip() { const f = rnd(1000, 1800); tone(f, .18, 'sine', .035, f * .55, true); },
   thump() { tone(52, .22, 'sine', .22, 30); },
-  latch() { burst(900, 4, .05, .25, 0, true); tone(120, .1, 'square', .08, 60); tone(70, .3, 'sine', .22, 45, true); },
-  creak(dur) { if (!Au.ctx) return; const c = Au.ctx, o = c.createOscillator(), o2 = c.createOscillator(), g = c.createGain(), f = c.createBiquadFilter(), n = c.currentTime; o.type = 'sawtooth'; o2.type = 'square'; f.type = 'bandpass'; f.Q.value = 7; o.frequency.setValueAtTime(95, n); o.frequency.linearRampToValueAtTime(170, n + dur * .6); o.frequency.linearRampToValueAtTime(120, n + dur); o2.frequency.setValueAtTime(190.4, n); o2.frequency.linearRampToValueAtTime(341, n + dur * .6); f.frequency.setValueAtTime(600, n); f.frequency.linearRampToValueAtTime(1500, n + dur * .7); g.gain.setValueAtTime(.0001, n); g.gain.linearRampToValueAtTime(.06, n + .3); g.gain.linearRampToValueAtTime(.045, n + dur - .5); g.gain.exponentialRampToValueAtTime(.0001, n + dur); o.connect(f); o2.connect(f); f.connect(g); g.connect(Au.master); g.connect(Au.rev); o.start(n); o2.start(n); o.stop(n + dur + .1); o2.stop(n + dur + .1); },
-  swell() { tone(80, 4.5, 'sawtooth', .02, 440, true); tone(160, 4.5, 'sine', .05, 880, true); },
+  latch() { burst(900, 4, .05, .25, 0, true); tone(120, .1, 'sine', .05, 80); tone(70, .3, 'sine', .14, 45, true); },
+  creak(dur) { if (!Au.ctx) return; const c = Au.ctx, o = c.createOscillator(), o2 = c.createOscillator(), g = c.createGain(), f = c.createBiquadFilter(), n = c.currentTime; o.type = 'sawtooth'; o2.type = 'sine'; f.type = 'bandpass'; f.Q.value = 7; o.frequency.setValueAtTime(95, n); o.frequency.linearRampToValueAtTime(170, n + dur * .6); o.frequency.linearRampToValueAtTime(120, n + dur); o2.frequency.setValueAtTime(190.4, n); o2.frequency.linearRampToValueAtTime(341, n + dur * .6); f.frequency.setValueAtTime(600, n); f.frequency.linearRampToValueAtTime(1500, n + dur * .7); g.gain.setValueAtTime(.0001, n); g.gain.linearRampToValueAtTime(.022, n + .3); g.gain.linearRampToValueAtTime(.016, n + dur - .5); g.gain.exponentialRampToValueAtTime(.0001, n + dur); o.connect(f); o2.connect(f); f.connect(g); g.connect(Au.master); g.connect(Au.rev); o.start(n); o2.start(n); o.stop(n + dur + .1); o2.stop(n + dur + .1); },
+  swell() { tone(55, 4.5, 'sine', .035, 70, true); },
   rattle() { burst(1200, 3, .05, .18, 0, true); setTimeout(() => burst(1500, 3, .05, .15, 0, true), 90); setTimeout(() => burst(1000, 3, .06, .15, 0, true), 190); },
-  zap() { burst(3500, 1.5, .12, .08, -.4, true); tone(120, .15, 'sawtooth', .03, 60); }
+  genStart() { tone(55, 1.4, 'sine', .07, 48, true); tone(110, 1.4, 'triangle', .02, 96, true); },
+  zap() { tone(70, .25, 'sine', .05, 45, true); }
 };
 
 /* ---------------- Игровое состояние ---------------- */
@@ -287,18 +319,41 @@ const G = { mode: 'title', yaw: 0, pitch: 0, pos: new THREE.Vector3(2.4, 1.6, 12
 const subEl = $('sub'), promptEl = $('prompt'), hintEl = $('hint');
 let subTimer = 0;
 function speakLine(text) { if (!('speechSynthesis' in window)) return; try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(text); u.lang = lang === 'ru' ? 'ru-RU' : 'en-US'; u.rate = .8; u.pitch = .55; u.volume = Math.min(1, S.vol * 1.1); const vs = speechSynthesis.getVoices() || []; const pick = vs.find(v => v.lang && v.lang.toLowerCase().startsWith(lang === 'ru' ? 'ru' : 'en')); if (pick) u.voice = pick; speechSynthesis.speak(u); } catch (e) {} }
+function sayRaw(text, ms = 3800) { subEl.textContent = text; subEl.classList.add('on'); clearTimeout(subTimer); subTimer = setTimeout(() => subEl.classList.remove('on'), ms); speakLine(text); }
 function say(key, ms = 3800) { const text = t(key); subEl.textContent = text; subEl.classList.add('on'); clearTimeout(subTimer); subTimer = setTimeout(() => subEl.classList.remove('on'), ms); speakLine(text); }
 function playerReset() { G.pos.set(2.4, 1.6, 12); G.yaw = 0.24; G.pitch = -.04; G.vel.set(0, 0, 0); G.said = {}; G.open = 0; G.opening = false; G.handle = 0; doorPivot.rotation.y = 0; lever.rotation.z = 0; openGlow.visible = false; matComp.uniforms.uFlash.value = 0; glowMat.color.setRGB(1 * 5.5, .9 * 5.5, .72 * 5.5); doorLight.intensity = 38; haloMat.opacity = .18; $('end').classList.remove('on'); G.endTimer = 0; G.rattled = false; }
 function setMode(m) { G.mode = m; }
 
+
+/* ---------------- Глава 2: действия ---------------- */
+Object.assign(G, { genOn: false, hasHammer: false, benchFixed: false, crafted: [] });
+const nearP = (v, r) => Math.hypot(G.pos.x - v.x, G.pos.z - v.z) < r;
+const CRAFT_NAME = { 1: ['bench', 'Лавочка'], 2: ['guitar', 'Гитара'], 3: ['fire', 'Костёр'], 4: ['pot', 'Кастрюля'] };
+function invUpdate() { const names = []; if (G.hasHammer) names.push('Молоток'); G.crafted.forEach(k => names.push(Object.values(CRAFT_NAME).find(v => v[0] === k)[1])); $('inv').textContent = names.length ? 'Инвентарь: ' + names.join(' · ') : ''; }
+function interactCh2() {
+  if (nearP(GEN, 2.6)) { G.genOn = !G.genOn; sfx.genStart(); sayRaw(G.genOn ? 'Генератор загудел. Лампочки загорелись — здесь тепло и безопасно.' : 'Генератор заглох. Вокруг снова темнота.', 4000); return; }
+  if (!G.hasHammer && nearP(HAMMER, 2.2)) { G.hasHammer = true; sfx.latch(); sayRaw('Молоток. Тяжёлый, с деревянной ручкой. Нашёл за пределами света.', 3600); invUpdate(); return; }
+  if (nearP(BENCH, 2.6)) {
+    if (!G.benchFixed) { if (G.hasHammer) { G.benchFixed = true; sfx.latch(); sayRaw('Верстак починен. Теперь можно что-то смастерить — только в свете генератора.', 4200); } else sayRaw('Верстак сломан. Нужен молоток.', 3200); }
+    else sayRaw(G.genOn ? 'Крафт: 1 — лавочка · 2 — гитара · 3 — костёр · 4 — кастрюля' : 'Верстак работает от генератора. Включи генератор.', 4200);
+    return;
+  }
+  sayRaw('Ничего интересного рядом.', 1800);
+}
+function craft(n) {
+  if (!G.ch2 || !G.benchFixed || !G.genOn || !nearP(BENCH, 2.6)) return;
+  const [key, name] = CRAFT_NAME[n]; if (G.crafted.includes(key)) { sayRaw(name + ' уже есть.', 2200); return; }
+  const m = craftMesh[key](), slot = CRAFT_SLOT[key]; m.position.set(slot[0], 0, slot[1]); chGroup.add(m); G.crafted.push(key); sfx.latch(); sayRaw(name + ' готова.', 3000); invUpdate();
+}
+
 /* ---------------- Ввод ---------------- */
-addEventListener('keydown', e => { G.keys[e.code] = true; if (G.mode === 'play' && e.code === 'KeyE') interact(); if (e.code === 'Space' || e.code.startsWith('Arrow')) e.preventDefault(); });
+addEventListener('keydown', e => { G.keys[e.code] = true; if (G.mode === 'play' && e.code === 'KeyE') interact(); if (G.mode === 'play' && G.ch2 && /^Digit[1-4]$/.test(e.code)) craft(+e.code.slice(-1)); if (e.code === 'Space' || e.code.startsWith('Arrow')) e.preventDefault(); });
 addEventListener('keyup', e => { G.keys[e.code] = false; });
 addEventListener('mousemove', e => { if (G.locked && G.mode === 'play') { G.yaw -= e.movementX * .0021 * S.sens; G.pitch = Math.max(-1.45, Math.min(1.45, G.pitch - e.movementY * .0021 * S.sens)); G.mdx += e.movementX; G.mdy += e.movementY; } });
 document.addEventListener('pointerlockchange', () => { G.locked = document.pointerLockElement === canvas; if (!G.locked && G.mode === 'play') { $('pause').classList.remove('off'); } });
 function lockPointer() { try { const p = canvas.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch (e) {} }
 canvas.addEventListener('click', () => { if (G.mode === 'play' && !G.locked) { lockPointer(); $('pause').classList.add('off'); } else if (G.mode === 'play') interact(); });
-function interact() { if (G.opening || G.open > 0 || G.dist > 2.7) return; const fwd = new THREE.Vector3(-Math.sin(G.yaw) * Math.cos(G.pitch), Math.sin(G.pitch), -Math.cos(G.yaw) * Math.cos(G.pitch)), to = new THREE.Vector3(0, 1.05, DZ).sub(G.pos).normalize(); if (fwd.dot(to) < .82) return; G.opening = true; G.openT = 0; promptEl.classList.remove('on'); }
+function interact() { if (G.ch2) { interactCh2(); return; } if (G.opening || G.open > 0 || G.dist > 2.7) return; const fwd = new THREE.Vector3(-Math.sin(G.yaw) * Math.cos(G.pitch), Math.sin(G.pitch), -Math.cos(G.yaw) * Math.cos(G.pitch)), to = new THREE.Vector3(0, 1.05, DZ).sub(G.pos).normalize(); if (fwd.dot(to) < .82) return; G.opening = true; G.openT = 0; promptEl.classList.remove('on'); }
 
 $('bStart').onclick = () => { audioStart(); $('title').classList.add('off'); startIntro(); };
 $('bSet').onclick = () => { $('pause').classList.remove('off'); };
@@ -327,7 +382,7 @@ function update(dt, time) {
       const mx = (G.keys.KeyD || G.keys.ArrowRight ? 1 : 0) - (G.keys.KeyA || G.keys.ArrowLeft ? 1 : 0), mz = (G.keys.KeyW || G.keys.ArrowUp ? 1 : 0) - (G.keys.KeyS || G.keys.ArrowDown ? 1 : 0);
       const sp = running ? 3.1 : 1.65; let tvx = 0, tvz = 0; if (can && (mx || mz)) { const l = Math.hypot(mx, mz); tvx = (mx / l * Math.cos(G.yaw) - mz / l * Math.sin(G.yaw)) * sp; tvz = (-mx / l * Math.sin(G.yaw) - mz / l * Math.cos(G.yaw)) * sp; }
       G.vel.x += (tvx - G.vel.x) * Math.min(1, dt * 7); G.vel.z += (tvz - G.vel.z) * Math.min(1, dt * 7);
-      let nx = G.pos.x + G.vel.x * dt, nz = G.pos.z + G.vel.z * dt; const R = .32; const cx = Math.max(RX0 + R, Math.min(RX1 - R, nx)), cz = Math.max(DZ + .5 + R, Math.min(RZ1 - R, nz)); if ((cx !== nx || cz !== nz) && G.wallMsg <= 0 && G.vel.length() > 1) { G.wallMsg = 9; say('wall', 2800); sfx.thump(); } G.wallMsg -= dt; G.pos.x = cx; G.pos.z = cz;
+      let nx = G.pos.x + G.vel.x * dt, nz = G.pos.z + G.vel.z * dt; const R = .32; const cx = Math.max(RX0 + R, Math.min(RX1 - R, nx)), cz = Math.max(G.ch2 ? CH.z0 + .5 + R : DZ + .5 + R, Math.min(RZ1 - R, nz)); if ((cx !== nx || cz !== nz) && G.wallMsg <= 0 && G.vel.length() > 1) { G.wallMsg = 9; say('wall', 2800); sfx.thump(); } G.wallMsg -= dt; G.pos.x = cx; G.pos.z = cz;
       const speed = Math.hypot(G.vel.x, G.vel.z); if (speed > .15) { G.phase += dt * speed * 3.4; const sidx = Math.floor(G.phase / Math.PI); if (sidx !== G.lastStep) { G.lastStep = sidx; G.side = -G.side; sfx.step(G.side, running); } }
       const bob = Math.sin(G.phase * 2) * .022 * Math.min(1, speed / 1.6), breath = Math.sin(time * 1.1) * .004;
       G.pos.y = 1.62 + bob + breath;
@@ -336,11 +391,13 @@ function update(dt, time) {
       if (!G.said.s2 && G.pos.z < 3) { G.said.s2 = 1; say('s2', 4200); } if (!G.said.s3 && G.dist < 11) { G.said.s3 = 1; say('s3', 3000); } if (!G.said.s4 && G.dist < 3.4) { G.said.s4 = 1; say('s4', 3400); }
       const near = G.dist < 2.1 && !G.opening && G.open === 0; promptEl.classList.remove('on'); if (near) { G.opening = true; G.openT = 0; }
       /* звук-атмосфера */
-      if (Au.ctx) { const prox = Math.max(0, 1 - G.dist / 16); Au.humG.gain.value += (prox * .05 - Au.humG.gain.value) * .05; G.beat -= dt; if (G.beat <= 0) { const bpm = 56 + prox * 60 + (running ? 14 : 0); G.beat = 60 / bpm; sfx.thump(); setTimeout(() => tone(48, .18, 'sine', .14, 28), 140); } G.nextDrip -= dt; if (G.nextDrip <= 0) { G.nextDrip = rnd(5, 14); sfx.drip(); } }
+      if (Au.ctx) { const prox = Math.max(0, 1 - G.dist / 16); Au.humG.gain.value += (prox * .02 - Au.humG.gain.value) * .05; G.beat -= dt; if (G.beat <= 0) { const bpm = 56 + prox * 60 + (running ? 14 : 0); G.beat = 60 / bpm; sfx.thump(); setTimeout(() => tone(48, .18, 'sine', .14, 28), 140); } G.nextDrip -= dt; if (G.nextDrip <= 0) { G.nextDrip = rnd(5, 14); sfx.drip(); } }
       G.nextLamp -= dt; if (G.nextLamp <= 0 && G.dist < 26 && !G.opening) { G.nextLamp = rnd(11, 24); G.lampT = rnd(.35, .8); sfx.zap(); }
       /* открытие двери */
-      if (G.opening) { G.openT += dt; const T = G.openT; if (T < .5) { G.handle = Math.min(1, T / .35); lever.rotation.z = -G.handle * .6; if (T < .06 && !G.rattled) { G.rattled = true; sfx.rattle(); } } if (T > .65 && T < .7 && !G.said.l) { G.said.l = 1; sfx.latch(); say('door2', 2600); } if (T > 1.1) { if (!G.said.c) { G.said.c = 1; sfx.creak(5.2); sfx.swell(); say('open1', 3400); } const k = Math.min(1, (T - 1.1) / 4.6), e = k * k * (3 - 2 * k); G.open = e; doorPivot.rotation.y = -e * 1.75; openGlow.visible = true; const b = 5.5 + e * 22; glowMat.color.setRGB(b, b * .9, b * .72); doorLight.intensity = 38 + e * 1500; haloMat.opacity = .18 + e * .5; if (T > 3.6) { matComp.uniforms.uFlash.value = Math.min(1, (T - 3.6) / 2.4); } if (T > 6.4 && !G.endShown) { G.endShown = true; $('end').classList.add('on'); document.exitPointerLock && document.exitPointerLock(); setMode('end'); } } }
+      if (G.ch2 && matComp.uniforms.uFlash.value > 0) matComp.uniforms.uFlash.value = Math.max(0, matComp.uniforms.uFlash.value - dt * .35);
+      if (G.opening) { G.openT += dt; const T = G.openT; if (T < .5) { G.handle = Math.min(1, T / .35); lever.rotation.z = -G.handle * .6; if (T < .06 && !G.rattled) { G.rattled = true; sfx.rattle(); } } if (T > .65 && T < .7 && !G.said.l) { G.said.l = 1; sfx.latch(); say('door2', 2600); } if (T > 1.1) { if (!G.said.c) { G.said.c = 1; sfx.creak(5.2); sfx.swell(); say('open1', 3400); } const k = Math.min(1, (T - 1.1) / 4.6), e = k * k * (3 - 2 * k); G.open = e; doorPivot.rotation.y = -e * 1.75; openGlow.visible = true; const b = 5.5 + e * 22; glowMat.color.setRGB(b, b * .9, b * .72); doorLight.intensity = 38 + e * 1500; haloMat.opacity = .18 + e * .5; if (T > 3.6) { matComp.uniforms.uFlash.value = Math.min(1, (T - 3.6) / 2.4); } if (T > 6.4 && !G.ch2) { G.ch2 = true; G.opening = false; sayRaw('Темнота. Где-то внутри тихо гудит.', 4200); invUpdate(); } } }
     }
+    const kg = G.genOn ? 1 : 0; genL.intensity += (kg * 7 - genL.intensity) * Math.min(1, dt * 3); bulbs.forEach((b, i) => { const c = Math.max(.12, Math.min(1, genL.intensity / 7 * (1 + (i % 3) * .04))); b.material.color.setRGB(c, c * .76, c * .48); }); fireL.intensity = G.crafted.includes('fire') ? 2.2 + Math.sin(time * 9) * .4 + Math.sin(time * 23) * .2 : 0; bench.rotation.z += ((G.benchFixed ? 0 : .32) - bench.rotation.z) * Math.min(1, dt * 4); hammer.visible = !G.hasHammer;
     const lamp = G.lampT > 0 ? (Math.random() < .55 ? 1 : .1) : 0; if (G.lampT > 0) G.lampT -= dt; lampL.intensity = lamp * 14; bulb.material.emissive.setRGB(lamp * .55, lamp * .7, lamp * .6);
     ledL.intensity = .03 + (Math.sin(time * 2.2) > .6 ? .06 : 0); led.material.color.setRGB(Math.sin(time * 2.2) > .6 ? 1 : .22, .06, .04);
     camera.position.copy(G.pos); camera.rotation.set(G.pitch, G.yaw, Math.sin(G.phase) * .004 * Math.min(1, Math.hypot(G.vel.x, G.vel.z) / 1.6));
@@ -357,7 +414,7 @@ function update(dt, time) {
 function loop() { const dt = Math.min(.05, clock.getDelta()), time = clock.elapsedTime; update(dt, time); renderFrame(time); requestAnimationFrame(loop); }
 update(.016, 0); loop();
 /* для автотестов */
-window.__tw = { G, camera, scene, startDebug(x, z, yaw, pitch) { $('title').classList.add('off'); $('intro').classList.add('off'); setMode('play'); G.locked = true; G.pos.set(x, 1.62, z); G.yaw = yaw; G.pitch = pitch || 0; matComp.uniforms.uFade.value = 0; }, open() { G.opening = true; G.openT = 0; } };
+window.__tw = { G, camera, scene, interactCh2, craft, startDebug(x, z, yaw, pitch) { $('title').classList.add('off'); $('intro').classList.add('off'); setMode('play'); G.locked = true; G.pos.set(x, 1.62, z); G.yaw = yaw; G.pitch = pitch || 0; matComp.uniforms.uFade.value = 0; }, open() { G.opening = true; G.openT = 0; } };
 </script>
 </body>
 </html>
