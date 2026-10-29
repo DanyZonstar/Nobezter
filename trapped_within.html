@@ -204,7 +204,7 @@ const dustGeo = new THREE.BufferGeometry(); dustGeo.setAttribute('position', new
 const dust = new THREE.Points(dustGeo, new THREE.PointsMaterial({ size: .035, map: softSprite(), vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, sizeAttenuation: true, opacity: .8, fog: false })); scene.add(dust);
 const amb = new THREE.AmbientLight(0x3a4150, .9); scene.add(amb);
 /* ---------------- Глава 2: тёмная комната, генератор, безопасный круг ---------------- */
-const CH = { x0: -75, x1: 75, z0: -180 }, GEN = new THREE.Vector3(-4, 0, -42), BENCH = new THREE.Vector3(-1, 0, -47), HAMMER = new THREE.Vector3(9, 0, -34), GEN_R = 6.5;
+const CH = { x0: -75, x1: 75, z0: -180 }, GEN = new THREE.Vector3(-4, 0, -42), BENCH = new THREE.Vector3(-1, 0, -47), HAMMER = new THREE.Vector3(7, 0, -36), GEN_R = 6.5;
 const chGroup = new THREE.Group(); scene.add(chGroup);
 const chLen = DZ - CH.z0, chCz = (CH.z0 + DZ) / 2;
 const chW = (w, h, d, x, y, z) => { const q = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), wallMat); q.position.set(x, y, z); chGroup.add(q); return q; };
@@ -221,9 +221,9 @@ const bench = new THREE.Group(); bench.position.copy(BENCH); chGroup.add(bench);
 const bTop = new THREE.Mesh(new THREE.BoxGeometry(1.6, .1, .75), woodMat); bTop.position.y = .9; bench.add(bTop);
 [[-.7, -.3], [.7, -.3], [-.7, .3], [.7, .3]].forEach(([x, z]) => { const l = new THREE.Mesh(new THREE.BoxGeometry(.08, .9, .08), woodMat); l.position.set(x, .45, z); bench.add(l); });
 bench.rotation.z = .32;
-const hammer = new THREE.Group(); hammer.position.set(HAMMER.x, .03, HAMMER.z); hammer.rotation.y = .6; chGroup.add(hammer);
+const hammer = new THREE.Group(); hammer.position.set(HAMMER.x, .03, HAMMER.z); hammer.rotation.y = .6; hammer.scale.setScalar(2.2); chGroup.add(hammer);
 const hH = new THREE.Mesh(new THREE.CylinderGeometry(.018, .018, .42, 8), woodMat); hH.rotation.z = Math.PI / 2; hammer.add(hH);
-const hHead = new THREE.Mesh(new THREE.BoxGeometry(.12, .09, .08), metalMat); hHead.position.set(.19, .03, 0); hammer.add(hHead);
+const hHead = new THREE.Mesh(new THREE.BoxGeometry(.12, .09, .08), new THREE.MeshStandardMaterial({ color: 0xc9d0d6, metalness: .9, roughness: .3, emissive: 0x2a2418 })); hHead.position.set(.19, .03, 0); hammer.add(hHead);
 const fireL = new THREE.PointLight(0xff8a3a, 0, 6, 1.3); fireL.position.set(-4, .7, -38.8); scene.add(fireL);
 const CRAFT_SLOT = { bench: [-7.5, -40], guitar: [-7.8, -44.6], fire: [-4, -38.8], pot: [-1.4, -40.2] };
 const craftMesh = {
@@ -331,11 +331,23 @@ function setMode(m) { G.mode = m; }
 /* ---------------- Глава 2: действия ---------------- */
 Object.assign(G, { genOn: false, hasHammer: false, benchFixed: false, crafted: [] });
 /* монстр: охотится за игроком вне светового круга, в круг войти не может */
-const mon = new THREE.Group(); mon.position.set(-22, 0, -92); mon.scale.setScalar(1.4); scene.add(mon);
-const monBody = new THREE.Mesh(new THREE.SphereGeometry(.7, 18, 14), new THREE.MeshStandardMaterial({ color: 0x060507, roughness: .9 })); monBody.scale.set(1, 1.6, 1); monBody.position.y = 1.1; mon.add(monBody);
-[-.24, .24].forEach(x => { const e = new THREE.Mesh(new THREE.SphereGeometry(.07, 8, 6), new THREE.MeshBasicMaterial({ color: 0xff3030 })); e.position.set(x, 1.9, .58); mon.add(e); });
-const monL = new THREE.PointLight(0xff2a2a, .3, 5, 2); monL.position.set(0, 1.9, .9); mon.add(monL);
-const hamL = new THREE.PointLight(0xffd9a0, .5, 4, 2); hamL.position.set(HAMMER.x, .6, HAMMER.z); scene.add(hamL);
+const mon = new THREE.Group(); mon.position.set(-40, 0, -110); scene.add(mon);
+const mBlack = new THREE.MeshStandardMaterial({ color: 0x0c0b0d, roughness: .6, metalness: .2, emissive: 0x120406 }), mEye = new THREE.MeshBasicMaterial({ color: 0xff2020 });
+const mPart = (geo, x, y, z, parent) => { const m = new THREE.Mesh(geo, mBlack); m.position.set(x, y, z); (parent || mon).add(m); return m; };
+mPart(new THREE.CapsuleGeometry(.3, .95, 6, 12), 0, 2.05, 0);
+mPart(new THREE.SphereGeometry(.3, 12, 10), 0, 1.5, 0);
+mPart(new THREE.CylinderGeometry(.1, .11, .2, 8), 0, 2.7, 0);
+mPart(new THREE.SphereGeometry(.24, 14, 12), 0, 2.95, 0);
+[-.09, .09].forEach(x => { const e = new THREE.Mesh(new THREE.SphereGeometry(.035, 8, 6), mEye); e.position.set(x, 2.98, .22); mon.add(e); });
+const monLegs = [-1, 1].map(sd => { const g = new THREE.Group(); g.position.set(sd * .16, 1.45, 0); mon.add(g); mPart(new THREE.CapsuleGeometry(.14, 1.1, 4, 8), 0, -.6, 0, g); mPart(new THREE.BoxGeometry(.2, .1, .34), 0, -1.2, .06, g); return g; });
+const monArms = [-1, 1].map(sd => { const g = new THREE.Group(); g.position.set(sd * .42, 2.6, 0); mon.add(g); mPart(new THREE.CapsuleGeometry(.11, .9, 4, 8), 0, -.55, 0, g); mPart(new THREE.SphereGeometry(.13, 8, 6), 0, -1.05, 0, g); return g; });
+const monL = new THREE.PointLight(0xff3030, .8, 11, 1.6); monL.position.set(0, 2.2, .9); mon.add(monL);
+const OBS = [];
+const cmat = new THREE.MeshStandardMaterial({ color: 0x5a5f66, roughness: .95 });
+[[-30, -60], [-30, -95], [26, -70], [26, -112], [-16, -122], [12, -136], [-50, -80], [44, -92], [-44, -120], [50, -60]].forEach(([x, z]) => { const m = new THREE.Mesh(new THREE.CylinderGeometry(.6, .7, RH, 14), cmat); m.position.set(x, RH / 2, z); chGroup.add(m); OBS.push({ x, z, r: .7 }); });
+[[-12, -36, 1.2, .3], [-14, -38.6, 1.1, 1], [14, -42, 1.3, .2], [16.2, -44.1, 1.3, .6], [-19, -72, 1.2, .2], [14, -102, 1.4, .5], [-40, -44, 1.2, .1], [38, -40, 1.2, .9]].forEach(([x, z, sz, ry]) => { const m = new THREE.Mesh(new THREE.BoxGeometry(sz, sz, sz), woodMat); m.position.set(x, sz / 2, z); m.rotation.y = ry; chGroup.add(m); OBS.push({ x, z, r: sz * .7 }); });
+[[-10, -60], [-9, -62.5], [21, -58], [-26, -48], [32, -120]].forEach(([x, z]) => { const m = new THREE.Mesh(new THREE.CylinderGeometry(.4, .4, 1, 12), metalMat); m.position.set(x, .5, z); chGroup.add(m); OBS.push({ x, z, r: .45 }); });
+const hamL = new THREE.PointLight(0xffd9a0, .8, 5, 2); hamL.position.set(HAMMER.x, .6, HAMMER.z); scene.add(hamL);
 
 const nearP = (v, r) => Math.hypot(G.pos.x - v.x, G.pos.z - v.z) < r;
 const CRAFT_NAME = { 1: ['bench', 'Лавочка'], 2: ['guitar', 'Гитара'], 3: ['fire', 'Костёр'], 4: ['pot', 'Кастрюля'] };
@@ -366,7 +378,7 @@ function respawn() {
   G.dead = false; hideDeath(); G.pos.set(cp.x, 1.62, cp.z); G.yaw = cp.yaw; G.pitch = 0; G.vel.set(0, 0, 0);
   Object.assign(G, { genOn: cp.genOn, hasHammer: cp.hasHammer, benchFixed: cp.benchFixed, crafted: cp.crafted.slice(), caughtT: 0 });
   chGroup.children.slice().forEach(c => { if (c.userData.craft && !cp.crafted.includes(c.userData.craft)) chGroup.remove(c); });
-  mon.position.set(-22, 0, -92); matComp.uniforms.uFlash.value = 0; G.keys = {}; invUpdate();
+  mon.position.set(-40, 0, -110); matComp.uniforms.uFlash.value = 0; G.keys = {}; invUpdate();
 }
 function killPlayer() {
   if (G.dead || G.mode !== 'play') return;
@@ -416,7 +428,7 @@ function update(dt, time) {
       const mx = (G.keys.KeyD || G.keys.ArrowRight ? 1 : 0) - (G.keys.KeyA || G.keys.ArrowLeft ? 1 : 0), mz = (G.keys.KeyW || G.keys.ArrowUp ? 1 : 0) - (G.keys.KeyS || G.keys.ArrowDown ? 1 : 0);
       const sp = running ? 3.1 : 1.65; let tvx = 0, tvz = 0; if (can && (mx || mz)) { const l = Math.hypot(mx, mz); tvx = (mx / l * Math.cos(G.yaw) - mz / l * Math.sin(G.yaw)) * sp; tvz = (-mx / l * Math.sin(G.yaw) - mz / l * Math.cos(G.yaw)) * sp; }
       G.vel.x += (tvx - G.vel.x) * Math.min(1, dt * 7); G.vel.z += (tvz - G.vel.z) * Math.min(1, dt * 7);
-      let nx = G.pos.x + G.vel.x * dt, nz = G.pos.z + G.vel.z * dt; const R = .32; const bx0 = G.ch2 ? CH.x0 : RX0, bx1 = G.ch2 ? CH.x1 : RX1; const cx = Math.max(bx0 + R, Math.min(bx1 - R, nx)), cz = Math.max(G.ch2 ? CH.z0 + .5 + R : DZ + .5 + R, Math.min(G.ch2 ? DZ - .5 - R : RZ1 - R, nz)); if ((cx !== nx || cz !== nz) && G.wallMsg <= 0 && G.vel.length() > 1) { G.wallMsg = 9; say('wall', 2800); sfx.thump(); } G.wallMsg -= dt; G.pos.x = cx; G.pos.z = cz;
+      let nx = G.pos.x + G.vel.x * dt, nz = G.pos.z + G.vel.z * dt; const R = .32; const bx0 = G.ch2 ? CH.x0 : RX0, bx1 = G.ch2 ? CH.x1 : RX1; const cx = Math.max(bx0 + R, Math.min(bx1 - R, nx)), cz = Math.max(G.ch2 ? CH.z0 + .5 + R : DZ + .5 + R, Math.min(G.ch2 ? DZ - .5 - R : RZ1 - R, nz)); if ((cx !== nx || cz !== nz) && G.wallMsg <= 0 && G.vel.length() > 1) { G.wallMsg = 9; say('wall', 2800); sfx.thump(); } G.wallMsg -= dt; let px = cx, pz = cz; OBS.forEach(o => { const ex = px - o.x, ez = pz - o.z, ed = Math.hypot(ex, ez), m = o.r + R; if (ed < m && ed > 1e-4) { px = o.x + ex / ed * m; pz = o.z + ez / ed * m; } }); G.pos.x = px; G.pos.z = pz;
       const speed = Math.hypot(G.vel.x, G.vel.z); if (speed > .15) { G.phase += dt * speed * 3.4; const sidx = Math.floor(G.phase / Math.PI); if (sidx !== G.lastStep) { G.lastStep = sidx; G.side = -G.side; sfx.step(G.side, running); } }
       const bob = Math.sin(G.phase * 2) * .022 * Math.min(1, speed / 1.6), breath = Math.sin(time * 1.1) * .004;
       G.pos.y = 1.62 + bob + breath;
@@ -431,17 +443,18 @@ function update(dt, time) {
       if (G.ch2 && matComp.uniforms.uFlash.value > 0) matComp.uniforms.uFlash.value = Math.max(0, matComp.uniforms.uFlash.value - dt * 1.5);
       if (G.opening) { G.openT += dt; const T = G.openT; if (T < .5) { G.handle = Math.min(1, T / .35); lever.rotation.z = -G.handle * .6; if (T < .06 && !G.rattled) { G.rattled = true; sfx.rattle(); } } if (T > .65 && T < .7 && !G.said.l) { G.said.l = 1; sfx.latch(); say('door2', 2600); } if (T > 1.1) { if (!G.said.c) { G.said.c = 1; sfx.creak(5.2); sfx.swell(); say('open1', 3400); } const k = Math.min(1, (T - 1.1) / 4.6), e = k * k * (3 - 2 * k); G.open = e; doorPivot.rotation.y = -e * 1.75; openGlow.visible = false; const b = 5.5 + e * 3; glowMat.color.setRGB(b, b * .9, b * .72); doorLight.intensity = 38 + e * 60; haloMat.opacity = .18 + e * .5; if (T > 3.6 && T < 6.4) { matComp.uniforms.uFlash.value = Math.min(.25, (T - 3.6) / 10); } if (T > 6.4 && !G.ch2) { G.ch2 = true; G.opening = false; G.cp = { x: 0, z: -34, yaw: 0, genOn: false, hasHammer: false, benchFixed: false, crafted: [] }; matComp.uniforms.uFlash.value = 0; openGlow.visible = false; sayRaw('Темнота. Где-то внутри тихо гудит.', 4200); invUpdate(); } } }
     }
-    if (G.ch2) {
-      if (G.dead) { mon.rotation.y = G.yaw; }
-      else { const dxm = G.pos.x - mon.position.x, dzm = G.pos.z - mon.position.z, dm = Math.hypot(dxm, dzm), sp = Math.min(dm, 1.25 * dt);
-      if (dm > .01) { mon.position.x += dxm / dm * sp; mon.position.z += dzm / dm * sp; }
+    if (G.ch2 && !G.dead) {
+      const inCircle = Math.hypot(G.pos.x - GEN.x, G.pos.z - GEN.z) < GEN_R;
+      G.hunting = !inCircle && G.mode === 'play';
+      const dxm = G.pos.x - mon.position.x, dzm = G.pos.z - mon.position.z, dm = Math.hypot(dxm, dzm);
+      if (G.hunting && dm > .01) { const sp = Math.min(dm, 2.7 * dt); mon.position.x += dxm / dm * sp; mon.position.z += dzm / dm * sp; mon.rotation.y = Math.atan2(dxm, dzm); }
       const gdx = mon.position.x - GEN.x, gdz = mon.position.z - GEN.z, gd = Math.hypot(gdx, gdz), lim = GEN_R + .9;
       if (gd < lim) { const k = lim / (gd || 1); mon.position.x = GEN.x + gdx * k; mon.position.z = GEN.z + gdz * k; }
-      mon.rotation.y = Math.atan2(dxm, dzm); monBody.position.y = 1.1 + Math.sin(time * 5) * .05; monL.intensity = .25 + Math.sin(time * 7) * .08;
-      G.growlT = (G.growlT || 0) - dt; if (dm < 16 && G.growlT <= 0) { G.growlT = 3.5 + Math.random() * 2; sfx.thump(); }
-      G.caughtT = Math.max(0, (G.caughtT || 0) - dt);
-      const inCircle = Math.hypot(G.pos.x - GEN.x, G.pos.z - GEN.z) < GEN_R;
-      if (!inCircle && dm < 1.5 && G.mode === 'play') killPlayer(); }
+      G.monPhase = (G.monPhase || 0) + dt * (G.hunting ? 5.5 : 0);
+      const sw = G.hunting ? .7 : 0; monLegs[0].rotation.x = Math.sin(G.monPhase) * sw; monLegs[1].rotation.x = -Math.sin(G.monPhase) * sw; monArms[0].rotation.x = -Math.sin(G.monPhase) * sw * .8; monArms[1].rotation.x = Math.sin(G.monPhase) * sw * .8;
+      monL.intensity = G.hunting ? 1.6 + Math.sin(time * 9) * .3 : .9;
+      G.growlT = (G.growlT || 0) - dt; if (G.hunting && dm < 18 && G.growlT <= 0) { G.growlT = 3 + Math.random() * 2; sfx.thump(); }
+      if (G.hunting && dm < 1.5 && G.mode === 'play') killPlayer();
     }
     hamL.intensity = G.hasHammer ? 0 : .5;
     if (G.ch2) { const inC = Math.hypot(G.pos.x - GEN.x, G.pos.z - GEN.z) < GEN_R; skinMat.color.lerp(inC ? new THREE.Color(0xe0b9a0) : new THREE.Color(0x6b7178), Math.min(1, dt * 2)); }
@@ -463,7 +476,7 @@ function loop() { const dt = Math.min(.05, clock.getDelta()), time = clock.elaps
 update(.016, 0); loop();
 try { const d = JSON.parse(localStorage.getItem('tw-cp') || 'null'); if (d) G.cp = d; } catch (e) {}
 /* для автотестов */
-window.__tw = { G, camera, scene, interactCh2, craft, killPlayer, respawn, saveCP, startDebug(x, z, yaw, pitch) { $('title').classList.add('off'); $('intro').classList.add('off'); setMode('play'); G.locked = true; G.pos.set(x, 1.62, z); G.yaw = yaw; G.pitch = pitch || 0; matComp.uniforms.uFade.value = 0; }, open() { G.opening = true; G.openT = 0; } };
+window.__tw = { G, camera, scene, mon, interactCh2, craft, killPlayer, respawn, saveCP, startDebug(x, z, yaw, pitch) { $('title').classList.add('off'); $('intro').classList.add('off'); setMode('play'); G.locked = true; G.pos.set(x, 1.62, z); G.yaw = yaw; G.pitch = pitch || 0; matComp.uniforms.uFade.value = 0; }, open() { G.opening = true; G.openT = 0; } };
 </script>
 </body>
 </html>
