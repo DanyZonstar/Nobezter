@@ -63,6 +63,7 @@ button.m:hover{border-color:rgba(230,235,240,.7);color:#fff;background:rgba(255,
   </div>
   <div class="btns"><button class="m" id="bResume"></button><button class="m" id="bLang2"></button></div>
 </div>
+<div class="layer off" id="death" style="background:#000;z-index:12"><p id="dText" style="font-size:clamp(18px,3vw,30px);letter-spacing:.18em;color:#9a1c1c;text-transform:uppercase;text-shadow:0 0 18px #300"></p></div>
 <div class="layer" id="end"><h1>TRAPPED WITHIN</h1><p id="endP"></p>
   <div class="btns"><button class="m" id="bSteam"></button><button class="m" id="bAgain"></button></div></div>
 <div id="noweb"></div>
@@ -311,6 +312,7 @@ const sfx = {
   creak(dur) { if (!Au.ctx) return; const c = Au.ctx, o = c.createOscillator(), o2 = c.createOscillator(), g = c.createGain(), f = c.createBiquadFilter(), n = c.currentTime; o.type = 'sawtooth'; o2.type = 'sine'; f.type = 'bandpass'; f.Q.value = 7; o.frequency.setValueAtTime(95, n); o.frequency.linearRampToValueAtTime(170, n + dur * .6); o.frequency.linearRampToValueAtTime(120, n + dur); o2.frequency.setValueAtTime(190.4, n); o2.frequency.linearRampToValueAtTime(341, n + dur * .6); f.frequency.setValueAtTime(600, n); f.frequency.linearRampToValueAtTime(1500, n + dur * .7); g.gain.setValueAtTime(.0001, n); g.gain.linearRampToValueAtTime(.022, n + .3); g.gain.linearRampToValueAtTime(.016, n + dur - .5); g.gain.exponentialRampToValueAtTime(.0001, n + dur); o.connect(f); o2.connect(f); f.connect(g); g.connect(Au.master); g.connect(Au.rev); o.start(n); o2.start(n); o.stop(n + dur + .1); o2.stop(n + dur + .1); },
   swell() { tone(55, 4.5, 'sine', .035, 70, true); },
   rattle() { burst(1200, 3, .05, .18, 0, true); setTimeout(() => burst(1500, 3, .05, .15, 0, true), 90); setTimeout(() => burst(1000, 3, .06, .15, 0, true), 190); },
+  scream() { burst(1800, 1, .9, .7, 0, true); tone(900, .8, 'sawtooth', .25, 300); tone(1400, .6, 'square', .12, 500); },
   genStart() { tone(55, 1.4, 'sine', .07, 48, true); tone(110, 1.4, 'triangle', .02, 96, true); },
   zap() { tone(70, .25, 'sine', .05, 45, true); }
 };
@@ -329,7 +331,7 @@ function setMode(m) { G.mode = m; }
 /* ---------------- Глава 2: действия ---------------- */
 Object.assign(G, { genOn: false, hasHammer: false, benchFixed: false, crafted: [] });
 /* монстр: охотится за игроком вне светового круга, в круг войти не может */
-const mon = new THREE.Group(); mon.position.set(-22, 0, -92); scene.add(mon);
+const mon = new THREE.Group(); mon.position.set(-22, 0, -92); mon.scale.setScalar(1.4); scene.add(mon);
 const monBody = new THREE.Mesh(new THREE.SphereGeometry(.7, 18, 14), new THREE.MeshStandardMaterial({ color: 0x060507, roughness: .9 })); monBody.scale.set(1, 1.6, 1); monBody.position.y = 1.1; mon.add(monBody);
 [-.24, .24].forEach(x => { const e = new THREE.Mesh(new THREE.SphereGeometry(.07, 8, 6), new THREE.MeshBasicMaterial({ color: 0xff3030 })); e.position.set(x, 1.9, .58); mon.add(e); });
 const monL = new THREE.PointLight(0xff2a2a, .3, 5, 2); monL.position.set(0, 1.9, .9); mon.add(monL);
@@ -339,10 +341,10 @@ const nearP = (v, r) => Math.hypot(G.pos.x - v.x, G.pos.z - v.z) < r;
 const CRAFT_NAME = { 1: ['bench', 'Лавочка'], 2: ['guitar', 'Гитара'], 3: ['fire', 'Костёр'], 4: ['pot', 'Кастрюля'] };
 function invUpdate() { const names = []; if (G.hasHammer) names.push('Молоток'); G.crafted.forEach(k => names.push(Object.values(CRAFT_NAME).find(v => v[0] === k)[1])); $('inv').textContent = names.length ? 'Инвентарь: ' + names.join(' · ') : ''; }
 function interactCh2() {
-  if (nearP(GEN, 2.6)) { G.genOn = !G.genOn; sfx.genStart(); sayRaw(G.genOn ? 'Генератор загудел. Лампочки загорелись — здесь тепло и безопасно.' : 'Генератор заглох. Вокруг снова темнота.', 4000); return; }
-  if (!G.hasHammer && nearP(HAMMER, 2.2)) { G.hasHammer = true; sfx.latch(); sayRaw('Молоток. Тяжёлый, с деревянной ручкой. Нашёл за пределами света.', 3600); invUpdate(); return; }
+  if (nearP(GEN, 2.6)) { G.genOn = !G.genOn; sfx.genStart(); if (G.genOn) saveCP(); sayRaw(G.genOn ? 'Генератор загудел. Лампочки загорелись — здесь тепло и безопасно.' : 'Генератор заглох. Вокруг снова темнота.', 4000); return; }
+  if (!G.hasHammer && nearP(HAMMER, 2.2)) { G.hasHammer = true; saveCP(); sfx.latch(); sayRaw('Молоток. Тяжёлый, с деревянной ручкой. Нашёл за пределами света.', 3600); invUpdate(); return; }
   if (nearP(BENCH, 2.6)) {
-    if (!G.benchFixed) { if (G.hasHammer) { G.benchFixed = true; sfx.latch(); sayRaw('Верстак починен. Теперь можно что-то смастерить — только в свете генератора.', 4200); } else sayRaw('Верстак сломан. Нужен молоток.', 3200); }
+    if (!G.benchFixed) { if (G.hasHammer) { G.benchFixed = true; saveCP(); sfx.latch(); sayRaw('Верстак починен. Теперь можно что-то смастерить — только в свете генератора.', 4200); } else sayRaw('Верстак сломан. Нужен молоток.', 3200); }
     else sayRaw(G.genOn ? 'Крафт: 1 — лавочка · 2 — гитара · 3 — костёр · 4 — кастрюля' : 'Верстак работает от генератора. Включи генератор.', 4200);
     return;
   }
@@ -351,7 +353,28 @@ function interactCh2() {
 function craft(n) {
   if (!G.ch2 || !G.benchFixed || !G.genOn || !nearP(BENCH, 2.6)) return;
   const [key, name] = CRAFT_NAME[n]; if (G.crafted.includes(key)) { sayRaw(name + ' уже есть.', 2200); return; }
-  const m = craftMesh[key](), slot = CRAFT_SLOT[key]; m.position.set(slot[0], 0, slot[1]); chGroup.add(m); G.crafted.push(key); sfx.latch(); sayRaw(name + ' готова.', 3000); invUpdate();
+  const m = craftMesh[key](), slot = CRAFT_SLOT[key]; m.position.set(slot[0], 0, slot[1]); chGroup.add(m); G.crafted.push(key); m.userData.craft = key; saveCP(); sfx.latch(); sayRaw(name + ' готова.', 3000); invUpdate();
+}
+
+
+/* ---------------- Контрольные точки и гибель ---------------- */
+function saveCP() { G.cp = { x: G.pos.x, z: G.pos.z, yaw: G.yaw, genOn: G.genOn, hasHammer: G.hasHammer, benchFixed: G.benchFixed, crafted: G.crafted.slice() }; try { localStorage.setItem('tw-cp', JSON.stringify(G.cp)); } catch (e) {} }
+function showDeath(text) { $('dText').textContent = text; $('death').classList.remove('off'); }
+function hideDeath() { $('death').classList.add('off'); }
+function respawn() {
+  const cp = G.cp || { x: 0, z: -34, yaw: 0, genOn: false, hasHammer: false, benchFixed: false, crafted: [] };
+  G.dead = false; hideDeath(); G.pos.set(cp.x, 1.62, cp.z); G.yaw = cp.yaw; G.pitch = 0; G.vel.set(0, 0, 0);
+  Object.assign(G, { genOn: cp.genOn, hasHammer: cp.hasHammer, benchFixed: cp.benchFixed, crafted: cp.crafted.slice(), caughtT: 0 });
+  chGroup.children.slice().forEach(c => { if (c.userData.craft && !cp.crafted.includes(c.userData.craft)) chGroup.remove(c); });
+  mon.position.set(-22, 0, -92); matComp.uniforms.uFlash.value = 0; G.keys = {}; invUpdate();
+}
+function killPlayer() {
+  if (G.dead || G.mode !== 'play') return;
+  G.dead = true; G.keys = {}; G.vel.set(0, 0, 0);
+  mon.position.set(G.pos.x - Math.sin(G.yaw) * 1.1, 0, G.pos.z - Math.cos(G.yaw) * 1.1); mon.rotation.y = G.yaw;
+  sfx.scream(); matComp.uniforms.uFlash.value = 1;
+  setTimeout(() => showDeath('Оно тебя достало'), 1100);
+  setTimeout(() => respawn(), 3600);
 }
 
 /* ---------------- Ввод ---------------- */
@@ -406,10 +429,11 @@ function update(dt, time) {
       G.nextLamp -= dt; if (G.nextLamp <= 0 && G.dist < 26 && !G.opening) { G.nextLamp = rnd(11, 24); G.lampT = rnd(.35, .8); sfx.zap(); }
       /* открытие двери */
       if (G.ch2 && matComp.uniforms.uFlash.value > 0) matComp.uniforms.uFlash.value = Math.max(0, matComp.uniforms.uFlash.value - dt * 1.5);
-      if (G.opening) { G.openT += dt; const T = G.openT; if (T < .5) { G.handle = Math.min(1, T / .35); lever.rotation.z = -G.handle * .6; if (T < .06 && !G.rattled) { G.rattled = true; sfx.rattle(); } } if (T > .65 && T < .7 && !G.said.l) { G.said.l = 1; sfx.latch(); say('door2', 2600); } if (T > 1.1) { if (!G.said.c) { G.said.c = 1; sfx.creak(5.2); sfx.swell(); say('open1', 3400); } const k = Math.min(1, (T - 1.1) / 4.6), e = k * k * (3 - 2 * k); G.open = e; doorPivot.rotation.y = -e * 1.75; openGlow.visible = false; const b = 5.5 + e * 3; glowMat.color.setRGB(b, b * .9, b * .72); doorLight.intensity = 38 + e * 60; haloMat.opacity = .18 + e * .5; if (T > 3.6 && T < 6.4) { matComp.uniforms.uFlash.value = Math.min(.25, (T - 3.6) / 10); } if (T > 6.4 && !G.ch2) { G.ch2 = true; G.opening = false; matComp.uniforms.uFlash.value = 0; openGlow.visible = false; sayRaw('Темнота. Где-то внутри тихо гудит.', 4200); invUpdate(); } } }
+      if (G.opening) { G.openT += dt; const T = G.openT; if (T < .5) { G.handle = Math.min(1, T / .35); lever.rotation.z = -G.handle * .6; if (T < .06 && !G.rattled) { G.rattled = true; sfx.rattle(); } } if (T > .65 && T < .7 && !G.said.l) { G.said.l = 1; sfx.latch(); say('door2', 2600); } if (T > 1.1) { if (!G.said.c) { G.said.c = 1; sfx.creak(5.2); sfx.swell(); say('open1', 3400); } const k = Math.min(1, (T - 1.1) / 4.6), e = k * k * (3 - 2 * k); G.open = e; doorPivot.rotation.y = -e * 1.75; openGlow.visible = false; const b = 5.5 + e * 3; glowMat.color.setRGB(b, b * .9, b * .72); doorLight.intensity = 38 + e * 60; haloMat.opacity = .18 + e * .5; if (T > 3.6 && T < 6.4) { matComp.uniforms.uFlash.value = Math.min(.25, (T - 3.6) / 10); } if (T > 6.4 && !G.ch2) { G.ch2 = true; G.opening = false; G.cp = { x: 0, z: -34, yaw: 0, genOn: false, hasHammer: false, benchFixed: false, crafted: [] }; matComp.uniforms.uFlash.value = 0; openGlow.visible = false; sayRaw('Темнота. Где-то внутри тихо гудит.', 4200); invUpdate(); } } }
     }
     if (G.ch2) {
-      const dxm = G.pos.x - mon.position.x, dzm = G.pos.z - mon.position.z, dm = Math.hypot(dxm, dzm), sp = Math.min(dm, 1.25 * dt);
+      if (G.dead) { mon.rotation.y = G.yaw; }
+      else { const dxm = G.pos.x - mon.position.x, dzm = G.pos.z - mon.position.z, dm = Math.hypot(dxm, dzm), sp = Math.min(dm, 1.25 * dt);
       if (dm > .01) { mon.position.x += dxm / dm * sp; mon.position.z += dzm / dm * sp; }
       const gdx = mon.position.x - GEN.x, gdz = mon.position.z - GEN.z, gd = Math.hypot(gdx, gdz), lim = GEN_R + .9;
       if (gd < lim) { const k = lim / (gd || 1); mon.position.x = GEN.x + gdx * k; mon.position.z = GEN.z + gdz * k; }
@@ -417,9 +441,10 @@ function update(dt, time) {
       G.growlT = (G.growlT || 0) - dt; if (dm < 16 && G.growlT <= 0) { G.growlT = 3.5 + Math.random() * 2; sfx.thump(); }
       G.caughtT = Math.max(0, (G.caughtT || 0) - dt);
       const inCircle = Math.hypot(G.pos.x - GEN.x, G.pos.z - GEN.z) < GEN_R;
-      if (!inCircle && dm < 1.2 && G.caughtT <= 0 && G.mode === 'play') { G.caughtT = 4; sfx.zap(); sayRaw('Оно поймало тебя. Беги к свету!', 2800); G.pos.set(GEN.x + 3, 1.62, GEN.z + 3); }
+      if (!inCircle && dm < 1.5 && G.mode === 'play') killPlayer(); }
     }
     hamL.intensity = G.hasHammer ? 0 : .5;
+    if (G.ch2) { const inC = Math.hypot(G.pos.x - GEN.x, G.pos.z - GEN.z) < GEN_R; skinMat.color.lerp(inC ? new THREE.Color(0xe0b9a0) : new THREE.Color(0x6b7178), Math.min(1, dt * 2)); }
     const kg = G.genOn ? 1 : 0; genL.intensity += (kg * 7 - genL.intensity) * Math.min(1, dt * 3); bulbs.forEach((b, i) => { const c = Math.max(.12, Math.min(1, genL.intensity / 7 * (1 + (i % 3) * .04))); b.material.color.setRGB(c, c * .76, c * .48); }); fireL.intensity = G.crafted.includes('fire') ? 2.2 + Math.sin(time * 9) * .4 + Math.sin(time * 23) * .2 : 0; bench.rotation.z += ((G.benchFixed ? 0 : .32) - bench.rotation.z) * Math.min(1, dt * 4); hammer.visible = !G.hasHammer;
     const lamp = G.lampT > 0 ? (Math.random() < .55 ? 1 : .1) : 0; if (G.lampT > 0) G.lampT -= dt; lampL.intensity = lamp * 14; bulb.material.emissive.setRGB(lamp * .55, lamp * .7, lamp * .6);
     ledL.intensity = .03 + (Math.sin(time * 2.2) > .6 ? .06 : 0); led.material.color.setRGB(Math.sin(time * 2.2) > .6 ? 1 : .22, .06, .04);
@@ -436,8 +461,9 @@ function update(dt, time) {
 }
 function loop() { const dt = Math.min(.05, clock.getDelta()), time = clock.elapsedTime; update(dt, time); renderFrame(time); requestAnimationFrame(loop); }
 update(.016, 0); loop();
+try { const d = JSON.parse(localStorage.getItem('tw-cp') || 'null'); if (d) G.cp = d; } catch (e) {}
 /* для автотестов */
-window.__tw = { G, camera, scene, interactCh2, craft, startDebug(x, z, yaw, pitch) { $('title').classList.add('off'); $('intro').classList.add('off'); setMode('play'); G.locked = true; G.pos.set(x, 1.62, z); G.yaw = yaw; G.pitch = pitch || 0; matComp.uniforms.uFade.value = 0; }, open() { G.opening = true; G.openT = 0; } };
+window.__tw = { G, camera, scene, interactCh2, craft, killPlayer, respawn, saveCP, startDebug(x, z, yaw, pitch) { $('title').classList.add('off'); $('intro').classList.add('off'); setMode('play'); G.locked = true; G.pos.set(x, 1.62, z); G.yaw = yaw; G.pitch = pitch || 0; matComp.uniforms.uFade.value = 0; }, open() { G.opening = true; G.openT = 0; } };
 </script>
 </body>
 </html>
