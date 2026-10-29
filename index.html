@@ -2895,6 +2895,250 @@ const pipes = (x, sc, st) => {
     A.hud(x, W, '🚰 Уровень ' + (lvl + 1), 'Поворотов ' + moves);
   } };
 };
+const nonogram = (x, sc, st) => {
+  const W = 300, H = 420;
+  let N, sol, cur, rowC, colC, lvl = 0, mode = 0, fr = 0, won = 0, drag = null, hue = 0;
+  const runs = a => { const r = []; let k = 0; a.forEach(v => { if (v) k++; else if (k) { r.push(k); k = 0; } }); if (k) r.push(k); return r.length ? r : [0]; };
+  const gen = () => { N = [5, 5, 6, 6, 7, 7, 8][Math.min(6, lvl)]; do { sol = Array.from({ length: N }, () => Array.from({ length: N }, () => Math.random() < .58 ? 1 : 0)); } while (sol.flat().filter(v => v).length < N * N * .45); cur = Array.from({ length: N }, () => Array(N).fill(0)); rowC = sol.map(runs); colC = sol[0].map((_, c) => runs(sol.map(r => r[c]))); won = 0; hue = rnd(360); };
+  const solved = () => cur.every((r, i) => runs(r.map(v => v === 1 ? 1 : 0)).join() === rowC[i].join()) && cur[0].every((_, c) => runs(cur.map(r => r[c] === 1 ? 1 : 0)).join() === colC[c].join());
+  const geom = () => { const T = Math.floor(Math.min(200 / N, 30)), ox = 70 + (W - 70 - T * N) / 2 - 6, oy = 120; return { T, ox, oy }; };
+  const setCell = (r, c, v) => { if (cur[r][c] === v) return; cur[r][c] = v; S.p(v === 1 ? 'click' : 'tick'); if (solved()) { won = 1; lvl++; sc(lvl); S.p('win'); boom(150, 220, '#ffd13a', 30); setTimeout(gen, 1800); } };
+  gen(); sc(0); st('Закрась клетки по подсказкам: числа — длины закрашенных отрезков в строке и столбце');
+  const cellAt = (a, b) => { const { T, ox, oy } = geom(), c = Math.floor((a - ox) / T), r = Math.floor((b - oy) / T); return r >= 0 && c >= 0 && r < N && c < N ? [r, c] : null; };
+  return { held: true, down(a, b) { if (won) return; if (b > 372) { mode = 1 - mode; S.p('click'); return; } const p = cellAt(a, b); if (!p) return; const v = cur[p[0]][p[1]], nv = mode ? (v === 2 ? 0 : 2) : (v === 1 ? 0 : 1); drag = nv; setCell(p[0], p[1], nv); }, move(a, b, btn) { if (!btn || drag === null || won) return; const p = cellAt(a, b); if (p && cur[p[0]][p[1]] !== drag) setCell(p[0], p[1], drag); }, up() { drag = null; }, t() {
+    fr++; const { T, ox, oy } = geom();
+    const bg = x.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#f5f0e6'); bg.addColorStop(1, '#e6dccb'); x.fillStyle = bg; x.fillRect(0, 0, W, H);
+    x.fillStyle = '#fff'; A.rr(x, ox - 4, oy - 4, T * N + 8, T * N + 8, 6); x.fill();
+    for (let i = 0; i < N; i++) { const rc = rowC[i], done = runs(cur[i].map(v => v === 1 ? 1 : 0)).join() === rc.join(); A.txt(x, rc.join(' '), ox - 8, oy + i * T + T / 2, Math.min(14, T * .5), done ? '#9aa' : '#2a2d3a', 'right'); const cc = colC[i], dn = runs(cur.map(r => r[i] === 1 ? 1 : 0)).join() === cc.join(); cc.forEach((v, k) => A.txt(x, String(v), ox + i * T + T / 2, oy - 10 - (cc.length - 1 - k) * Math.min(15, T * .55), Math.min(14, T * .5), dn ? '#9aa' : '#2a2d3a', 'center')); }
+    for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) { const X = ox + c * T, Y = oy + r * T, v = cur[r][c]; x.fillStyle = '#fff'; x.fillRect(X, Y, T, T); if (v === 1 || (won && sol[r][c])) A.box(x, X + 1.5, Y + 1.5, T - 3, T - 3, won ? 'hsl(' + ((hue + r * 12 + c * 8) % 360) + ',70%,55%)' : '#2a3a6a', 4, { nogloss: T < 22 }); else if (v === 2) { x.strokeStyle = '#d64045'; x.lineWidth = 2; x.beginPath(); x.moveTo(X + T * .3, Y + T * .3); x.lineTo(X + T * .7, Y + T * .7); x.moveTo(X + T * .7, Y + T * .3); x.lineTo(X + T * .3, Y + T * .7); x.stroke(); } }
+    x.strokeStyle = '#c7cfdc'; x.lineWidth = 1; for (let i = 0; i <= N; i++) { x.beginPath(); x.moveTo(ox + i * T, oy); x.lineTo(ox + i * T, oy + N * T); x.stroke(); x.beginPath(); x.moveTo(ox, oy + i * T); x.lineTo(ox + N * T, oy + i * T); x.stroke(); } x.strokeStyle = '#2a2d3a'; x.lineWidth = 2; x.strokeRect(ox, oy, N * T, N * T);
+    A.btn(x, 70, 378, 160, 32, mode ? '✖ Режим: крестик' : '■ Режим: закраска', mode ? '#d64045' : '#3b5bdb', 14); if (won) A.txt(x, 'Готово!', 150, 70, 22, '#2f9e44', 'center', 'rgba(255,255,255,.8)');
+    A.hud(x, W, '🧩 Решено ' + lvl, N + '×' + N);
+  } };
+};
+const blockblast = (x, sc, st) => {
+  const N = 8, CS = 32, X0 = 22, Y0 = 52, W = 300, H = 440, COL = ['#ff5470', '#ffb703', '#4be07a', '#35c3ff', '#b266ff', '#ff8a3d', '#2fd1b0'];
+  const SHP = [[[1]], [[1, 1]], [[1], [1]], [[1, 1, 1]], [[1], [1], [1]], [[1, 1], [1, 1]], [[1, 1, 1, 1]], [[1], [1], [1], [1]], [[1, 0], [1, 0], [1, 1]], [[1, 1, 1], [1, 0, 0]], [[0, 1], [0, 1], [1, 1]], [[1, 1, 1], [0, 1, 0]], [[1, 1, 0], [0, 1, 1]], [[0, 1, 1], [1, 1, 0]], [[1, 1, 1], [1, 1, 1], [1, 1, 1]], [[1, 1, 1], [1, 1, 1]], [[1, 1, 1, 1, 1]]];
+  let b = Array.from({ length: N }, () => Array(N).fill(0)), tray = [], drag = null, n = 0, fr = 0, over = 0, flash = [], combo = 0;
+  const deal = () => { tray = [0, 1, 2].map(() => ({ s: SHP[rnd(SHP.length)], c: COL[rnd(COL.length)] })); };
+  const fits = (s, r, c) => s.every((rw, i) => rw.every((v, j) => !v || (r + i >= 0 && c + j >= 0 && r + i < N && c + j < N && !b[r + i][c + j])));
+  const canAny = () => tray.some(t => { if (!t) return false; for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) if (fits(t.s, r, c)) return true; return false; });
+  deal(); sc(0); st('Перетаскивай фигуры на поле. Заполненные строки и столбцы исчезают');
+  const target = () => { if (!drag) return null; const s = drag.t.s, px = drag.x - s[0].length * CS / 2, py = drag.y - 70 - s.length * CS / 2; return [Math.round((py - Y0) / CS), Math.round((px - X0) / CS)]; };
+  return { held: true, down(a, b2) { if (over || b2 < 320) return; const i = cl(Math.floor(a / 100), 0, 2); if (tray[i]) { drag = { i, t: tray[i], x: a, y: b2 }; S.p('tick'); } }, move(a, b2) { if (drag) { drag.x = a; drag.y = b2; } }, up() {
+    if (!drag) return; const tg = target(), t = drag.t;
+    if (tg && fits(t.s, tg[0], tg[1])) { let cells = 0; t.s.forEach((rw, i) => rw.forEach((v, j) => { if (v) { b[tg[0] + i][tg[1] + j] = t.c; cells++; } })); tray[drag.i] = null; n += cells; S.p('pop');
+      const rows = [], cols = []; for (let r = 0; r < N; r++) if (b[r].every(v => v)) rows.push(r); for (let c = 0; c < N; c++) if (b.every(rw => rw[c])) cols.push(c); const lines = rows.length + cols.length;
+      if (lines) { combo++; const v = lines * lines * 10 * combo; n += v; S.p(lines > 1 ? 'win' : 'coin'); A.pop(150, Y0 + 120, (lines > 1 ? lines + ' линии! ' : '') + '+' + v + (combo > 1 ? ' ×' + combo : ''), '#ffd13a');
+        rows.forEach(r => { for (let c = 0; c < N; c++) { flash.push({ r, c, l: 18 }); boom(X0 + c * CS + 16, Y0 + r * CS + 16, b[r][c] || '#fff', 3); } }); cols.forEach(c => { for (let r = 0; r < N; r++) { flash.push({ r, c, l: 18 }); boom(X0 + c * CS + 16, Y0 + r * CS + 16, b[r][c] || '#fff', 3); } });
+        rows.forEach(r => { for (let c = 0; c < N; c++) b[r][c] = 0; }); cols.forEach(c => { for (let r = 0; r < N; r++) b[r][c] = 0; }); } else combo = 0;
+      sc(n); if (tray.every(v => !v)) deal(); if (!canAny()) { over = 1; S.p('lose'); setTimeout(() => st(OVER), 600); } } else S.p('hit');
+    drag = null; }, t() {
+    fr++; flash.forEach(f => f.l--); flash = flash.filter(f => f.l > 0);
+    const bg = x.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#2b3a7a'); bg.addColorStop(1, '#131c45'); x.fillStyle = bg; x.fillRect(0, 0, W, H);
+    A.box(x, X0 - 6, Y0 - 6, N * CS + 12, N * CS + 12, '#1b2552', 12, { nogloss: 1 }); for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) { x.fillStyle = 'rgba(255,255,255,.06)'; A.rr(x, X0 + c * CS + 1, Y0 + r * CS + 1, CS - 2, CS - 2, 5); x.fill(); if (b[r][c]) A.box(x, X0 + c * CS + 1.5, Y0 + r * CS + 1.5, CS - 3, CS - 3, b[r][c], 6); }
+    const tg = target(); if (drag && tg && fits(drag.t.s, tg[0], tg[1])) { x.globalAlpha = .35; drag.t.s.forEach((rw, i) => rw.forEach((v, j) => { if (v) A.box(x, X0 + (tg[1] + j) * CS + 1.5, Y0 + (tg[0] + i) * CS + 1.5, CS - 3, CS - 3, drag.t.c, 6, { flat: 1 }); })); x.globalAlpha = 1; }
+    flash.forEach(f => { x.globalAlpha = f.l / 18; x.fillStyle = '#fff'; A.rr(x, X0 + f.c * CS + 1, Y0 + f.r * CS + 1, CS - 2, CS - 2, 5); x.fill(); x.globalAlpha = 1; });
+    x.fillStyle = 'rgba(0,0,0,.2)'; A.rr(x, 8, 330, 284, 100, 16); x.fill();
+    tray.forEach((t, i) => { if (!t || (drag && drag.i === i)) return; const s = t.s, cs = 16, w = s[0].length * cs, h = s.length * cs, ox = 50 + i * 100 - w / 2, oy = 380 - h / 2; s.forEach((rw, r) => rw.forEach((v, c) => { if (v) A.box(x, ox + c * cs + 1, oy + r * cs + 1, cs - 2, cs - 2, t.c, 3); })); });
+    if (drag) { const s = drag.t.s, w = s[0].length * CS, h = s.length * CS, ox = drag.x - w / 2, oy = drag.y - 70 - h / 2; s.forEach((rw, r) => rw.forEach((v, c) => { if (v) A.box(x, ox + c * CS + 1.5, oy + r * CS + 1.5, CS - 3, CS - 3, drag.t.c, 6); })); }
+    A.hud(x, W, '🧱 ' + n, combo > 1 ? 'Серия ×' + combo : null);
+  } };
+};
+const parking = (x, sc, st) => {
+  const LV = [[[2, 2, 2, 1], [4, 0, 3, 1], [0, 3, 2, 1], [5, 0, 2, 1], [1, 4, 2, 1], [2, 5, 2, 0], [1, 1, 3, 0], [4, 3, 3, 1], [2, 4, 2, 0], [5, 4, 2, 1], [1, 0, 2, 0], [0, 0, 2, 1]], [[2, 1, 2, 1], [1, 4, 2, 0], [4, 5, 2, 0], [3, 2, 2, 1], [5, 2, 2, 1], [0, 2, 2, 0], [4, 0, 2, 1], [5, 0, 2, 1], [0, 3, 3, 0]], [[2, 1, 2, 1], [4, 4, 2, 1], [4, 2, 2, 0], [0, 4, 2, 0], [0, 1, 2, 0], [1, 3, 2, 0], [1, 5, 3, 0], [0, 2, 2, 1]], [[2, 1, 2, 1], [3, 5, 3, 0], [1, 0, 2, 0], [3, 2, 2, 0], [5, 2, 2, 1], [0, 3, 2, 0], [0, 4, 3, 0], [3, 1, 2, 0], [1, 1, 2, 1], [4, 3, 2, 1], [3, 3, 2, 1], [5, 0, 2, 1]], [[2, 0, 2, 1], [1, 4, 2, 0], [5, 3, 2, 1], [0, 4, 2, 1], [3, 1, 2, 1], [0, 2, 3, 0], [0, 0, 2, 0], [5, 1, 2, 1], [0, 1, 2, 0], [4, 1, 2, 1], [2, 5, 2, 0], [4, 0, 2, 0]], [[2, 2, 2, 1], [0, 2, 3, 1], [0, 0, 2, 1], [3, 2, 2, 0], [4, 3, 2, 1], [5, 4, 2, 1], [5, 0, 3, 1], [2, 4, 2, 0], [2, 1, 2, 0], [2, 0, 2, 0], [2, 5, 2, 0], [1, 4, 2, 1]], [[2, 0, 2, 1], [5, 3, 2, 1], [4, 0, 3, 1], [0, 1, 3, 1], [0, 4, 3, 0], [5, 0, 2, 1], [0, 5, 2, 0], [1, 2, 2, 0], [3, 5, 2, 0], [3, 1, 3, 1]], [[2, 0, 2, 1], [4, 1, 2, 1], [0, 4, 2, 0], [0, 1, 3, 1], [2, 5, 3, 0], [5, 0, 3, 1], [1, 2, 2, 1], [4, 4, 2, 0], [2, 2, 2, 0], [3, 0, 2, 0]], [[2, 0, 2, 1], [0, 5, 2, 0], [3, 5, 3, 0], [0, 1, 3, 1], [1, 2, 2, 0], [4, 0, 2, 0], [4, 1, 2, 1], [5, 2, 2, 1], [2, 4, 2, 0], [4, 3, 2, 1], [3, 2, 2, 1], [0, 0, 2, 0]], [[2, 0, 2, 1], [4, 2, 2, 1], [5, 3, 2, 1], [0, 5, 3, 0], [1, 4, 3, 0], [4, 1, 2, 0], [0, 1, 3, 1], [1, 2, 3, 0], [2, 3, 2, 0]]], W = 300, H = 400, T = 44, OX = 18, OY = 66, CC = ['#3b82f6', '#2fcf6a', '#f59f00', '#8b5cf6', '#14b8a6', '#ff6fa5', '#9a6330', '#6b7280', '#22c55e', '#0ea5e9', '#eab308', '#a855f7'];
+  let lv = 0, cars, moves = 0, drag = null, fr = 0, over = 0, won = 0, exitX = 0;
+  const load = () => { cars = LV[lv].map((c, i) => ({ r: c[0], c: c[1], l: c[2], h: c[3], col: i ? CC[i % CC.length] : '#e5484d', dx: 0 })); moves = 0; won = 0; exitX = 0; };
+  const occAt = (r, c, skip) => cars.some((q, i) => i !== skip && (q.h ? q.r === r && c >= q.c && c < q.c + q.l : q.c === c && r >= q.r && r < q.r + q.l));
+  const range = i => { const q = cars[i]; let lo = 0, hi = 0; if (q.h) { while (q.c + lo - 1 >= 0 && !occAt(q.r, q.c + lo - 1, i)) lo--; while (q.c + q.l + hi < 6 && !occAt(q.r, q.c + q.l + hi, i)) hi++; if (i === 0 && q.c + q.l + hi === 6) hi += 2; } else { while (q.r + lo - 1 >= 0 && !occAt(q.r + lo - 1, q.c, i)) lo--; while (q.r + q.l + hi < 6 && !occAt(q.r + q.l + hi, q.c, i)) hi++; } return [lo, hi]; };
+  load(); sc(0); st('Перетаскивай машины вдоль их направления и выпусти красную через выезд справа');
+  return { held: true, down(a, b) { if (over || won) return; const c = Math.floor((a - OX) / T), r = Math.floor((b - OY) / T); const i = cars.findIndex(q => q.h ? q.r === r && c >= q.c && c < q.c + q.l : q.c === c && r >= q.r && r < q.r + q.l); if (i >= 0) { drag = { i, sx: a, sy: b, rg: range(i) }; S.p('tick'); } }, move(a, b, btn) { if (!drag || !btn) return; const q = cars[drag.i]; q.dx = cl((q.h ? a - drag.sx : b - drag.sy) / T, drag.rg[0], drag.rg[1]); }, up() {
+    if (!drag) return; const q = cars[drag.i], s = Math.round(q.dx); if (s) { if (q.h) q.c += s; else q.r += s; moves++; S.p('click'); } q.dx = 0;
+    if (drag.i === 0 && q.c + q.l >= 6) { won = 1; S.p('win'); boom(OX + 6 * T, OY + 2 * T + T / 2, '#ffd13a', 26); setTimeout(() => { lv++; sc(lv); if (lv >= LV.length) { over = 1; st(WIN + 'Парковка пройдена!'); } else load(); }, 1300); } drag = null; }, t() {
+    fr++; if (won) exitX += 6;
+    const bg = x.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#3a4256'); bg.addColorStop(1, '#22283a'); x.fillStyle = bg; x.fillRect(0, 0, W, H);
+    A.box(x, OX - 8, OY - 8, 6 * T + 16, 6 * T + 16, '#9aa3b8', 10, { nogloss: 1 }); x.fillStyle = '#4a5068'; x.fillRect(OX, OY, 6 * T, 6 * T); x.strokeStyle = 'rgba(255,255,255,.12)'; x.lineWidth = 1; for (let i = 1; i < 6; i++) { x.beginPath(); x.moveTo(OX + i * T, OY); x.lineTo(OX + i * T, OY + 6 * T); x.stroke(); x.beginPath(); x.moveTo(OX, OY + i * T); x.lineTo(OX + 6 * T, OY + i * T); x.stroke(); }
+    x.fillStyle = '#4a5068'; x.fillRect(OX + 6 * T, OY + 2 * T + 2, 14, T - 4); x.fillStyle = '#ffd23f'; for (let i = 0; i < 3; i++) { x.beginPath(); x.moveTo(OX + 6 * T + 2, OY + 2 * T + 10 + i * 9); x.lineTo(OX + 6 * T + 10, OY + 2 * T + 14 + i * 9); x.lineTo(OX + 6 * T + 2, OY + 2 * T + 18 + i * 9); x.fill(); }
+    cars.forEach((q, i) => { const X = OX + (q.c + (q.h ? q.dx : 0)) * T + (i === 0 ? exitX : 0), Y = OY + (q.r + (q.h ? 0 : q.dx)) * T, w = q.h ? q.l * T : T, h = q.h ? T : q.l * T; A.box(x, X + 4, Y + 4, w - 8, h - 8, q.col, 10); x.fillStyle = 'rgba(20,40,70,.75)'; if (q.h) { A.rr(x, X + w - 22, Y + 9, 9, h - 18, 3); x.fill(); A.rr(x, X + 12, Y + 9, 8, h - 18, 3); x.fill(); } else { A.rr(x, X + 9, Y + h - 22, w - 18, 9, 3); x.fill(); A.rr(x, X + 9, Y + 12, w - 18, 8, 3); x.fill(); } if (i === 0) A.txt(x, '★', X + w / 2, Y + h / 2, 14, '#fff', 'center'); });
+    A.txt(x, 'Ходов: ' + moves, 150, 352, 14, '#cfd6e6', 'center'); A.hud(x, W, '🚗 Уровень ' + (lv + 1) + '/' + LV.length, null);
+  } };
+};
+const QZ = {
+  qGeo: { q: [
+    { q: 'Столица Японии?', a: ['Токио', 'Пекин', 'Сеул', 'Бангкок'], c: 0 }, { q: 'Самая длинная река в мире?', a: ['Нил', 'Волга', 'Дунай', 'Енисей'], c: 0 }, { q: 'Самый большой океан?', a: ['Тихий', 'Атлантический', 'Индийский', 'Северный Ледовитый'], c: 0 },
+    { q: 'Столица Италии?', a: ['Рим', 'Милан', 'Мадрид', 'Афины'], c: 0 }, { q: 'Самая высокая гора на Земле?', a: ['Эверест', 'Эльбрус', 'Килиманджаро', 'Монблан'], c: 0 }, { q: 'Самая большая страна по площади?', a: ['Россия', 'Канада', 'Китай', 'США'], c: 0 },
+    { q: 'На каком материке находится Египет?', a: ['Африка', 'Азия', 'Европа', 'Австралия'], c: 0 }, { q: 'Самое глубокое озеро в мире?', a: ['Байкал', 'Ладожское', 'Онежское', 'Виктория'], c: 0 }, { q: 'Столица Франции?', a: ['Париж', 'Лион', 'Брюссель', 'Вена'], c: 0 },
+    { q: 'Какая пустыня самая большая жаркая?', a: ['Сахара', 'Гоби', 'Калахари', 'Атакама'], c: 0 }, { q: 'В какой стране находится Эйфелева башня?', a: ['Франция', 'Германия', 'Италия', 'Испания'], c: 0 }, { q: 'Сколько материков на Земле?', a: ['6', '5', '7', '8'], c: 0 } ] },
+  qSpace: { q: [
+    { q: 'Какая планета ближе всех к Солнцу?', a: ['Меркурий', 'Венера', 'Марс', 'Земля'], c: 0 }, { q: 'Кто первым полетел в космос?', a: ['Юрий Гагарин', 'Нил Армстронг', 'Герман Титов', 'Алексей Леонов'], c: 0 }, { q: 'Самая большая планета Солнечной системы?', a: ['Юпитер', 'Сатурн', 'Нептун', 'Земля'], c: 0 },
+    { q: 'Какую планету называют Красной?', a: ['Марс', 'Венера', 'Юпитер', 'Уран'], c: 0 }, { q: 'Что такое Солнце?', a: ['Звезда', 'Планета', 'Комета', 'Спутник'], c: 0 }, { q: 'Спутник Земли называется…', a: ['Луна', 'Фобос', 'Титан', 'Европа'], c: 0 },
+    { q: 'У какой планеты самые заметные кольца?', a: ['Сатурн', 'Марс', 'Венера', 'Меркурий'], c: 0 }, { q: 'Сколько планет в Солнечной системе?', a: ['8', '9', '7', '10'], c: 0 }, { q: 'При какой температуре кипит вода (на уровне моря)?', a: ['100 °C', '90 °C', '120 °C', '80 °C'], c: 0 },
+    { q: 'Какой газ мы вдыхаем для жизни?', a: ['Кислород', 'Азот', 'Гелий', 'Углекислый газ'], c: 0 }, { q: 'Кто первым ступил на Луну?', a: ['Нил Армстронг', 'Юрий Гагарин', 'Базз Олдрин', 'Илон Маск'], c: 0 }, { q: 'Как называется наша галактика?', a: ['Млечный Путь', 'Андромеда', 'Туманность Ориона', 'Большое Облако'], c: 0 } ] },
+  qAnimals: { q: [
+    { q: 'Самое большое животное на Земле?', a: ['Синий кит', 'Слон', 'Жираф', 'Белая акула'], c: 0 }, { q: 'Сколько ног у паука?', a: ['8', '6', '10', '4'], c: 0 }, { q: 'Какое животное самое быстрое на суше?', a: ['Гепард', 'Лев', 'Лошадь', 'Антилопа'], c: 0 },
+    { q: 'Кто из них не млекопитающее?', a: ['Пингвин', 'Дельфин', 'Летучая мышь', 'Кит'], c: 0 }, { q: 'Чем питается панда?', a: ['Бамбуком', 'Рыбой', 'Мёдом', 'Насекомыми'], c: 0 }, { q: 'Какая птица не умеет летать?', a: ['Страус', 'Орёл', 'Голубь', 'Ласточка'], c: 0 },
+    { q: 'Где живёт кенгуру?', a: ['В Австралии', 'В Африке', 'В Южной Америке', 'В Индии'], c: 0 }, { q: 'Сколько сердец у осьминога?', a: ['3', '1', '2', '4'], c: 0 }, { q: 'Детёныш лошади — это…', a: ['Жеребёнок', 'Телёнок', 'Ягнёнок', 'Козлёнок'], c: 0 },
+    { q: 'Какое дерево сбрасывает иголки на зиму?', a: ['Лиственница', 'Ель', 'Сосна', 'Пихта'], c: 0 }, { q: 'Кто строит плотины на реках?', a: ['Бобр', 'Выдра', 'Енот', 'Ондатра'], c: 0 }, { q: 'Какое животное меняет цвет кожи?', a: ['Хамелеон', 'Черепаха', 'Ящерица агама', 'Жаба'], c: 0 } ] },
+  qMix: { q: [
+    { q: 'Сколько минут в часе?', a: ['60', '100', '30', '90'], c: 0 }, { q: 'Сколько цветов у радуги?', a: ['7', '6', '5', '8'], c: 0 }, { q: 'Кто написал «Руслан и Людмила»?', a: ['Пушкин', 'Толстой', 'Лермонтов', 'Чехов'], c: 0 },
+    { q: 'Сколько будет 7 × 8?', a: ['56', '54', '64', '48'], c: 0 }, { q: 'Какой месяц самый короткий?', a: ['Февраль', 'Апрель', 'Июнь', 'Ноябрь'], c: 0 }, { q: 'Сколько игроков в футбольной команде на поле?', a: ['11', '10', '9', '12'], c: 0 },
+    { q: 'Какой инструмент имеет клавиши?', a: ['Пианино', 'Скрипка', 'Барабан', 'Гитара'], c: 0 }, { q: 'Из чего делают стекло?', a: ['Из песка', 'Из глины', 'Из соли', 'Из мела'], c: 0 }, { q: 'Какой цвет получится из синего и жёлтого?', a: ['Зелёный', 'Фиолетовый', 'Оранжевый', 'Коричневый'], c: 0 },
+    { q: 'Сколько дней в високосном году?', a: ['366', '365', '364', '360'], c: 0 }, { q: 'Сколько сантиметров в метре?', a: ['100', '10', '1000', '60'], c: 0 }, { q: 'Какая буква последняя в русском алфавите?', a: ['Я', 'Ю', 'Э', 'Ь'], c: 0 } ] }
+};
+const roulette = (x, sc, st) => {
+  const W = 300, H = 440, NUM = [0, 32, 15, 19, 4, 21, 2, 25, 17, 34, 6, 27, 13, 36, 11, 30, 8, 23, 10, 5, 24, 16, 33, 1, 20, 14, 31, 9, 22, 18, 29, 7, 28, 12, 35, 3, 26], RED = new Set([1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36]);
+  const BETS = [['Красное', n => RED.has(n), 2, '#d62839'], ['Чёрное', n => n && !RED.has(n), 2, '#1b1f2a'], ['Чёт', n => n && n % 2 === 0, 2, '#3b5bdb'], ['Нечет', n => n % 2 === 1, 2, '#3b5bdb'], ['1–18', n => n >= 1 && n <= 18, 2, '#2f9e44'], ['19–36', n => n >= 19, 2, '#2f9e44'], ['1–12', n => n >= 1 && n <= 12, 3, '#8b5cf6'], ['13–24', n => n >= 13 && n <= 24, 3, '#8b5cf6'], ['25–36', n => n >= 25, 3, '#8b5cf6']];
+  let chips = 100, peak = 100, bet = 10, sel = 0, ang = 0, av = 0, ball = 0, bv = 0, spinning = 0, res = null, msg = '', fr = 0, over = 0, hist = [];
+  sc(peak); st('Выбери ставку и тип, крути колесо. Цель — увеличить фишки');
+  const spin = () => { if (spinning || over || chips < bet) return; chips -= bet; spinning = 1; av = .25 + Math.random() * .1; bv = -.32 - Math.random() * .08; res = null; msg = ''; S.p('click'); };
+  return { click(a, b) { if (spinning || over) return; if (b > 392) { spin(); return; } if (b > 268 && b < 386) { const r = Math.floor((b - 270) / 38), c = Math.floor((a - 10) / 94); const i = r * 3 + c; if (i >= 0 && i < 9 && c >= 0 && c < 3) { sel = i; S.p('tick'); } return; } if (b > 236 && b < 264) { const k = Math.floor((a - 30) / 80); if (k >= 0 && k < 3) { bet = [10, 25, 50][k]; S.p('tick'); } } }, key(k) { if (k === ' ' || k === 'Enter') { spin(); return true; } return false; }, t() {
+    fr++;
+    if (spinning) { ang += av; ball += bv; av *= .988; bv *= .985; if (fr % Math.max(2, Math.floor(.3 / Math.max(.01, Math.abs(bv)))) === 0) S.tone(1200, .02, 'square', .015); if (av < .004) { spinning = 0; const rel = ((ball - ang) % (Math.PI * 2) + Math.PI * 4) % (Math.PI * 2), idx = Math.round(rel / (Math.PI * 2 / 37)) % 37, num = NUM[idx]; res = num; hist.unshift(num); hist = hist.slice(0, 8); const B = BETS[sel]; if (B[1](num)) { chips += bet * B[2]; msg = 'Выигрыш +' + bet * (B[2] - 1); S.p('win'); boom(150, 120, '#ffd13a', 24); } else { msg = 'Мимо −' + bet; S.p('lose'); } peak = Math.max(peak, chips); sc(peak); if (chips < 10) { over = 1; setTimeout(() => st(OVER), 900); } } }
+    const bg = x.createRadialGradient(150, 200, 30, 150, 220, 300); bg.addColorStop(0, '#2f8f5a'); bg.addColorStop(1, '#0f4a2d'); x.fillStyle = bg; x.fillRect(0, 0, W, H);
+    const cx = 150, cy = 136, R = 92; A.shadow(x, cx, cy + R + 4, R, 10, .3); x.fillStyle = '#5a3a1e'; A.circ(x, cx, cy, R + 10); x.fill(); x.fillStyle = '#8a5a30'; A.circ(x, cx, cy, R + 5); x.fill();
+    const seg = Math.PI * 2 / 37; NUM.forEach((nm, i) => { const a0 = ang + i * seg - seg / 2; x.fillStyle = nm === 0 ? '#2f9e44' : RED.has(nm) ? '#d62839' : '#1b1f2a'; x.beginPath(); x.moveTo(cx, cy); x.arc(cx, cy, R, a0, a0 + seg); x.closePath(); x.fill(); x.save(); x.translate(cx + Math.cos(a0 + seg / 2) * (R - 11), cy + Math.sin(a0 + seg / 2) * (R - 11)); x.rotate(a0 + seg / 2 + Math.PI / 2); A.txt(x, String(nm), 0, 0, 8, '#fff', 'center', null, 700); x.restore(); });
+    const g = x.createRadialGradient(cx - 10, cy - 10, 4, cx, cy, R * .6); g.addColorStop(0, '#e6c27a'); g.addColorStop(1, '#8a5a30'); x.fillStyle = g; A.circ(x, cx, cy, R * .58); x.fill(); for (let i = 0; i < 4; i++) { x.strokeStyle = '#d4a017'; x.lineWidth = 4; x.beginPath(); x.moveTo(cx, cy); x.lineTo(cx + Math.cos(ang * 1 + i * Math.PI / 2) * R * .45, cy + Math.sin(ang + i * Math.PI / 2) * R * .45); x.stroke(); } A.orb(x, cx, cy, 9, '#ffd23f', { flat: 1 });
+    const br = spinning ? R + 2 - Math.max(0, (.32 - Math.abs(bv)) * 30) : R - 22; A.orb(x, cx + Math.cos(ball) * Math.min(R + 2, br), cy + Math.sin(ball) * Math.min(R + 2, br), 5, '#f4f4f4', { flat: 1 });
+    if (res !== null) { A.box(x, 116, 6, 68, 34, res === 0 ? '#2f9e44' : RED.has(res) ? '#d62839' : '#1b1f2a', 10); A.txt(x, String(res), 150, 23, 20, '#fff', 'center'); }
+    if (msg) A.txt(x, msg, 150, 220, 16, msg[0] === 'В' ? '#ffe27a' : '#ffb3b3', 'center', 'rgba(0,0,0,.5)');
+    [10, 25, 50].forEach((v, i) => { A.orb(x, 70 + i * 80, 250, 13, bet === v ? '#ffd23f' : '#c0392b', { flat: 1 }); A.txt(x, String(v), 70 + i * 80, 250, 10, bet === v ? '#4a2f00' : '#fff', 'center'); });
+    BETS.forEach((B, i) => { const c = i % 3, r = Math.floor(i / 3), on = sel === i; A.box(x, 10 + c * 94, 270 + r * 38, 88, 32, on ? A.lit(B[3], .2) : B[3], 8, { flat: !on }); if (on) { x.strokeStyle = '#ffd23f'; x.lineWidth = 3; A.rr(x, 10 + c * 94, 270 + r * 38, 88, 32, 8); x.stroke(); } A.txt(x, B[0] + ' ×' + B[2], 54 + c * 94, 286 + r * 38, 12, '#fff', 'center'); });
+    A.btn(x, 60, 396, 180, 36, spinning ? 'Крутится…' : 'Крутить', spinning ? '#555a70' : '#f59f00', 16);
+    hist.forEach((h2, i) => { x.fillStyle = h2 === 0 ? '#2f9e44' : RED.has(h2) ? '#d62839' : '#1b1f2a'; A.circ(x, 210 + i * 11, 23, 5); x.fill(); });
+    A.hud(x, W, '🪙 ' + chips, null);
+  } };
+};
+const scratch = (x, sc, st) => {
+  const W = 300, H = 420, SYM = ['🍒', '🍋', '⭐', '💎', '🔔', '7️⃣'], PAY = { '🍒': 5, '🍋': 10, '🔔': 20, '⭐': 30, '💎': 50, '7️⃣': 100 };
+  let coins = 50, peak = 50, cells, cov, fr = 0, over = 0, revealed = 0, drag = 0, msg = '', paid = 0, cardN = 0;
+  const off = document.createElement('canvas'); off.width = 240; off.height = 240; const ox = off.getContext('2d');
+  const newCard = () => { if (coins < 10) { over = 1; st(OVER); return; } coins -= 10; cardN++; paid = 0; msg = ''; const win = Math.random() < .38; cells = Array.from({ length: 9 }, () => SYM[rnd(6)]); const cnt = {}; cells.forEach(s => cnt[s] = (cnt[s] || 0) + 1); Object.keys(cnt).forEach(s => { while (cnt[s] >= 3 && !win) { const i = cells.indexOf(s); cells[i] = SYM[(SYM.indexOf(s) + 1) % 6]; cnt[s]--; } }); if (win) { const s = SYM[Math.min(5, Math.floor(Math.random() * Math.random() * 6))]; const idx = [0, 1, 2, 3, 4, 5, 6, 7, 8].sort(() => Math.random() - .5).slice(0, 3); idx.forEach(i => { cells[i] = s; }); }
+    const g = ox.createLinearGradient(0, 0, 240, 240); g.addColorStop(0, '#c0c6d6'); g.addColorStop(.5, '#e8ecf4'); g.addColorStop(1, '#9aa3b8'); ox.globalCompositeOperation = 'source-over'; ox.fillStyle = g; ox.fillRect(0, 0, 240, 240); ox.fillStyle = 'rgba(120,130,150,.5)'; ox.font = '800 16px sans-serif'; for (let i = 0; i < 9; i++) ox.fillText('NOBEZTER', (i % 3) * 80 + 4, Math.floor(i / 3) * 80 + 44); revealed = 0; };
+  const scratchAt = (a, b) => { const X = a - 30, Y = b - 70; if (X < -10 || Y < -10 || X > 250 || Y > 250) return; ox.globalCompositeOperation = 'destination-out'; ox.beginPath(); ox.arc(X, Y, 16, 0, Math.PI * 2); ox.fill(); if (fr % 3 === 0) S.tone(2000 + Math.random() * 800, .02, 'sawtooth', .008); };
+  const check = () => { const d = ox.getImageData(0, 0, 240, 240).data; let clr = 0; for (let i = 3; i < d.length; i += 64) if (d[i] < 50) clr++; revealed = clr / (d.length / 64); if (revealed > .6 && !paid) { paid = 1; ox.clearRect(0, 0, 240, 240); const cnt = {}; cells.forEach(s => cnt[s] = (cnt[s] || 0) + 1); const w = Object.keys(cnt).find(s => cnt[s] >= 3); if (w) { coins += PAY[w]; msg = 'Выигрыш ' + PAY[w] + '!'; S.p('win'); boom(150, 190, '#ffd13a', 30); } else { msg = 'Пусто'; S.p('lose'); } peak = Math.max(peak, coins); sc(peak); } };
+  newCard(); sc(peak); st('Стирай защитный слой пальцем или мышью. Три одинаковых символа — выигрыш');
+  return { held: true, down(a, b) { drag = 1; if (paid && b > 330) { newCard(); return; } scratchAt(a, b); }, move(a, b, btn) { if (btn && drag && !paid) scratchAt(a, b); }, up() { drag = 0; if (!paid) check(); }, t() {
+    fr++; if (drag && fr % 10 === 0 && !paid) check();
+    const bg = x.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#6a1b9a'); bg.addColorStop(1, '#2a0a45'); x.fillStyle = bg; x.fillRect(0, 0, W, H);
+    A.box(x, 20, 58, 260, 264, '#ffd23f', 18, { nogloss: 1 }); x.fillStyle = '#fff7d6'; A.rr(x, 30, 70, 240, 240, 12); x.fill();
+    cells.forEach((s, i) => { const X = 30 + (i % 3) * 80 + 40, Y = 70 + Math.floor(i / 3) * 80 + 40; x.font = '38px serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(s, X, Y); });
+    x.save(); A.rr(x, 30, 70, 240, 240, 12); x.clip(); x.drawImage(off, 30, 70); x.restore();
+    A.txt(x, 'Три одинаковых = приз', 150, 46, 13, '#ffe9a8', 'center');
+    if (msg) A.txt(x, msg, 150, 344, 20, msg === 'Пусто' ? '#ffb3b3' : '#7dff9a', 'center', 'rgba(0,0,0,.4)'); else A.bar(x, 60, 336, 180, 10, revealed / .6, '#ffd23f');
+    if (paid) A.btn(x, 60, 368, 180, 38, 'Новая карта (10)', coins >= 10 ? '#2f9e44' : '#555a70', 15);
+    A.hud(x, W, '🪙 ' + coins, 'Карта №' + cardN);
+  } };
+};
+const pokerdice = (x, sc, st) => {
+  const W = 300, H = 420, PIP = [[], [[.5, .5]], [[.25, .25], [.75, .75]], [[.25, .25], [.5, .5], [.75, .75]], [[.25, .25], [.75, .25], [.25, .75], [.75, .75]], [[.25, .25], [.75, .25], [.5, .5], [.25, .75], [.75, .75]], [[.25, .25], [.75, .25], [.25, .5], [.75, .5], [.25, .75], [.75, .75]]];
+  let me = [1, 1, 1, 1, 1], bot = [1, 1, 1, 1, 1], hold = [0, 0, 0, 0, 0], rolls = 0, phase = 'roll', anim = 0, wins = 0, losses = 0, fr = 0, over = 0, msg = '', round = 1;
+  const rank = d => { const c = {}; d.forEach(v => c[v] = (c[v] || 0) + 1); const cs = Object.values(c).sort((a, b) => b - a), s = [...d].sort().join(''); const top = Object.keys(c).map(Number).sort((a, b) => c[b] - c[a] || b - a); if (cs[0] === 5) return [8, 'Покер', top]; if (cs[0] === 4) return [7, 'Каре', top]; if (cs[0] === 3 && cs[1] === 2) return [6, 'Фулл-хаус', top]; if (s === '23456') return [5, 'Большой стрит', top]; if (s === '12345') return [4, 'Малый стрит', top]; if (cs[0] === 3) return [3, 'Тройка', top]; if (cs[0] === 2 && cs[1] === 2) return [2, 'Две пары', top]; if (cs[0] === 2) return [1, 'Пара', top]; return [0, 'Ничего', [...d].sort((a, b) => b - a)]; };
+  const cmp = (a, b) => { const r1 = rank(a), r2 = rank(b); if (r1[0] !== r2[0]) return r1[0] - r2[0]; for (let i = 0; i < r1[2].length; i++) if (r1[2][i] !== r2[2][i]) return r1[2][i] - r2[2][i]; return 0; };
+  const roll = () => { if (phase !== 'roll' || anim) return; me = me.map((v, i) => hold[i] && rolls ? v : 1 + rnd(6)); rolls++; anim = 24; S.p('click'); if (rolls >= 3) phase = 'bot'; };
+  const botPlay = () => { bot = bot.map(() => 1 + rnd(6)); for (let k = 0; k < 2; k++) { const c = {}; bot.forEach(v => c[v] = (c[v] || 0) + 1); const best = Number(Object.keys(c).sort((a, b) => c[b] - c[a] || b - a)[0]); if (c[best] >= 4 || rank(bot)[0] >= 4) break; bot = bot.map(v => v === best && c[best] > 1 ? v : 1 + rnd(6)); } const r = cmp(me, bot); if (r > 0) { wins++; msg = 'Победа! ' + rank(me)[1]; S.p('win'); boom(150, 300, '#ffd13a', 24); } else if (r < 0) { losses++; msg = 'Бот выиграл: ' + rank(bot)[1]; S.p('lose'); } else msg = 'Ничья'; sc(wins); phase = 'end'; if (losses >= 3) { over = 1; setTimeout(() => st(OVER), 1200); } };
+  sc(0); st('Бросай кости до 3 раз, фиксируй нужные кликом. Собери комбинацию сильнее бота. 3 поражения — конец');
+  const die = (X, Y, v, s, held2, sp) => { x.save(); x.translate(X + s / 2, Y + s / 2); if (sp) x.rotate(sp); A.box(x, -s / 2, -s / 2, s, s, held2 ? '#ffe27a' : '#fbfbfb', s * .2, { nogloss: 1 }); x.fillStyle = '#1b1f2a'; PIP[v].forEach(([px, py]) => { A.circ(x, -s / 2 + px * s, -s / 2 + py * s, s * .09); x.fill(); }); x.restore(); };
+  return { click(a, b) { if (over) return; if (phase === 'end') { if (b > 370) { phase = 'roll'; rolls = 0; hold = [0, 0, 0, 0, 0]; msg = ''; round++; } return; } if (b > 370) { if (phase === 'roll' && rolls > 0 && a > 160) { phase = 'bot'; } else roll(); return; } if (b > 250 && b < 310 && rolls > 0 && phase === 'roll') { const i = Math.floor((a - 10) / 56); if (i >= 0 && i < 5) { hold[i] ^= 1; S.p('tick'); } } }, key(k) { if (k === ' ') { roll(); return true; } return false; }, t() {
+    fr++; if (anim > 0) anim--; if (phase === 'bot' && !anim) botPlay();
+    const bg = x.createRadialGradient(150, 220, 30, 150, 220, 300); bg.addColorStop(0, '#8a2b3b'); bg.addColorStop(1, '#3b0e18'); x.fillStyle = bg; x.fillRect(0, 0, W, H); x.strokeStyle = '#d4a017'; x.lineWidth = 5; x.strokeRect(4, 4, W - 8, H - 8);
+    A.txt(x, 'БОТ', 150, 52, 12, 'rgba(255,255,255,.7)', 'center'); bot.forEach((v, i) => die(22 + i * 54, 66, v, 42, 0, 0)); if (phase === 'end') A.txt(x, rank(bot)[1], 150, 126, 14, '#ffd1d1', 'center');
+    if (msg) A.txt(x, msg, 150, 175, 17, msg[0] === 'П' ? '#7dff9a' : '#ffe27a', 'center', 'rgba(0,0,0,.5)');
+    A.txt(x, 'ТЫ' + (rolls ? ' · ' + rank(me)[1] : ''), 150, 234, 13, '#fff', 'center'); me.forEach((v, i) => die(14 + i * 56, 254, anim && !(hold[i] && rolls > 1) ? 1 + rnd(6) : v, 48, hold[i], anim && !hold[i] ? (Math.random() - .5) * .6 : 0));
+    if (rolls && phase === 'roll') A.txt(x, 'Нажми на кость, чтобы оставить её', 150, 322, 11, 'rgba(255,255,255,.6)', 'center', null, 600);
+    for (let i = 0; i < 3; i++) A.heart(x, 22 + i * 20, 344, 7, '#ff4d6d', i < losses);
+    if (phase === 'end') A.btn(x, 60, 374, 180, 36, 'Следующий раунд', '#2f9e44', 15); else if (phase === 'roll') { A.btn(x, 14, 374, 140, 36, rolls ? 'Перебросить (' + (3 - rolls) + ')' : 'Бросить', '#f59f00', 14); if (rolls) A.btn(x, 164, 374, 122, 36, 'Хватит', '#3b82f6', 14); }
+    A.hud(x, W, '🎲 Победы ' + wins, 'Раунд ' + round);
+  } };
+};
+const plinko = (x, sc, st) => {
+  const W = 300, H = 440, MULT = [10, 3, 1.5, .5, .2, .5, 1.5, 3, 10], ROWS = 10, PEG = [];
+  for (let r = 0; r < ROWS; r++) for (let i = 0; i <= r + 2; i++) PEG.push([150 + (i - (r + 2) / 2) * 26, 70 + r * 28]);
+  let balls = [], coins = 100, peak = 100, bet = 10, fr = 0, over = 0, flash = {}, lastHit = [];
+  const drop = () => { if (over || coins < bet) return; coins -= bet; balls.push({ x: 150 + (Math.random() - .5) * 8, y: 40, vx: 0, vy: 0, b: bet }); S.p('click'); };
+  sc(peak); st('Бросай шарики. Они отскакивают от штырей и падают в лунки с множителями');
+  return { click(a, b) { if (b > 396) { const k = Math.floor((a - 20) / 90); if (k >= 0 && k < 3) { bet = [5, 10, 25][k]; S.p('tick'); } return; } drop(); }, key(k) { if (k === ' ') { drop(); return true; } return false; }, t() {
+    fr++; Object.keys(flash).forEach(k => { if (--flash[k] <= 0) delete flash[k]; });
+    balls.forEach(bl => { for (let s = 0; s < 2; s++) { bl.vy += .09; bl.x += bl.vx / 2; bl.y += bl.vy / 2; PEG.forEach((p, i) => { const dx = bl.x - p[0], dy = bl.y - p[1], d = Math.hypot(dx, dy); if (d < 9 && d > 0) { const nx = dx / d, ny = dy / d; bl.x = p[0] + nx * 9; bl.y = p[1] + ny * 9; const vn = bl.vx * nx + bl.vy * ny; if (vn < 0) { bl.vx -= 1.5 * vn * nx; bl.vy -= 1.5 * vn * ny; bl.vx += (Math.random() - .5) * .4; flash['p' + i] = 8; if (fr % 2) S.tone(900 + i * 7, .025, 'triangle', .02); } } }); if (bl.x < 20) { bl.x = 20; bl.vx = Math.abs(bl.vx); } if (bl.x > 280) { bl.x = 280; bl.vx = -Math.abs(bl.vx); } } });
+    balls = balls.filter(bl => { if (bl.y > 360) { const k = cl(Math.floor((bl.x - 33) / 26), 0, 8), m = MULT[k], win = Math.round(bl.b * m); coins += win; flash['s' + k] = 20; peak = Math.max(peak, coins); sc(peak); A.pop(46 + k * 26, 340, '×' + m, m >= 1.5 ? '#7dff9a' : '#ffb3b3'); S.p(m >= 3 ? 'win' : m >= 1 ? 'coin' : 'tick'); if (coins < 5 && balls.length <= 1) { over = 1; setTimeout(() => st(OVER), 600); } return false; } return true; });
+    const bg = x.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#16123a'); bg.addColorStop(1, '#2b1a5c'); x.fillStyle = bg; x.fillRect(0, 0, W, H); A.stars(x, W, H, fr, 30);
+    PEG.forEach((p, i) => { x.save(); if (flash['p' + i]) { x.shadowColor = '#ffd23f'; x.shadowBlur = 10; } A.orb(x, p[0], p[1], 4, flash['p' + i] ? '#ffd23f' : '#cfd6e6', { flat: 1 }); x.restore(); });
+    MULT.forEach((m, k) => { const X = 33 + k * 26, c = m >= 10 ? '#ff4d6d' : m >= 3 ? '#ff8a3d' : m >= 1.5 ? '#ffd23f' : m >= .5 ? '#4be07a' : '#35c3ff'; A.box(x, X + 1, 362 + (flash['s' + k] ? 4 : 0), 24, 26, c, 6); A.txt(x, '×' + m, X + 13, 375 + (flash['s' + k] ? 4 : 0), 9, '#fff', 'center', 'rgba(0,0,0,.3)'); });
+    balls.forEach(bl => { x.save(); x.shadowColor = '#ff7aa8'; x.shadowBlur = 8; A.orb(x, bl.x, bl.y, 6, '#ff7aa8', { flat: 1 }); x.restore(); });
+    [5, 10, 25].forEach((v, i) => A.btn(x, 20 + i * 90, 400, 80, 30, 'Ставка ' + v, bet === v ? '#f59f00' : '#4c5aa8', 12));
+    A.txt(x, 'Нажми, чтобы бросить шарик', 150, 52, 11, 'rgba(255,255,255,.6)', 'center', null, 600); A.hud(x, W, '🪙 ' + coins, null);
+  } };
+};
+const checkers = (x, sc, st) => {
+  const N = 8, CS = 34, X0 = 14, Y0 = 56, W = 300, H = 380;
+  let b, turn = 1, sel = null, chain = null, over = 0, fr = 0, wait = 0, wins = 0, last = [], anim = null;
+  const reset = () => { b = Array.from({ length: N }, (_, r) => Array.from({ length: N }, (_, c) => (r + c) % 2 ? (r < 3 ? -1 : r > 4 ? 1 : 0) : 0)); turn = 1; sel = null; chain = null; last = []; };
+  const own = (v, p) => v && Math.sign(v) === p, king = v => Math.abs(v) === 2;
+  const jumps = (bd, r, c) => { const v = bd[r][c], p = Math.sign(v), out = []; [[1, 1], [1, -1], [-1, 1], [-1, -1]].forEach(([dr, dc]) => { if (!king(v) && dr === p) return; const mr = r + dr, mc = c + dc, tr = r + 2 * dr, tc = c + 2 * dc; if (tr < 0 || tc < 0 || tr >= N || tc >= N) return; if (own(bd[mr][mc], -p) && !bd[tr][tc]) out.push([r, c, tr, tc, mr, mc]); }); return out; };
+  const steps = (bd, r, c) => { const v = bd[r][c], p = Math.sign(v), out = []; [[1, 1], [1, -1], [-1, 1], [-1, -1]].forEach(([dr, dc]) => { if (!king(v) && dr === p) return; const tr = r + dr, tc = c + dc; if (tr < 0 || tc < 0 || tr >= N || tc >= N) return; if (!bd[tr][tc]) out.push([r, c, tr, tc]); }); return out; };
+  const allMoves = (bd, p) => { let j = [], s = []; for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) if (own(bd[r][c], p)) { j = j.concat(jumps(bd, r, c)); s = s.concat(steps(bd, r, c)); } return j.length ? j : s; };
+  const apply = (bd, m) => { const nb = bd.map(rw => rw.slice()), v = nb[m[0]][m[1]]; nb[m[0]][m[1]] = 0; nb[m[2]][m[3]] = v; if (m.length > 4) nb[m[4]][m[5]] = 0; if ((v === 1 && m[2] === 0) || (v === -1 && m[2] === N - 1)) nb[m[2]][m[3]] = v * 2; return nb; };
+  const seqs = (bd, p) => { const ms = allMoves(bd, p), out = []; ms.forEach(m => { if (m.length > 4) { const go = (bd2, mm, acc) => { const nb = apply(bd2, mm), more = Math.abs(nb[mm[2]][mm[3]]) === Math.abs(bd2[mm[0]][mm[1]]) ? jumps(nb, mm[2], mm[3]) : []; if (!more.length) out.push([nb, acc.concat([mm])]); else more.forEach(m2 => go(nb, m2, acc.concat([mm]))); }; go(bd, m, []); } else out.push([apply(bd, m), [m]]); }); return out; };
+  const ev = bd => { let s = 0; for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) { const v = bd[r][c]; if (v) s += (king(v) ? 3 : 1) * -Math.sign(v) + (v === -1 ? r * .05 : v === 1 ? -(7 - r) * .05 : 0); } return s; };
+  const mm = (bd, d, p, a, be) => { const sq = seqs(bd, p); if (!sq.length) return p === -1 ? -100 : 100; if (!d) return ev(bd); if (p === -1) { let v = -1e9; for (const [nb] of sq) { v = Math.max(v, mm(nb, d - 1, 1, a, be)); a = Math.max(a, v); if (a >= be) break; } return v; } let v = 1e9; for (const [nb] of sq) { v = Math.min(v, mm(nb, d - 1, -1, a, be)); be = Math.min(be, v); if (a >= be) break; } return v; };
+  const endCheck = () => { if (!allMoves(b, -1).length) { wins++; sc(wins); S.p('win'); A.pop(150, 200, 'Победа! Новая партия', '#7dff9a'); turn = 0; setTimeout(reset, 1600); return true; } if (!allMoves(b, 1).length) { over = 1; S.p('lose'); setTimeout(() => st(OVER), 800); return true; } return false; };
+  reset(); sc(0); st('Ты играешь белыми. Бить обязательно, можно несколько раз подряд. Дамка ходит назад');
+  return { click(a, c2) { if (over || turn !== 1) return; const r = Math.floor((c2 - Y0) / CS), c = Math.floor((a - X0) / CS); if (r < 0 || c < 0 || r >= N || c >= N) return; const legal = chain ? jumps(b, chain[0], chain[1]) : allMoves(b, 1);
+    if (own(b[r][c], 1) && !chain) { if (legal.some(m => m[0] === r && m[1] === c)) { sel = [r, c]; S.p('tick'); } else { S.p('hit'); A.pop(150, 40, legal.length && legal[0].length > 4 ? 'Нужно бить!' : 'Этой шашкой ходить нельзя', '#ffd13a'); } return; }
+    if (!sel) return; const m = legal.find(q => q[0] === sel[0] && q[1] === sel[1] && q[2] === r && q[3] === c); if (!m) return; const wasKing = king(b[m[0]][m[1]]); b = apply(b, m); last = [[m[0], m[1]], [m[2], m[3]]]; S.p(m.length > 4 ? 'pop' : 'click'); if (m.length > 4) boom(X0 + m[5] * CS + 17, Y0 + m[4] * CS + 17, '#2a2d36', 10);
+    if (m.length > 4 && king(b[r][c]) === wasKing && jumps(b, r, c).length) { chain = [r, c]; sel = [r, c]; return; } chain = null; sel = null; if (!endCheck()) { turn = -1; wait = 30; } }, t() {
+    fr++;
+    if (!over && turn === -1 && --wait <= 0) { const sq = seqs(b, -1); if (sq.length) { let best = sq[0], bv = -1e9; sq.forEach(s => { const v = mm(s[0], 3, 1, -1e9, 1e9) + Math.random() * .01; if (v > bv) { bv = v; best = s; } }); best[1].forEach(m => { if (m.length > 4) boom(X0 + m[5] * CS + 17, Y0 + m[4] * CS + 17, '#f4f4f4', 10); }); b = best[0]; const f = best[1][0], l = best[1][best[1].length - 1]; last = [[f[0], f[1]], [l[2], l[3]]]; S.p(best[1][0].length > 4 ? 'pop' : 'tick'); } turn = 1; endCheck(); }
+    const bg = x.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#3a2a1a'); bg.addColorStop(1, '#1d140c'); x.fillStyle = bg; x.fillRect(0, 0, W, H);
+    A.box(x, X0 - 7, Y0 - 7, N * CS + 14, N * CS + 14, '#6b4423', 8, { nogloss: 1 });
+    for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) { x.fillStyle = (r + c) % 2 ? '#8a5a30' : '#f0d9b5'; x.fillRect(X0 + c * CS, Y0 + r * CS, CS, CS); }
+    last.forEach(([r, c]) => { x.fillStyle = 'rgba(255,220,80,.3)'; x.fillRect(X0 + c * CS, Y0 + r * CS, CS, CS); });
+    if (sel && turn === 1) { const legal = chain ? jumps(b, chain[0], chain[1]) : allMoves(b, 1); legal.filter(m => m[0] === sel[0] && m[1] === sel[1]).forEach(m => { x.fillStyle = 'rgba(125,255,154,.55)'; A.circ(x, X0 + m[3] * CS + 17, Y0 + m[2] * CS + 17, 6); x.fill(); }); x.strokeStyle = '#7dff9a'; x.lineWidth = 3; x.strokeRect(X0 + sel[1] * CS + 1.5, Y0 + sel[0] * CS + 1.5, CS - 3, CS - 3); }
+    for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) { const v = b[r][c]; if (!v) continue; const X = X0 + c * CS + 17, Y = Y0 + r * CS + 17; A.orb(x, X, Y, 13, v > 0 ? '#f4f0e6' : '#2a2d36', {}); x.strokeStyle = v > 0 ? 'rgba(0,0,0,.2)' : 'rgba(255,255,255,.2)'; x.lineWidth = 1.5; A.circ(x, X, Y, 8.5); x.stroke(); if (king(v)) A.txt(x, '♛', X, Y + 1, 13, v > 0 ? '#c99a1a' : '#ffd23f', 'center'); }
+    A.txt(x, turn === 1 ? (chain ? 'Бей дальше!' : 'Твой ход') : turn === -1 ? 'Бот думает…' : 'Победа!', 150, 352, 14, turn === 1 ? '#7dff9a' : '#ffd23f', 'center');
+    A.hud(x, W, '🏆 ' + wins, null);
+  } };
+};
+const ladders = (x, sc, st) => {
+  const W = 300, H = 440, T = 28, OX = 10, OY = 44, LAD = { 3: 22, 8: 30, 28: 84, 58: 77, 75: 86, 80: 99, 90: 91 }, SNK = { 17: 4, 52: 29, 57: 40, 62: 22, 88: 18, 95: 51, 97: 79 }, ALL = Object.assign({}, LAD, SNK);
+  let pos = [0, 0], disp = [0, 0], turn = 0, die = 1, rolling = 0, fr = 0, over = 0, wins = 0, path = [], msg = '', wait = 0, done = 0;
+  const xy = n => { if (n <= 0) return [OX - 4, OY + 9 * T + T / 2 + 30]; const i = n - 1, r = Math.floor(i / 10), c = r % 2 ? 9 - i % 10 : i % 10; return [OX + c * T + T / 2, OY + (9 - r) * T + T / 2]; };
+  const roll = () => { if (rolling || path.length || over || done) return; rolling = 26; S.p('click'); };
+  sc(0); st('Бросай кубик кликом или пробелом. Лестницы поднимают, змеи опускают. Дойди до 100 первым');
+  return { click() { if (turn === 0) roll(); }, key(k) { if (k === ' ' && turn === 0) { roll(); return true; } return false; }, t() {
+    fr++;
+    if (rolling) { rolling--; if (rolling % 3 === 0) { die = 1 + rnd(6); S.tone(700, .02, 'square', .02); } if (!rolling) { let p = pos[turn], tgt = p + die; if (tgt > 100) { msg = 'Нужно ровно ' + (100 - p); tgt = p; } path = []; for (let k = p + 1; k <= tgt; k++) path.push(k); if (ALL[tgt]) { path.push(-ALL[tgt]); } pos[turn] = ALL[tgt] || tgt; } }
+    if (path.length && fr % 8 === 0) { const nx = path.shift(); if (nx < 0) { disp[turn] = -nx; const up = LAD[Object.keys(ALL).find(k => ALL[k] === -nx)] === -nx; S.p(up ? 'coin' : 'lose'); msg = up ? (turn ? 'Бот' : 'Ты') + ' по лестнице вверх!' : 'Змея! ' + (turn ? 'Бот' : 'Ты') + ' вниз'; } else { disp[turn] = nx; S.p('tick'); }
+      if (!path.length) { if (pos[turn] === 100) { if (turn === 0) { wins++; sc(wins); S.p('win'); boom(...xy(100), '#ffd13a', 30); msg = 'Победа! Новая игра'; done = 1; setTimeout(() => { pos = [0, 0]; disp = [0, 0]; turn = 0; msg = ''; done = 0; }, 1800); } else { over = 1; S.p('lose'); msg = 'Бот дошёл первым'; setTimeout(() => st(OVER), 900); } return; } turn = 1 - turn; if (turn === 1) wait = 35; } }
+    if (!path.length && !rolling && turn === 1 && !over && !done && --wait <= 0) roll();
+    const bg = x.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#2e7d5b'); bg.addColorStop(1, '#174a35'); x.fillStyle = bg; x.fillRect(0, 0, W, H);
+    for (let n = 1; n <= 100; n++) { const [X, Y] = xy(n), r = Math.floor((n - 1) / 10); x.fillStyle = ['#ffe0a3', '#ffc9a3', '#c9f0ff', '#d6ffc9', '#f4d1ff'][(n + r) % 5]; x.fillRect(X - T / 2, Y - T / 2, T, T); A.txt(x, String(n), X - T / 2 + 3, Y - T / 2 + 7, 7, 'rgba(0,0,0,.45)', 'left', null, 700); }
+    x.strokeStyle = 'rgba(0,0,0,.25)'; x.lineWidth = 1; x.strokeRect(OX, OY, 10 * T, 10 * T);
+    Object.keys(LAD).forEach(a => { const [x1, y1] = xy(+a), [x2, y2] = xy(LAD[a]), ang = Math.atan2(y2 - y1, x2 - x1), px = -Math.sin(ang) * 5, py = Math.cos(ang) * 5; x.strokeStyle = '#8a5a30'; x.lineWidth = 3; x.beginPath(); x.moveTo(x1 + px, y1 + py); x.lineTo(x2 + px, y2 + py); x.moveTo(x1 - px, y1 - py); x.lineTo(x2 - px, y2 - py); x.stroke(); const L = Math.hypot(x2 - x1, y2 - y1); for (let k = 8; k < L; k += 9) { const tx = x1 + (x2 - x1) * k / L, ty = y1 + (y2 - y1) * k / L; x.beginPath(); x.moveTo(tx + px, ty + py); x.lineTo(tx - px, ty - py); x.stroke(); } });
+    Object.keys(SNK).forEach((a, i) => { const [x1, y1] = xy(+a), [x2, y2] = xy(SNK[a]), col = ['#e5484d', '#8b5cf6', '#f59f00', '#2fcf6a', '#3b82f6', '#ff6fa5', '#14b8a6'][i]; x.strokeStyle = col; x.lineWidth = 6; x.lineCap = 'round'; x.beginPath(); const L = Math.hypot(x2 - x1, y2 - y1), nx = -(y2 - y1) / L, ny = (x2 - x1) / L; for (let k = 0; k <= 20; k++) { const t = k / 20, w = Math.sin(t * Math.PI * 3) * 7; const px = x1 + (x2 - x1) * t + nx * w, py = y1 + (y2 - y1) * t + ny * w; k ? x.lineTo(px, py) : x.moveTo(px, py); } x.stroke(); A.orb(x, x1, y1, 5.5, col, { flat: 1 }); x.fillStyle = '#fff'; A.circ(x, x1 - 2, y1 - 1, 1.5); x.fill(); A.circ(x, x1 + 2, y1 - 1, 1.5); x.fill(); });
+    [0, 1].forEach(p => { const [X, Y] = xy(disp[p]); A.orb(x, X + (p ? 5 : -5), Y - 2, 7.5, p ? '#e5484d' : '#3b82f6', {}); });
+    A.box(x, 120, 340, 60, 60, '#fbfbfb', 12, { nogloss: 1 }); const PIP = [[], [[.5, .5]], [[.25, .25], [.75, .75]], [[.25, .25], [.5, .5], [.75, .75]], [[.25, .25], [.75, .25], [.25, .75], [.75, .75]], [[.25, .25], [.75, .25], [.5, .5], [.25, .75], [.75, .75]], [[.25, .25], [.75, .25], [.25, .5], [.75, .5], [.25, .75], [.75, .75]]]; x.fillStyle = '#1b1f2a'; PIP[die].forEach(([a, b2]) => { A.circ(x, 120 + a * 60, 340 + b2 * 60, 5.5); x.fill(); });
+    A.orb(x, 30, 360, 8, '#3b82f6', { flat: 1 }); A.txt(x, 'Ты ' + pos[0], 44, 361, 13, '#fff'); A.orb(x, 30, 384, 8, '#e5484d', { flat: 1 }); A.txt(x, 'Бот ' + pos[1], 44, 385, 13, '#fff');
+    A.txt(x, msg || (turn === 0 ? 'Твой ход — жми!' : 'Ход бота…'), 240, 370, 12, '#ffe27a', 'center'); A.txt(x, 'Нажми, чтобы бросить', 150, 418, 11, 'rgba(255,255,255,.6)', 'center', null, 600);
+    A.hud(x, W, '🏆 ' + wins, null);
+  } };
+};
+const typing = (x, sc, st) => {
+  const W = 300, H = 440, WORDS = 'кот дом лес сок мяч сыр нос рот лук мир сон чай шар кит гол код пух сад лёд бор ёж река гора луна окно море поле стол книга игра снег ветер звезда облако ракета дракон радуга песня улица школа зебра лимон банан арбуз пират замок робот город птица рыбка'.split(' ').map(w => w.replace(/ё/g, 'е')), KB = ['йцукенгшщзх', 'фывапролджэ', 'ячсмитьбю'], LAT = 'qwertyuiop[]asdfghjkl;\'zxcvbnm,.', CYR = 'йцукенгшщзхъфывапролджэячсмитьбю';
+  let ws = [], cur = null, n = 0, lives = 3, fr = 0, over = 0, spawn = 30, typed = 0, miss = 0, lvl = 0, shots = [];
+  const add = () => { const pool = WORDS.filter(w => w.length <= 3 + Math.floor(lvl / 2) + 1); const w = pool[rnd(pool.length)]; ws.push({ w, d: 0, x: 30 + rnd(200), y: 40, v: .35 + lvl * .05 + Math.random() * .15 }); };
+  const type = ch => { if (over) return; if (ch === 'ё') ch = 'е'; if (!cur) cur = ws.filter(q => q.w[0] === ch).sort((a, b) => b.y - a.y)[0] || null; if (!cur) { miss++; S.p('hit'); return; } if (cur.w[cur.d] === ch) { cur.d++; typed++; shots.push({ x: 150, y: 400, tx: cur.x + cur.d * 8, ty: cur.y, l: 8 }); S.tone(700 + cur.d * 60, .04, 'square', .03); if (cur.d >= cur.w.length) { n++; sc(n); boom(cur.x + cur.w.length * 5, cur.y, '#7dff9a', 16); S.p('pop'); ws = ws.filter(q => q !== cur); cur = null; if (n % 8 === 0) { lvl++; A.pop(150, 200, 'Уровень ' + (lvl + 1), '#7dff9a'); } } } else { miss++; S.p('hit'); } };
+  sc(0); st('Печатай падающие слова, пока они не долетели до земли. Есть экранная клавиатура');
+  return { held: true, key(k) { k = k.toLowerCase(); const i = LAT.indexOf(k); if (i >= 0) k = CYR[i]; if ((k >= 'а' && k <= 'я') || k === 'ё') { type(k); return true; } return false; }, click(a, b) { if (b < 330) return; const r = Math.floor((b - 330) / 36); if (r < 0 || r > 2) return; const kw = r === 2 ? 30 : 26, ox = r === 2 ? 15 : 7, c = Math.floor((a - ox) / kw); if (c >= 0 && c < KB[r].length) type(KB[r][c]); }, t() {
+    fr++;
+    if (!over) { if (--spawn <= 0) { add(); spawn = Math.max(70, 170 - lvl * 14); } ws.forEach(q => { q.y += q.v; }); ws = ws.filter(q => { if (q.y > 318) { lives--; if (q === cur) cur = null; S.p('lose'); SH = 6; boom(q.x + 20, 318, '#ff5470', 14); if (lives <= 0) { over = 1; st(OVER); } return false; } return true; }); }
+    shots.forEach(s => s.l--); shots = shots.filter(s => s.l > 0);
+    A.sky(x, W, H, fr, 'space'); A.hills(x, W, 290, 0, '#2a3a6b', '#1d2a52', 10); x.fillStyle = '#1b2442'; x.fillRect(0, 322, W, H);
+    shots.forEach(s => { x.strokeStyle = 'rgba(125,255,154,' + s.l / 8 + ')'; x.lineWidth = 2; x.beginPath(); x.moveTo(s.x, s.y); x.lineTo(s.tx, s.ty); x.stroke(); });
+    ws.forEach(q => { const w = A.tw(x, q.w, 16) + 18; const on = q === cur; A.box(x, q.x - 4, q.y - 13, w, 26, on ? '#2f9e44' : '#4c5aa8', 13); A.txt(x, q.w.slice(0, q.d), q.x + 5, q.y, 16, '#ffe27a'); A.txt(x, q.w.slice(q.d), q.x + 5 + A.tw(x, q.w.slice(0, q.d), 16), q.y, 16, '#fff'); });
+    KB.forEach((rw, r) => { const kw = r === 2 ? 30 : 26, ox = r === 2 ? 15 : 7; rw.split('').forEach((ch, i) => { const hint = cur ? cur.w[cur.d] === ch : ws.some(q => q.w[0] === ch); A.box(x, ox + i * kw + 1, 330 + r * 36, kw - 2, 32, hint ? '#3f7fd6' : '#3a4270', 6, { flat: !hint, nogloss: !hint }); A.txt(x, ch.toUpperCase(), ox + i * kw + kw / 2, 346 + r * 36, 13, '#fff', 'center'); }); });
+    A.lives(x, W, lives, 3, 50); A.hud(x, W, '⌨️ ' + n, 'Точность ' + (typed + miss ? Math.round(typed / (typed + miss) * 100) : 100) + '%');
+  } };
+};
 // id, функция, название, значок, цвет карточки, жанр, описание, подпись счёта, экранные кнопки, ширина, высота (null — игра рисует сама)
 const GAMES = [
   ["snake", snake, "Змейка", "🐍", "#c8f2ea", "Аркада", "Собирай яблоки и не врезайся в себя. Чем длиннее — тем быстрее.", "Счёт", true, 352, 352],
@@ -2982,9 +3226,24 @@ const GAMES = [
   ["gomoku", gomoku, "Пять в ряд", "⚪", "#f5e9c8", "Настольная", "Гомоку на доске 15×15: поставь пять камней в линию раньше бота.", "Победы", false, 300, 380],
   ["wordle", wordle, "Слово дня", "🟩", "#d6f0d2", "Слова", "Угадай слово из 5 букв за 6 попыток по цветным подсказкам.", "Слов", false, 300, 460],
   ["anagram", anagram, "Анаграммы", "🔠", "#e9d2fd", "Слова", "Собери слово из перемешанных букв. 60 секунд на рекорд.", "Слов", false, 300, 420],
-  ["pipes", pipes, "Водопровод", "🚰", "#d2e8f0", "Головоломка", "Поворачивай трубы, чтобы вода дошла от крана до бочки.", "Уровни", false, 300, 420]
+  ["pipes", pipes, "Водопровод", "🚰", "#d2e8f0", "Головоломка", "Поворачивай трубы, чтобы вода дошла от крана до бочки.", "Уровни", false, 300, 420],
+  ["nonogram", nonogram, "Японский кроссворд", "🧩", "#f5f0e6", "Логика", "Закрашивай клетки по числовым подсказкам — проявится узор.", "Решено", false, 300, 420],
+  ["blockblast", blockblast, "Блок-пазл", "🧱", "#d2e3fc", "Головоломка", "Расставляй фигуры на поле 8×8 и очищай строки и столбцы.", "Счёт", false, 300, 440],
+  ["parking", parking, "Выезд с парковки", "🚗", "#e3e6ee", "Логика", "Двигай машины, чтобы освободить путь красной к выезду.", "Уровни", false, 300, 400],
+  ["roulette", roulette, "Рулетка", "🎡", "#d6f0d2", "Казино", "Крути колесо и ставь на цвет, чёт или диапазон. Цель — больше фишек.", "Фишки", false, 300, 440],
+  ["scratch", scratch, "Скретч-карта", "🎟️", "#e9d2fd", "Казино", "Стирай защитный слой. Три одинаковых символа — приз.", "Монеты", false, 300, 420],
+  ["pokerdice", pokerdice, "Покер на костях", "🎲", "#fad2cf", "Настольная", "Бросай пять костей до трёх раз и собери комбинацию сильнее бота.", "Победы", false, 300, 420],
+  ["plinko", plinko, "Плинко", "🔻", "#e3dcff", "Казино", "Шарик скачет по штырям и падает в лунку с множителем.", "Монеты", false, 300, 440],
+  ["checkers", checkers, "Шашки", "⛀", "#f5e9c8", "Настольная", "Русские шашки против бота: обязательное взятие и дамки.", "Победы", false, 300, 380],
+  ["ladders", ladders, "Змеи и лестницы", "🐍", "#d6f0d2", "Настольная", "Бросай кубик, поднимайся по лестницам и избегай змей. Кто первым до 100?", "Победы", false, 300, 440],
+  ["typing", typing, "Клавиатурный дождь", "⌨️", "#d2e3fc", "Слова", "Печатай падающие слова, пока они не коснулись земли.", "Слов", false, 300, 440],
+  ["qGeo", quizGame, "Викторина: география", "🌍", "#d2f0ff", "Викторина", "Столицы, реки, горы и океаны. 12 вопросов.", "Верно", false, null, null],
+  ["qSpace", quizGame, "Викторина: космос и наука", "🪐", "#e3dcff", "Викторина", "Планеты, звёзды и простые научные факты.", "Верно", false, null, null],
+  ["qAnimals", quizGame, "Викторина: животные", "🦁", "#ffe7a8", "Викторина", "Удивительные факты о животных и природе.", "Верно", false, null, null],
+  ["qMix", quizGame, "Викторина: эрудит", "🧠", "#fad2cf", "Викторина", "Вопросы обо всём: счёт, книги, спорт и календарь.", "Верно", false, null, null]
 ];
 const games = GAMES.map(([id, fn, name, icon, bg, tag, desc, label, pad, W, H]) => ({ id, name, icon, bg, tag, desc, run: W ? L(W, H, fn) : fn, label, pad }));
+Object.keys(QZ).forEach(id => { const g = games.find(q => q.id === id); if (g) { g.kind = 'quiz'; g.cfg = QZ[id]; g.run = (b, s) => quizGame(b, s, QZ[id]); } });
 { const ap = games.find(g => g.id === 'apples'); if (ap) { ap.kind = 'catch'; ap.cfg = APPLES; ap.run = (b, s) => catchGame(b, s, APPLES); } }
 const DL = {}; GAMES.forEach(r => { DL[r[0]] = r[9] ? [r[1].name, r[9], r[10]] : [r[1].name]; });
 const SRCS = Object.assign({ worldGame, catchGame, quizGame }, ...GAMES.map(r => ({ [r[1].name]: r[1] })));
