@@ -163,6 +163,19 @@ button.no:hover{background:#ef5a5f}
 #stud pre{white-space:pre-wrap;font-size:.75rem;color:var(--mute);background:var(--surf);padding:8px;border-radius:8px;margin:6px 0}
 #stud .shint{position:absolute;left:8px;bottom:8px;color:var(--mute);font-size:.8rem;pointer-events:none;background:rgba(0,0,0,.35);padding:4px 8px;border-radius:8px}
 @media(max-width:760px){#stud .smain{grid-template-columns:1fr;grid-template-rows:auto minmax(300px,1fr) auto}#stud .sexp,#stud .sprop{max-height:220px;border:0}}
+#stud .sai{position:absolute;top:8px;right:8px;bottom:8px;width:min(340px,calc(100% - 16px));display:flex;flex-direction:column;gap:6px;background:var(--side);border:1px solid var(--line);border-radius:14px;padding:10px;z-index:3;min-height:0}
+#stud .sai[hidden]{display:none}
+#stud .sai-h{display:flex;justify-content:space-between;align-items:center}
+#stud .sai-cfg{font-size:.85rem;color:var(--mute)}
+#stud .sai-cfg input,#stud .sai-cfg select{margin-top:4px}
+#stud .sai-log{flex:1;overflow:auto;display:flex;flex-direction:column;gap:6px;font-size:.9rem;min-height:80px}
+#stud .sai-m{padding:6px 10px;border-radius:10px;max-width:92%;white-space:pre-wrap}
+#stud .sai-m.me{align-self:flex-end;background:#1f3a5a}
+#stud .sai-m.ai{background:var(--surf)}
+#stud .sai-m.err{color:#ff8a8a;background:rgba(255,80,80,.1)}
+#stud .sai-m.wait{color:var(--mute)}
+#stud .sai-in{display:flex;gap:6px;align-items:stretch}
+#stud .sai-in textarea{flex:1;min-height:56px;margin:0}
 </style>
 </head>
 <body>
@@ -293,11 +306,22 @@ button.no:hover{background:#ef5a5f}
     <button data-add="block">🧱 Блок</button><button data-add="spring">🟢 Пружина</button><button data-add="lava">🔥 Лава</button><button data-add="coin">🪙 Монета</button><button data-add="finish">🏁 Финиш</button><button data-add="spawn">🧍 Старт</button>
     <button id="stMove" class="p">Двигать</button><button id="stScale">Размер</button>
     <button id="stUndo" disabled>↶</button><button id="stRedo" disabled>↷</button><button id="stDup">Копия</button><button id="stDel">Удалить</button>
-    <button id="stPlay" class="p">▶ Играть</button>
+    <button id="stAiBtn">🤖 ИИ</button><button id="stPlay" class="p">▶ Играть</button>
   </div>
   <div class="smain">
     <aside class="sexp"><b>Обозреватель</b><div id="stList"></div></aside>
-    <div class="sview"><canvas id="stCv" aria-label="3D-вид мира"></canvas><div id="stViewMsg" class="mkh" role="alert" style="position:absolute;inset:0;display:grid;place-items:center;padding:24px;text-align:center;pointer-events:none"></div><div class="shint">ПКМ — вращать · СКМ или Shift+ЛКМ — сдвиг · колесо — приблизить · Delete — удалить · Ctrl+D — копия · Ctrl+Z — отменить</div></div>
+    <div class="sview"><canvas id="stCv" aria-label="3D-вид мира"></canvas><div id="stViewMsg" class="mkh" role="alert" style="position:absolute;inset:0;display:grid;place-items:center;padding:24px;text-align:center;pointer-events:none"></div><div id="stAi" class="sai" hidden>
+        <div class="sai-h"><b>🤖 ИИ студии</b><button id="stAiClose" aria-label="Закрыть ИИ">✕</button></div>
+        <details class="sai-cfg"><summary>Ключ и модель</summary>
+          <select id="stAiProv" aria-label="Сервис ИИ"><option value="claude">Claude (ключ Anthropic)</option><option value="gemini">Gemini (ключ Google)</option></select>
+          <input id="stAiKey" type="password" placeholder="ключ API" autocomplete="off" aria-label="Ключ API">
+          <input id="stAiModel" placeholder="модель (можно пусто)" aria-label="Модель">
+          <div>Ключ хранится только в этом браузере и уходит только выбранному сервису.</div>
+        </details>
+        <div id="stAiLog" class="sai-log" aria-live="polite"></div>
+        <div class="sai-in"><textarea id="stAiIn" rows="2" placeholder="Например: сделай платформы до флага и монету на каждой" aria-label="Сообщение ИИ"></textarea><button id="stAiSend" class="p">➤</button></div>
+      </div>
+      <div class="shint">ПКМ — вращать · СКМ или Shift+ЛКМ — сдвиг · колесо — приблизить · Delete — удалить · Ctrl+D — копия · Ctrl+Z — отменить</div></div>
     <aside class="sprop"><b>Свойства</b><div id="stProp"></div><b>Скрипт (API)</b><textarea id="stScript" aria-label="Скрипт игры" placeholder="api.on('coin', () => api.say('+1 монета'))"></textarea><button id="stApi">📖 API</button><pre id="stApiDoc" hidden>api.on('coin', ({coins}) => {})     собрал монету
 api.on('finish', ({coins}) => {})   добежал до финиша
 api.on('lava', () => {})            упал в лаву
@@ -1684,6 +1708,65 @@ const STUDIO_NAME = { block: 'Блок', spring: 'Пружина', lava: 'Лав
 const STUDIO_ICON = { block: '🧱', spring: '🟢', lava: '🔥', coin: '🪙', finish: '🏁', spawn: '🧍' };
 const STUDIO_SIZE = { block: [4, 1, 4], spring: [4, .5, 4], lava: [4, .5, 4], coin: [1, 1, 1], finish: [4, .5, 4], spawn: [2, .2, 2] };
 
+/* ---------- 3D-студия: текстуры и персонаж ---------- */
+const STTEX = {};
+function stTex(THREE, kind) {
+  if (STTEX[kind]) return STTEX[kind];
+  const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d');
+  if (kind === 'studs') {
+    x.fillStyle = '#ffffff'; x.fillRect(0, 0, 128, 128);
+    for (let i = 0; i < 90; i++) { x.fillStyle = 'rgba(0,0,0,' + (Math.random() * .06).toFixed(3) + ')'; x.fillRect(Math.random() * 128, Math.random() * 128, 2 + Math.random() * 3, 2 + Math.random() * 3); }
+    x.strokeStyle = 'rgba(0,0,0,.35)'; x.lineWidth = 4; x.strokeRect(2, 2, 124, 124);
+  } else if (kind === 'stripes') {
+    x.fillStyle = '#ffffff'; x.fillRect(0, 0, 128, 128); x.fillStyle = '#d9e6dc';
+    for (let i = -128; i < 256; i += 32) { x.beginPath(); x.moveTo(i, 0); x.lineTo(i + 16, 0); x.lineTo(i - 112, 128); x.lineTo(i - 128, 128); x.closePath(); x.fill(); }
+  } else if (kind === 'checker') {
+    x.fillStyle = '#ffffff'; x.fillRect(0, 0, 128, 128); x.fillStyle = '#222222';
+    for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) if ((i + j) % 2 === 0) x.fillRect(i * 32, j * 32, 32, 32);
+  } else if (kind === 'lava') {
+    const g = x.createLinearGradient(0, 0, 0, 128); g.addColorStop(0, '#ffd166'); g.addColorStop(1, '#d62d00'); x.fillStyle = g; x.fillRect(0, 0, 128, 128);
+    for (let i = 0; i < 40; i++) { x.fillStyle = 'rgba(255,240,180,' + (Math.random() * .5).toFixed(3) + ')'; x.beginPath(); x.arc(Math.random() * 128, Math.random() * 128, 2 + Math.random() * 6, 0, 7); x.fill(); }
+  } else if (kind === 'face') {
+    x.fillStyle = '#ffffff'; x.fillRect(0, 0, 128, 128);
+    x.fillStyle = '#1b1b1b'; x.fillRect(30, 40, 20, 24); x.fillRect(78, 40, 20, 24);
+    x.fillStyle = '#ffffff'; x.fillRect(36, 44, 7, 7); x.fillRect(84, 44, 7, 7);
+    x.fillStyle = '#7a2b2b'; x.beginPath(); x.moveTo(40, 88); x.quadraticCurveTo(64, 108, 88, 88); x.lineWidth = 8; x.strokeStyle = '#7a2b2b'; x.stroke();
+  }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  STTEX[kind] = t; return t;
+}
+function stMat(THREE, t, color, size) {
+  if (t === 'coin') return new THREE.MeshStandardMaterial({ color, metalness: .8, roughness: .25, emissive: 0x332200 });
+  if (t === 'spawn') return new THREE.MeshStandardMaterial({ color: STUDIO_COL.spawn, transparent: true, opacity: .4 });
+  const kind = t === 'spring' ? 'stripes' : t === 'finish' ? 'checker' : t === 'lava' ? 'lava' : 'studs';
+  const map = stTex(THREE, kind).clone(); map.needsUpdate = true;
+  map.repeat.set(Math.max(1, size[0] / 2), Math.max(1, size[2] / 2));
+  if (t === 'lava') return new THREE.MeshStandardMaterial({ map, emissive: 0xff6a00, emissiveMap: map, emissiveIntensity: .9, roughness: .5 });
+  return new THREE.MeshStandardMaterial({ color, map, roughness: .75 });
+}
+function stHero(THREE, shirt, pants) {
+  const g = new THREE.Group();
+  const M = c => new THREE.MeshStandardMaterial({ color: c, roughness: .85 });
+  const add = (w, h, d, mat, x, y, z, parent) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); m.position.set(x, y, z); (parent || g).add(m); return m; };
+  const skin = '#f5c77e', face = new THREE.MeshStandardMaterial({ map: stTex(THREE, 'face'), roughness: .7 });
+  add(.42, .42, .42, [M(skin), M(skin), M(skin), M(skin), face, M(skin)], 0, 1.61, 0);
+  add(.44, .1, .44, M('#3b2a1a'), 0, 1.84, -.01);
+  add(.5, .55, .28, M(shirt), 0, 1.125, 0);
+  const arm = x => { const p = new THREE.Group(); p.position.set(x, 1.36, 0); g.add(p); add(.2, .55, .2, M(shirt), 0, -.275, 0, p); add(.2, .16, .2, M(skin), 0, -.63, 0, p); return p; };
+  const leg = x => { const p = new THREE.Group(); p.position.set(x, .85, 0); g.add(p); add(.22, .85, .24, M(pants), 0, -.425, 0, p); add(.24, .12, .27, M('#1d1d24'), 0, -.87, .02, p); return p; };
+  return { g, armL: arm(-.36), armR: arm(.36), legL: leg(-.13), legR: leg(.13), ph: 0 };
+}
+function stAnim(h, pl, dt) {
+  const sp = Math.hypot(pl.vx, pl.vz); h.ph += dt * sp * 1.7;
+  const k = Math.min(1, sp / 4) * (pl.on ? 1 : .3), sw = Math.sin(h.ph) * .75 * k;
+  h.legL.rotation.x = sw; h.legR.rotation.x = -sw; h.armL.rotation.x = -sw * .8; h.armR.rotation.x = sw * .8;
+  if (!pl.on) { h.legL.rotation.x = -.45; h.legR.rotation.x = .3; h.armL.rotation.x = -1.2; h.armR.rotation.x = -1.2; }
+}
+function stShadow(THREE) {
+  const m = new THREE.Mesh(new THREE.CircleGeometry(.45, 24), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: .28, depthWrite: false }));
+  m.rotation.x = -Math.PI / 2; return m;
+}
+
 /* ---------- 3D-студия: игра (запускается из каталога) ---------- */
 function studioGame(box, score, cfg) {
   const st = { on: true, raf: 0, stop() { st.on = false; cancelAnimationFrame(st.raf); removeEventListener('keydown', st.kd); removeEventListener('keyup', st.ku); } };
@@ -1712,7 +1795,7 @@ function studioPlay(THREE, box, score, cfg, st) {
     const id = o.id || 'r' + (++uid), t = o.t || o.type || 'block', p = (o.p || [0, 0, 0]).slice(), s = (o.s || o.size || [1, 1, 1]).slice(), c = o.c || o.color || STUDIO_COL[t] || '#999';
     let mesh = null;
     if (t !== 'spawn') {
-      mesh = new THREE.Mesh(t === 'coin' ? new THREE.SphereGeometry(.5, 16, 12) : new THREE.BoxGeometry(1, 1, 1), new THREE.MeshStandardMaterial({ color: c, emissive: t === 'lava' ? 0x771a00 : 0x000000, roughness: .6 }));
+      mesh = new THREE.Mesh(t === 'coin' ? new THREE.SphereGeometry(.5, 16, 12) : new THREE.BoxGeometry(1, 1, 1), stMat(THREE, t, c, s));
       mesh.position.set(p[0], p[1], p[2]); mesh.scale.set(s[0], s[1], s[2]); scn.add(mesh);
     }
     parts.set(id, { id, t, p, s, c, mesh }); return id;
@@ -1721,9 +1804,8 @@ function studioPlay(THREE, box, score, cfg, st) {
   const HX = .35, HY = .9, HZ = .35;
   const pl = { x: spawn[0], y: spawn[1] + HY, z: spawn[2], vx: 0, vy: 0, vz: 0, on: false, face: 0 };
   const reset = () => { pl.x = spawn[0]; pl.y = spawn[1] + HY; pl.z = spawn[2]; pl.vx = pl.vy = pl.vz = 0; };
-  const body = new THREE.Group(); scn.add(body);
-  const bodyPart = (w, h, d, x, y, col) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshStandardMaterial({ color: col })); m.position.set(x, y, 0); body.add(m); };
-  bodyPart(.55, .55, .55, 0, .75, '#f2c14e'); bodyPart(.75, .75, .4, 0, .15, '#e5484d'); bodyPart(.6, .65, .35, 0, -.62, '#2b4c9b');
+  const hero = stHero(THREE, '#e5484d', '#2b4c9b'), body = hero.g; scn.add(body);
+  const shadow = stShadow(THREE); scn.add(shadow);
   const keys = {}, handlers = {};
   st.kd = e => { keys[e.code] = true; if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault(); };
   st.ku = e => { keys[e.code] = false; };
@@ -1749,6 +1831,7 @@ function studioPlay(THREE, box, score, cfg, st) {
   score(0);
   const pbox = () => [pl.x - HX, pl.y - HY, pl.z - HZ, pl.x + HX, pl.y + HY, pl.z + HZ];
   const over = q => { const a = pbox(), B = bounds(q); return a[0] < B[3] && a[3] > B[0] && a[1] < B[4] && a[4] > B[1] && a[2] < B[5] && a[5] > B[2]; };
+  const side = q => { const a = pbox(), B = bounds(q); return a[0] < B[3] && a[3] > B[0] && a[1] + .1 < B[4] && a[4] - .05 > B[1] && a[2] < B[5] && a[5] > B[2]; };
   function step(dt) {
     const S = [...parts.values()], sol = S.filter(q => solidOf(q.t));
     const iz = (keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0), ix = (keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0);
@@ -1759,9 +1842,9 @@ function studioPlay(THREE, box, score, cfg, st) {
     if (keys.Space && pl.on) { pl.vy = 11; pl.on = false; }
     pl.vy -= 30 * dt;
     pl.x += pl.vx * dt;
-    for (const q of sol) if (over(q)) { const B = bounds(q); pl.x = pl.vx > 0 ? B[0] - HX : B[3] + HX; pl.vx = 0; }
+    for (const q of sol) if (side(q)) { const B = bounds(q); pl.x = pl.vx > 0 ? B[0] - HX : B[3] + HX; pl.vx = 0; }
     pl.z += pl.vz * dt;
-    for (const q of sol) if (over(q)) { const B = bounds(q); pl.z = pl.vz > 0 ? B[2] - HZ : B[5] + HZ; pl.vz = 0; }
+    for (const q of sol) if (side(q)) { const B = bounds(q); pl.z = pl.vz > 0 ? B[2] - HZ : B[5] + HZ; pl.vz = 0; }
     pl.on = false; pl.y += pl.vy * dt;
     for (const q of sol) if (over(q)) {
       const B = bounds(q);
@@ -1780,10 +1863,10 @@ function studioPlay(THREE, box, score, cfg, st) {
   let last = performance.now();
   function frame(now) {
     if (!st.on) return;
-    const dt = Math.min(.05, (now - last) / 1000); last = now;
+    const dt = Math.min(.05, Math.max(0, (now - last) / 1000)); last = now;
     if (!won) step(dt);
     for (const q of parts.values()) if (q.t === 'coin' && q.mesh) q.mesh.rotation.y += dt * 3;
-    body.position.set(pl.x, pl.y - .05, pl.z); body.rotation.y = pl.face;
+    body.position.set(pl.x, pl.y - HY, pl.z); body.rotation.y = pl.face; stAnim(hero, pl, dt); shadow.position.set(pl.x, pl.y - HY + .01, pl.z);
     const tx = pl.x, ty = pl.y + .4, tz = pl.z;
     cam.position.set(tx + Math.sin(yaw) * dist * Math.cos(pitch), ty + Math.sin(pitch) * dist, tz + Math.cos(yaw) * dist * Math.cos(pitch));
     cam.lookAt(tx, ty, tz);
@@ -1812,7 +1895,7 @@ function sdUndo() { if (!SD.hist.length) return; SD.fut.push(sdSnap()); sdApply(
 function sdRedo() { if (!SD.fut.length) return; SD.hist.push(sdSnap()); sdApply(SD.fut.pop()); }
 function sdMake(q) {
   const R = SD.R, T = R.T;
-  const mat = q.t === 'spawn' ? new T.MeshStandardMaterial({ color: STUDIO_COL.spawn, transparent: true, opacity: .45 }) : new T.MeshStandardMaterial({ color: q.c, emissive: q.t === 'lava' ? 0x662200 : 0, roughness: .6 });
+  const mat = stMat(T, q.t, q.c, q.s);
   const m = new T.Mesh(q.t === 'coin' ? new T.SphereGeometry(.5, 20, 14) : new T.BoxGeometry(1, 1, 1), mat);
   m.userData.id = q.id; m.position.set(q.p[0], q.p[1], q.p[2]); m.scale.set(q.s[0], q.s[1], q.s[2]);
   R.scn.add(m); R.meshes.set(q.id, m); return m;
@@ -1975,6 +2058,86 @@ addEventListener('keydown', e => {
   else if (mod && e.code === 'KeyD') { e.preventDefault(); sdDup(); }
   else if (!mod && (e.code === 'Delete' || e.code === 'Backspace')) { e.preventDefault(); sdDel(); }
 });
+
+
+/* ---------- 3D-студия: ИИ-помощник ---------- */
+const STAI_RULES = 'Ты помощник в 3D-студии Nobezter (как Roblox Studio). Мир задаётся координатами: x вправо, y вверх, z вглубь. p — центр объекта [x,y,z], s — размер [sx,sy,sz] в метрах. Земля — блок с верхом на y=0, например p:[0,-0.5,0], s:[40,1,40]. Персонаж ростом 1.8 м, прыгает примерно на 2 м. Типы: "block" (твёрдый блок), "spring" (подбрасывает), "lava" (смерть, возврат на старт), "coin" (монета, s:[1,1,1]), "finish" (финиш, один на мир), "spawn" (старт, один на мир, p — точка на земле). Отвечай ТОЛЬКО одним JSON-объектом без текста вокруг, в формате: {"say":"короткий ответ пользователю по-русски","add":[{"t":"block","p":[x,y,z],"s":[sx,sy,sz],"c":"#hex"}],"remove":["id объекта"],"script":"код JavaScript или null"}. Скрипт выполняется при нажатии «Играть» и получает объект api: api.on(событие, fn), где событие — "coin", "finish", "lava" или "tick" (fn(dt)); api.addPart({type, p, size, color}) возвращает id; api.removePart(id); api.setColor(id, "#hex"); api.teleport(x, y, z); api.player — {x, y, z}; api.coins — число монет; api.say(текст). Не используй fetch, внешние библиотеки и DOM. Если скрипт не нужен — null. Если пользователь просит изменить существующий объект, удали старый через "remove" с его id из списка. Не добавляй больше 60 объектов за ответ.';
+const SDAI = { hist: [], busy: false };
+function sdAiCfg() { try { return JSON.parse(localStorage.getItem('nbz-studio-ai') || 'null') || { provider: 'claude', key: '', model: '' }; } catch (e) { return { provider: 'claude', key: '', model: '' }; } }
+function sdAiSaveCfg() {
+  const c = { provider: $('stAiProv').value, key: $('stAiKey').value.trim(), model: $('stAiModel').value.trim() };
+  try { localStorage.setItem('nbz-studio-ai', JSON.stringify(c)); } catch (e) {}
+  return c;
+}
+function sdAiLog(text, cls) {
+  const d = document.createElement('div'); d.className = 'sai-m ' + cls; d.textContent = text;
+  $('stAiLog').append(d); $('stAiLog').scrollTop = 1e9; return d;
+}
+async function sdAiCall(cfg, prompt) {
+  const sys = STAI_RULES + '\n\nТекущие объекты мира:\n' + (SD.parts.slice(0, 80).map(q => q.id + ' ' + q.t + ' p' + JSON.stringify(q.p) + ' s' + JSON.stringify(q.s)).join('\n') || 'пусто');
+  const msgs = SDAI.hist.slice(-8).concat([{ role: 'user', content: prompt }]);
+  if (cfg.provider === 'gemini') {
+    const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(cfg.model || 'gemini-2.5-flash') + ':generateContent?key=' + encodeURIComponent(cfg.key), {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ systemInstruction: { parts: [{ text: sys }] }, contents: msgs.map(m => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] })), generationConfig: { responseMimeType: 'application/json', maxOutputTokens: 4000 } })
+    });
+    const j = await r.json(); if (!r.ok) throw new Error((j.error && j.error.message) || 'ошибка Gemini');
+    return ((j.candidates && j.candidates[0] && j.candidates[0].content && j.candidates[0].content.parts) || []).map(x => x.text || '').join('');
+  }
+  const r = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST', headers: { 'content-type': 'application/json', 'x-api-key': cfg.key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+    body: JSON.stringify({ model: cfg.model || 'claude-sonnet-5-5', max_tokens: 4000, system: sys, messages: msgs })
+  });
+  const j = await r.json(); if (!r.ok) throw new Error((j.error && j.error.message) || 'ошибка Claude');
+  return (j.content || []).map(x => x.text || '').join('');
+}
+function sdAiParse(text) {
+  const m = text.match(/\{[\s\S]*\}/); if (!m) throw new Error('ИИ ответил без JSON');
+  return JSON.parse(m[0]);
+}
+function sdAiApply(o) {
+  const before = sdSnap(), ids = Array.isArray(o.remove) ? o.remove.map(String) : [];
+  SD.parts = SD.parts.filter(q => !ids.includes(q.id));
+  const num = (v, d) => Number.isFinite(+v) ? +v : d;
+  let added = 0;
+  for (const a of (Array.isArray(o.add) ? o.add : []).slice(0, 60)) {
+    const t = STUDIO_SIZE[a.t] ? a.t : 'block';
+    if (t === 'spawn' || t === 'finish') SD.parts = SD.parts.filter(q => q.t !== t);
+    const p = [0, 1, 2].map(i => num(a.p && a.p[i], 0));
+    const s = t === 'coin' ? [1, 1, 1] : [0, 1, 2].map(i => Math.max(.2, num(a.s && a.s[i], STUDIO_SIZE[t][i])));
+    SD.parts.push({ id: sdId(), t, p, s, c: /^#[0-9a-f]{6}$/i.test(a.c || '') ? a.c : STUDIO_COL[t] });
+    added++;
+  }
+  if (typeof o.script === 'string') SD.script = o.script;
+  sdPush(before); sdRebuild(); sdSelect(null); $('stScript').value = SD.script;
+  return { added, removed: ids.length };
+}
+async function sdAiSend() {
+  const input = $('stAiIn'), text = input.value.trim();
+  if (!text || SDAI.busy) return;
+  const cfg = sdAiSaveCfg();
+  if (!cfg.key) { sdAiLog('Вставь ключ API в разделе «Ключ и модель» — он хранится только в этом браузере.', 'err'); return; }
+  input.value = ''; sdAiLog(text, 'me');
+  SDAI.busy = true; $('stAiSend').disabled = true; const wait = sdAiLog('Думаю…', 'wait');
+  try {
+    const raw = await sdAiCall(cfg, text), o = sdAiParse(raw);
+    SDAI.hist.push({ role: 'user', content: text }, { role: 'assistant', content: raw });
+    const r = sdAiApply(o);
+    sdAiLog((o.say || 'Готово.') + '\n[добавлено: ' + r.added + ', удалено: ' + r.removed + (typeof o.script === 'string' ? ', скрипт обновлён' : '') + ']', 'ai');
+  } catch (e) {
+    sdAiLog('Ошибка: ' + (e && e.message || e), 'err');
+  } finally {
+    wait.remove(); SDAI.busy = false; $('stAiSend').disabled = false;
+  }
+}
+(function sdAiInit() {
+  const c = sdAiCfg(); $('stAiProv').value = c.provider; $('stAiKey').value = c.key; $('stAiModel').value = c.model;
+  sdAiLog('Привет! Опиши, что построить, например «сделай платформы до флага и монету на каждой». Я добавляю объекты и пишу скрипты. Ответ применяется к миру, его можно отменить кнопкой ↶.', 'ai');
+})();
+$('stAiBtn').onclick = () => { $('stAi').hidden = !$('stAi').hidden; };
+$('stAiClose').onclick = () => { $('stAi').hidden = true; };
+$('stAiSend').onclick = sdAiSend;
+$('stAiIn').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sdAiSend(); } });
 
 </script>
 </body>
