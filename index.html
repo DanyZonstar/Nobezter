@@ -298,7 +298,7 @@ button.no:hover{background:#ef5a5f}
   </div>
   <div class="smain">
     <aside class="sexp"><b>Обозреватель</b><div id="stList"></div></aside>
-    <div class="sview"><canvas id="stCv" aria-label="3D-вид мира"></canvas><div class="shint">ПКМ — вращать · СКМ или Shift+ЛКМ — сдвиг · колесо — приблизить · Delete — удалить · Ctrl+D — копия · Ctrl+Z — отменить</div></div>
+    <div class="sview"><canvas id="stCv" aria-label="3D-вид мира"></canvas><div id="stViewMsg" class="mkh" role="alert" style="position:absolute;inset:0;display:grid;place-items:center;padding:24px;text-align:center;pointer-events:none"></div><div class="shint">ПКМ — вращать · СКМ или Shift+ЛКМ — сдвиг · колесо — приблизить · Delete — удалить · Ctrl+D — копия · Ctrl+Z — отменить</div></div>
     <aside class="sprop"><b>Свойства</b><div id="stProp"></div><b>Скрипт (API)</b><textarea id="stScript" aria-label="Скрипт игры" placeholder="api.on('coin', () => api.say('+1 монета'))"></textarea><button id="stApi">📖 API</button><pre id="stApiDoc" hidden>api.on('coin', ({coins}) => {})     собрал монету
 api.on('finish', ({coins}) => {})   добежал до финиша
 api.on('lava', () => {})            упал в лаву
@@ -1941,7 +1941,7 @@ function sdEnsure() {
 }
 $('stOpen').onclick = () => {
   $('stud').classList.add('on'); sdMsg('');
-  sdEnsure().then(() => { sdResize(); sdUI(); $('stScript').value = SD.script; }).catch(err => sdMsg('Не удалось загрузить 3D-движок: ' + (err && err.message || err)));
+  sdEnsure().then(() => { $('stViewMsg').textContent = ''; sdResize(); sdUI(); $('stScript').value = SD.script; }).catch(err => { const t = 'Не удалось загрузить 3D-движок. Студия не работает, если страница открыта как файл (file://). Запустите сайт через сервер, например в папке репозитория: python3 -m http.server 8000 — и откройте http://localhost:8000'; sdMsg(t); $('stViewMsg').textContent = t; });
 };
 $('stBack').onclick = () => { $('stud').classList.remove('on'); };
 $('stUndo').onclick = sdUndo; $('stRedo').onclick = sdRedo; $('stDup').onclick = sdDup; $('stDel').onclick = sdDel;
