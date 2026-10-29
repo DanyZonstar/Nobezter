@@ -350,10 +350,12 @@ function craft(n) {
 /* ---------------- Ввод ---------------- */
 addEventListener('keydown', e => { G.keys[e.code] = true; if (G.mode === 'play' && e.code === 'KeyE') interact(); if (G.mode === 'play' && G.ch2 && /^Digit[1-4]$/.test(e.code)) craft(+e.code.slice(-1)); if (e.code === 'Space' || e.code.startsWith('Arrow')) e.preventDefault(); });
 addEventListener('keyup', e => { G.keys[e.code] = false; });
-addEventListener('mousemove', e => { if (G.locked && G.mode === 'play') { G.yaw -= e.movementX * .0021 * S.sens; G.pitch = Math.max(-1.45, Math.min(1.45, G.pitch - e.movementY * .0021 * S.sens)); G.mdx += e.movementX; G.mdy += e.movementY; } });
+canvas.addEventListener('pointerdown', () => { G.dragging = true; });
+addEventListener('pointerup', () => { G.dragging = false; });
+addEventListener('mousemove', e => { if (G.mode === 'play' && (G.locked || G.dragging)) { G.yaw -= e.movementX * .0021 * S.sens; G.pitch = Math.max(-1.45, Math.min(1.45, G.pitch - e.movementY * .0021 * S.sens)); G.mdx += e.movementX; G.mdy += e.movementY; } });
 document.addEventListener('pointerlockchange', () => { G.locked = document.pointerLockElement === canvas; if (!G.locked && G.mode === 'play') { $('pause').classList.remove('off'); } });
 function lockPointer() { try { const p = canvas.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch (e) {} }
-canvas.addEventListener('click', () => { if (G.mode === 'play' && !G.locked) { lockPointer(); $('pause').classList.add('off'); } else if (G.mode === 'play') interact(); });
+canvas.addEventListener('click', () => { if (G.mode !== 'play') return; if (!G.locked) lockPointer(); interact(); });
 function interact() { if (G.ch2) { interactCh2(); return; } if (G.opening || G.open > 0 || G.dist > 2.7) return; const fwd = new THREE.Vector3(-Math.sin(G.yaw) * Math.cos(G.pitch), Math.sin(G.pitch), -Math.cos(G.yaw) * Math.cos(G.pitch)), to = new THREE.Vector3(0, 1.05, DZ).sub(G.pos).normalize(); if (fwd.dot(to) < .82) return; G.opening = true; G.openT = 0; promptEl.classList.remove('on'); }
 
 $('bStart').onclick = () => { audioStart(); $('title').classList.add('off'); startIntro(); };
@@ -371,7 +373,7 @@ function startIntro() {
   const next = () => { if (G.mode !== 'intro') return; if (introIdx >= TX[lang].intro.length) { endIntro(); return; } p.textContent = TX[lang].intro[introIdx++]; p.classList.add('on'); introTimer = setTimeout(() => { p.classList.remove('on'); introTimer = setTimeout(next, 1500); }, 3300); };
   clearTimeout(introTimer); setTimeout(next, 900);
 }
-function endIntro() { clearTimeout(introTimer); $('intro').classList.add('off'); setMode('play'); lockPointer(); setTimeout(() => { if (G.mode === 'play' && !G.locked) $('pause').classList.remove('off'); }, 700); hintEl.classList.add('on'); setTimeout(() => hintEl.classList.remove('on'), 7000); setTimeout(() => G.mode === 'play' && say('s1', 3600), 2800); }
+function endIntro() { clearTimeout(introTimer); $('intro').classList.add('off'); setMode('play'); lockPointer(); hintEl.classList.add('on'); setTimeout(() => hintEl.classList.remove('on'), 7000); setTimeout(() => G.mode === 'play' && say('s1', 3600), 2800); }
 $('intro').addEventListener('click', () => { if (G.mode === 'intro') { introIdx = 99; endIntro(); } });
 
 /* ---------------- Цикл ---------------- */
@@ -380,7 +382,7 @@ function update(dt, time) {
   if (G.mode === 'title') { camera.position.set(2.4, 1.6, 12); camera.rotation.set(-.04, .24 + Math.sin(time * .1) * .04, 0); body.visible = false; armL.visible = armR.visible = false; matComp.uniforms.uFade.value = 1 - Math.min(1, matComp.uniforms.uFade.value * 0 + 0); matComp.uniforms.uFade.value = .55; }
   if (G.mode === 'play' || G.mode === 'intro') {
     if (G.mode === 'play') {
-      const paused = !G.locked && !$('pause').classList.contains('off') === false; const running = G.keys.ShiftLeft || G.keys.ShiftRight; const can = G.locked && !G.opening && (G.open === 0 || G.ch2);
+      const paused = !G.locked && !$('pause').classList.contains('off') === false; const running = G.keys.ShiftLeft || G.keys.ShiftRight; const can = !G.opening && (G.open === 0 || G.ch2);
       const mx = (G.keys.KeyD || G.keys.ArrowRight ? 1 : 0) - (G.keys.KeyA || G.keys.ArrowLeft ? 1 : 0), mz = (G.keys.KeyW || G.keys.ArrowUp ? 1 : 0) - (G.keys.KeyS || G.keys.ArrowDown ? 1 : 0);
       const sp = running ? 3.1 : 1.65; let tvx = 0, tvz = 0; if (can && (mx || mz)) { const l = Math.hypot(mx, mz); tvx = (mx / l * Math.cos(G.yaw) - mz / l * Math.sin(G.yaw)) * sp; tvz = (-mx / l * Math.sin(G.yaw) - mz / l * Math.cos(G.yaw)) * sp; }
       G.vel.x += (tvx - G.vel.x) * Math.min(1, dt * 7); G.vel.z += (tvz - G.vel.z) * Math.min(1, dt * 7);
