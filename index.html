@@ -176,6 +176,9 @@ button.no:hover{background:#ef5a5f}
 #stud .sai-m.wait{color:var(--mute)}
 #stud .sai-in{display:flex;gap:6px;align-items:stretch}
 #stud .sai-in textarea{flex:1;min-height:56px;margin:0}
+.aibar{display:flex;align-items:center;gap:12px;padding:calc(8px + env(safe-area-inset-top,0px)) 12px 8px;background:var(--side);border-bottom:1px solid var(--line);flex:none}
+.aibar b{font-size:1rem}
+.aibar button{padding:6px 14px}
 </style>
 </head>
 <body>
@@ -264,6 +267,7 @@ button.no:hover{background:#ef5a5f}
       <div id="wStat" class="qb" role="status"></div>
       <div class="mkh">Число в клетке — высота. Shift + тяни — заливка прямоугольником. Ctrl+Z — отменить, Ctrl+Y — повторить. Клавиши: 1–6 блоки, 7 монета, 8 старт, 9 финиш, 0 ластик, [ ] высота.</div>
       <canvas id="wPrev" width="840" height="500" aria-label="3D-вид мира"></canvas>
+      <div class="mkh">Потяни по 3D-виду, чтобы повернуть мир.</div>
       <div class="acts" style="grid-template-columns:1fr 1fr"><button id="wUndo" disabled>↶ Отменить</button><button id="wRedo" disabled>↷ Повторить</button></div>
       <div class="acts" style="grid-template-columns:1fr 1fr 1fr"><button id="wTest">▶ Играть</button><button id="wSample">✨ Пример</button><button id="wClear">🗑 Очистить</button></div>
       <div id="wMsg" class="qb"></div>
@@ -299,7 +303,7 @@ button.no:hover{background:#ef5a5f}
   <section style="overflow:auto"><div class="grid" id="onList" style="grid-template-columns:1fr"></div></section>
 </div></div>
 <div class="ov" id="bzov" style="padding:0"><iframe id="bzf" title="Зона крови" allow="autoplay; fullscreen" style="flex:1;align-self:stretch;width:100%;border:0;background:#0b0607"></iframe></div>
-<div class="ov" id="aiov" style="padding:0"><button id="aiBack" class="p" style="position:fixed;top:10px;left:10px;z-index:8" aria-label="Назад в каталог">‹ Назад</button><iframe id="aif" title="ИИ Nobezter" allow="microphone; clipboard-write; fullscreen" style="flex:1;align-self:stretch;width:100%;border:0;background:#07090d"></iframe></div>
+<div class="ov" id="aiov" style="padding:0;align-items:stretch"><div class="aibar"><button id="aiBack" aria-label="Назад в каталог">‹ Назад</button><b>🤖 ИИ Nobezter</b></div><iframe id="aif" title="ИИ Nobezter" allow="microphone; clipboard-write; fullscreen" style="flex:1;width:100%;border:0;background:#07090d"></iframe></div>
 <div class="ov" id="stud" role="dialog" aria-label="3D-студия">
   <div class="sbar">
     <button id="stBack">‹ Назад</button><b>3D-студия</b>
@@ -2366,43 +2370,128 @@ $('cfile').onchange = e => { const f = e.target.files[0]; e.target.value = ''; s
 const WCOL = { 1: ['#5fd068', '#47a853', '#368a43', 'Трава', '🟩'], 2: ['#aab2bd', '#8d96a2', '#6f7884', 'Камень', '⬜'], 3: ['#c48a52', '#a06f3f', '#7e552f', 'Дерево', '🟫'], 4: ['#ff6a2a', '#e24a14', '#b83a0e', 'Лава', '🔥'], 5: ['#3ee0a0', '#2cb882', '#1f8f65', 'Пружина', '🟢'], 6: ['#ffd45a', '#d9ad35', '#b08a22', 'Чекпоинт', '🚩'] };
 /* рисует мир в изометрии; cam {x,z,s}; pl — игрок или null; got — собранные монеты */
 function wRender(ctx, c, cam, pl, got, tm, W, H) {
-  const n = c.n, s = cam.s, sh = (hx, f) => { const v = parseInt(hx.slice(1), 16); return 'rgb(' + Math.min(255, (v >> 16) * f | 0) + ',' + Math.min(255, (v >> 8 & 255) * f | 0) + ',' + Math.min(255, (v & 255) * f | 0) + ')'; };
-  const P = (x, y, z) => [W / 2 + ((x - cam.x) - (z - cam.z)) * s * .866, H / 2 + ((x - cam.x) + (z - cam.z)) * s * .5 - y * s * .95];
-  const poly = (pts, fill, line) => { ctx.beginPath(); pts.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath(); ctx.fillStyle = fill; ctx.fill(); if (line) { ctx.strokeStyle = line; ctx.lineWidth = 1; ctx.stroke(); } };
-  const box = (x, y, z, w, h, d, col, line) => {
-    poly([P(x, y, z + d), P(x + w, y, z + d), P(x + w, y + h, z + d), P(x, y + h, z + d)], sh(col, .78), line);
-    poly([P(x + w, y, z), P(x + w, y, z + d), P(x + w, y + h, z + d), P(x + w, y + h, z)], sh(col, .58), line);
-    poly([P(x, y + h, z), P(x + w, y + h, z), P(x + w, y + h, z + d), P(x, y + h, z + d)], col, line);
-  };
-  const g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#6cc3ff'); g.addColorStop(1, '#d6f0ff'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-  const flag = (x, y, z, col) => { const a = P(x, y, z), b = P(x, y + 1.3, z); ctx.strokeStyle = '#f2f2f2'; ctx.lineWidth = Math.max(1.5, s * .06); ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); const t1 = P(x + .5, y + 1.15, z + .1); poly([b, t1, P(x, y + .95, z)], col); };
-  const drawPl = () => {
-    const y = pl.y, x = pl.x, z = pl.z, sw = Math.sin(pl.ph) * .25;
-    ctx.fillStyle = 'rgba(0,0,0,.25)'; const gp = P(x, pl.gy, z); ctx.beginPath(); ctx.ellipse(gp[0], gp[1], s * .32, s * .16, 0, 0, 7); ctx.fill();
-    box(x - .2, y + sw * .3 * 0, z - .14 + sw * .3, .18, .38, .28, '#2c3e75'); box(x + .02, y, z - .14 - sw * .3, .18, .38, .28, '#2c3e75');
-    box(x - .26, y + .38, z - .17, .52, .46, .34, pl.sh || '#e5484d');
-    box(x - .4, y + .4, z - .12 + sw * .5, .13, .4, .24, '#f2c14e'); box(x + .27, y + .4, z - .12 - sw * .5, .13, .4, .24, '#f2c14e');
-    box(x - .23, y + .84, z - .2, .46, .42, .4, '#f2c14e');
-    const e1 = P(x - .1, y + 1.05, z + .2), e2 = P(x + .1, y + 1.05, z + .2); ctx.fillStyle = '#151515'; ctx.fillRect(e1[0] - 1.5, e1[1] - 2, 3, 4); ctx.fillRect(e2[0] - 1.5, e2[1] - 2, 3, 4);
-  };
-  const pd = pl ? Math.max(0, Math.min(2 * n - 2, Math.floor(pl.x) + Math.floor(pl.z))) : -1, pcx = pl ? Math.floor(pl.x) : 0;
-  for (let d = 0; d <= 2 * n - 2; d++) {
-    let drew = false;
-    for (let x = Math.max(0, d - n + 1); x <= Math.min(n - 1, d); x++) {
-      const z = d - x, i = z * n + x, t = c.t[i];
-      if (d === pd && !drew && x >= pcx) { drawPl(); drew = true; }
-      if (!t) continue;
-      const h = c.h[i], col = WCOL[t][0]; box(x, 0, z, 1, h, 1, col, 'rgba(0,0,0,.14)');
-      if (t === 4) { const a = .15 + .12 * Math.sin(tm * 4 + x + z); poly([P(x, h, z), P(x + 1, h, z), P(x + 1, h, z + 1), P(x, h, z + 1)], 'rgba(255,230,80,' + a + ')'); }
-      if (t === 5) { const p = P(x + .5, h, z + .5); ctx.fillStyle = '#146a4c'; ctx.beginPath(); ctx.ellipse(p[0], p[1], s * .3, s * .15, 0, 0, 7); ctx.fill(); ctx.fillStyle = '#c7ffe8'; ctx.beginPath(); ctx.ellipse(p[0], p[1] - 2, s * .2, s * .1, 0, 0, 7); ctx.fill(); }
-      if (t === 6) flag(x + .5, h, z + .5, '#e5484d');
-      if (c.sp && c.sp[0] === x && c.sp[1] === z) { const p = P(x + .5, h, z + .5); ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(p[0], p[1], s * .38, s * .19, 0, 0, 7); ctx.stroke(); }
-      if (c.fin && c.fin[0] === x && c.fin[1] === z) { poly([P(x, h, z), P(x + .5, h, z), P(x + .5, h, z + .5), P(x, h, z + .5)], '#111'); poly([P(x + .5, h, z + .5), P(x + 1, h, z + .5), P(x + 1, h, z + 1), P(x + .5, h, z + 1)], '#111'); flag(x + .5, h, z + .5, '#2ecf7a'); }
-      if (c.k[i] && !(got && got.has(i))) { const p = P(x + .5, h + .75 + Math.sin(tm * 3 + i) * .08, z + .5), w = Math.abs(Math.cos(tm * 3 + i)) * s * .2 + 2; ctx.fillStyle = '#ffd13a'; ctx.strokeStyle = '#b8860b'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.ellipse(p[0], p[1], w, s * .22, 0, 0, 7); ctx.fill(); ctx.stroke(); }
-    }
-    if (d === pd && !drew) drawPl();
+  const n = c.n, s = cam.s, A = cam.a || 0, ca = Math.cos(A), sa = Math.sin(A);
+  const shd = (hx, f) => { const v = parseInt(hx.slice(1), 16), q = k => Math.max(0, Math.min(255, (k * f) | 0)); return 'rgb(' + q(v >> 16) + ',' + q(v >> 8 & 255) + ',' + q(v & 255) + ')'; };
+  const rot = (x, z) => { const dx = x - cam.x, dz = z - cam.z; return [dx * ca - dz * sa, dx * sa + dz * ca]; };
+  const P = (x, y, z) => { const r = rot(x, z); return [W / 2 + (r[0] - r[1]) * s * .866, H / 2 + (r[0] + r[1]) * s * .5 - y * s * .95]; };
+  const poly = (pts, fill, line, lw) => { ctx.beginPath(); pts.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath(); ctx.fillStyle = fill; ctx.fill(); if (line) { ctx.strokeStyle = line; ctx.lineWidth = lw || 1; ctx.stroke(); } };
+  const fsh = (nx, nz) => { const rx = nx * ca - nz * sa, rz = nx * sa + nz * ca; return [rx + rz > .001, .66 - (rx - rz) * .1]; };
+  const hs = (x, z, a) => { const v = Math.sin(x * 127.1 + z * 311.7 + a * 74.7) * 43758.5453; return v - Math.floor(v); };
+  const SIDE = { 1: '#8a5a32', 2: '#8d96a2', 3: '#a86f3c', 4: '#8a2a12', 5: '#1f9a6c', 6: '#c99a22' };
+  // небо, солнце, облака
+  const g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#3f9dff'); g.addColorStop(.55, '#9bd6ff'); g.addColorStop(1, '#e8f7ff'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  const sg = ctx.createRadialGradient(W * .82, H * .1, 3, W * .82, H * .1, 80); sg.addColorStop(0, 'rgba(255,250,210,1)'); sg.addColorStop(.2, 'rgba(255,240,170,.55)'); sg.addColorStop(1, 'rgba(255,240,170,0)'); ctx.fillStyle = sg; ctx.fillRect(0, 0, W, H);
+  for (let i = 0; i < 6; i++) {
+    const cx = ((i * 97 + tm * (5 + i % 3 * 2)) % (W + 160)) - 80 - A * 30 * (i % 2 ? 1 : -1), cy = 30 + (i * 67) % (H * .45), r = 16 + (i % 3) * 7;
+    ctx.fillStyle = 'rgba(255,255,255,.72)'; ctx.beginPath(); ctx.arc(cx, cy, r, 0, 7); ctx.arc(cx + r * .9, cy + 3, r * .8, 0, 7); ctx.arc(cx - r * .9, cy + 4, r * .7, 0, 7); ctx.arc(cx + r * .3, cy - r * .5, r * .7, 0, 7); ctx.fill();
   }
-  if (pl && pd < 0) drawPl();
+  const flag = (x, y, z, col) => {
+    const a = P(x, y, z), b = P(x, y + 1.3, z), k = s / 36;
+    ctx.strokeStyle = '#f5f5f5'; ctx.lineWidth = Math.max(1.6, s * .06); ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke();
+    const w1 = Math.sin(tm * 6) * 2 * k; poly([b, [b[0] + 18 * k, b[1] + 5 * k + w1], [b[0] + 4 * k, b[1] + 12 * k], [b[0], b[1] + 14 * k]], col, 'rgba(0,0,0,.25)');
+  };
+  // собираем клетки и сортируем по глубине
+  const items = [];
+  let pcell = -1;
+  if (pl) { const px = Math.floor(pl.x), pz = Math.floor(pl.z); if (px >= 0 && pz >= 0 && px < n && pz < n) pcell = pz * n + px; }
+  for (let z = 0; z < n; z++) for (let x = 0; x < n; x++) {
+    const i = z * n + x, t = c.t[i]; if (!t) continue;
+    const r = rot(x + .5, z + .5), sx = W / 2 + (r[0] - r[1]) * s * .866, sy = H / 2 + (r[0] + r[1]) * s * .5;
+    if (sx < -70 || sx > W + 70 || sy < -90 || sy > H + 90) continue;
+    items.push({ k: r[0] + r[1], x, z, i, t, h: c.h[i], cell: 1 });
+  }
+  if (pl) {
+    const r = rot(pl.x, pl.z); let k = r[0] + r[1];
+    if (pcell >= 0) { const rc = rot(Math.floor(pl.x) + .5, Math.floor(pl.z) + .5); k = Math.max(k, rc[0] + rc[1] + .0005); }
+    items.push({ k, pl: 1 });
+  }
+  items.sort((a, b) => a.k - b.k);
+
+  const drawCell = it => {
+    const { x, z, i, t, h } = it, col = WCOL[t][0], sd = SIDE[t];
+    // боковые грани по слоям
+    [[1, 0, x + 1, z, x + 1, z + 1], [-1, 0, x, z + 1, x, z], [0, 1, x + 1, z + 1, x, z + 1], [0, -1, x, z, x + 1, z]].forEach(([nx, nz, ax, az, bx, bz]) => {
+      const f = fsh(nx, nz); if (!f[0]) return;
+      for (let k = 0; k < h; k++) {
+        const y0 = k, y1 = k + 1, q = [P(ax, y0, az), P(bx, y0, bz), P(bx, y1, bz), P(ax, y1, az)];
+        poly(q, shd(sd, f[1] * (k % 2 ? 1.34 : 1.24)), 'rgba(0,0,0,.2)');
+        if (t === 1 && k === h - 1) poly([P(ax, y1 - .3, az), P(bx, y1 - .3, bz), P(bx, y1, bz), P(ax, y1, az)], shd(col, f[1] * 1.15), 'rgba(0,0,0,.18)');
+        if (t === 2) { const m = [(q[0][0] + q[1][0]) / 2, (q[0][1] + q[1][1]) / 2], m2 = [(q[3][0] + q[2][0]) / 2, (q[3][1] + q[2][1]) / 2]; ctx.strokeStyle = 'rgba(0,0,0,.18)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(m[0], m[1]); ctx.lineTo(m2[0], m2[1]); ctx.stroke(); }
+        if (t === 3) { ctx.strokeStyle = 'rgba(60,30,10,.28)'; ctx.lineWidth = 1; ctx.beginPath(); for (let e = 1; e < 3; e++) { const u = e / 3, p0 = [q[0][0] + (q[3][0] - q[0][0]) * u, q[0][1] + (q[3][1] - q[0][1]) * u], p1 = [q[1][0] + (q[2][0] - q[1][0]) * u, q[1][1] + (q[2][1] - q[1][1]) * u]; ctx.moveTo(p0[0], p0[1]); ctx.lineTo(p1[0], p1[1]); } ctx.stroke(); }
+      }
+    });
+    // верхняя грань
+    const T = [P(x, h, z), P(x + 1, h, z), P(x + 1, h, z + 1), P(x, h, z + 1)], ys = T.map(p => p[1]), y0 = Math.min.apply(null, ys), y1 = Math.max.apply(null, ys);
+    const tg = ctx.createLinearGradient(0, y0, 0, y1); tg.addColorStop(0, shd(col, 1.1)); tg.addColorStop(1, shd(col, .92));
+    if (t === 4) { ctx.save(); ctx.shadowColor = 'rgba(255,110,30,.85)'; ctx.shadowBlur = 16; poly(T, tg, 'rgba(120,20,0,.5)'); ctx.restore(); } else poly(T, tg, 'rgba(0,0,0,.16)');
+    const tp = (u, v) => P(x + u, h, z + v);
+    if (t === 1) {
+      ctx.lineWidth = 1.2;
+      for (let k = 0; k < 9; k++) { const p = tp(.08 + hs(x, z, k) * .84, .08 + hs(x, z, k + 9) * .84); ctx.strokeStyle = shd(col, k % 2 ? .78 : 1.2); ctx.beginPath(); ctx.moveTo(p[0], p[1]); ctx.lineTo(p[0] - 1, p[1] - 3.5 * s / 36); ctx.stroke(); }
+      if (hs(x, z, 20) < .22) { const p = tp(.3 + hs(x, z, 21) * .4, .3 + hs(x, z, 22) * .4); ctx.fillStyle = hs(x, z, 23) < .5 ? '#fff' : '#ff8fb1'; ctx.beginPath(); ctx.arc(p[0], p[1] - 2, 2.4 * s / 36, 0, 7); ctx.fill(); ctx.fillStyle = '#ffd13a'; ctx.beginPath(); ctx.arc(p[0], p[1] - 2, 1 * s / 36, 0, 7); ctx.fill(); }
+    } else if (t === 2) {
+      ctx.strokeStyle = 'rgba(0,0,0,.22)'; ctx.lineWidth = 1; ctx.beginPath(); let p = tp(hs(x, z, 1) * .5, hs(x, z, 2) * .5); ctx.moveTo(p[0], p[1]); for (let k = 0; k < 3; k++) { p = tp(.2 + hs(x, z, 3 + k) * .7, .2 + hs(x, z, 6 + k) * .7); ctx.lineTo(p[0], p[1]); } ctx.stroke();
+      for (let k = 0; k < 6; k++) { const q = tp(hs(x, z, 10 + k), hs(x, z, 16 + k)); ctx.fillStyle = k % 2 ? 'rgba(255,255,255,.28)' : 'rgba(0,0,0,.14)'; ctx.fillRect(q[0], q[1], 2, 1.6); }
+    } else if (t === 3) {
+      ctx.strokeStyle = 'rgba(70,35,10,.3)'; ctx.lineWidth = 1; ctx.beginPath(); for (let e = 1; e < 4; e++) { const a = tp(0, e / 4), b = tp(1, e / 4); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); } ctx.stroke();
+      for (let k = 0; k < 3; k++) { const q = tp(.2 + hs(x, z, k) * .6, .1 + k * .3); ctx.fillStyle = 'rgba(70,35,10,.25)'; ctx.beginPath(); ctx.ellipse(q[0], q[1], 2.4, 1.1, 0, 0, 7); ctx.fill(); }
+    } else if (t === 4) {
+      for (let k = 0; k < 4; k++) { const u = (hs(x, z, k) + tm * .12 * (1 + k % 2)) % 1, q = tp(.12 + u * .76, .12 + hs(x, z, k + 5) * .76), r = (1.2 + hs(x, z, k + 11) * 2.4 + Math.sin(tm * 4 + k) * .8) * s / 36; ctx.fillStyle = 'rgba(255,225,110,.85)'; ctx.beginPath(); ctx.arc(q[0], q[1], Math.max(.6, r), 0, 7); ctx.fill(); }
+      poly(T, 'rgba(255,230,80,' + (.12 + .1 * Math.sin(tm * 4 + x + z)) + ')');
+    } else if (t === 5) {
+      const p = tp(.5, .5); ctx.fillStyle = '#0f5c40'; ctx.beginPath(); ctx.ellipse(p[0], p[1], s * .3, s * .15, 0, 0, 7); ctx.fill();
+      ctx.strokeStyle = '#baf5dc'; ctx.lineWidth = 2; for (let k = 0; k < 3; k++) { ctx.beginPath(); ctx.ellipse(p[0], p[1] - 2 - k * 2.4, s * (.24 - k * .03), s * (.12 - k * .015), 0, 0, 7); ctx.stroke(); }
+      ctx.fillStyle = '#d8fff0'; ctx.beginPath(); ctx.ellipse(p[0], p[1] - 8, s * .17, s * .08, 0, 0, 7); ctx.fill();
+    } else if (t === 6) { flag(x + .5, h, z + .5, '#e5484d'); }
+    if (c.sp && c.sp[0] === x && c.sp[1] === z) { const p = tp(.5, .5); ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(p[0], p[1], s * .38, s * .19, 0, 0, 7); ctx.stroke(); ctx.strokeStyle = 'rgba(255,255,255,.4)'; ctx.beginPath(); ctx.ellipse(p[0], p[1], s * .26, s * .13, 0, 0, 7); ctx.stroke(); }
+    if (c.fin && c.fin[0] === x && c.fin[1] === z) {
+      [[0, 0, '#fff'], [.5, 0, '#151515'], [0, .5, '#151515'], [.5, .5, '#fff']].forEach(([u, v, cc]) => poly([tp(u, v), tp(u + .5, v), tp(u + .5, v + .5), tp(u, v + .5)], cc));
+      flag(x + .5, h, z + .5, '#2ecf7a');
+    }
+    if (c.k[i] && !(got && got.has(i))) {
+      const by = h + .75 + Math.sin(tm * 3 + i) * .08, p = P(x + .5, by, z + .5), sp = P(x + .5, h + .02, z + .5), rw = Math.abs(Math.cos(tm * 3 + i)) * s * .2 + 2.5, rh = s * .22;
+      ctx.fillStyle = 'rgba(0,0,0,.2)'; ctx.beginPath(); ctx.ellipse(sp[0], sp[1], s * .2, s * .1, 0, 0, 7); ctx.fill();
+      const gr = ctx.createRadialGradient(p[0] - rw * .3, p[1] - rh * .35, 1, p[0], p[1], rh); gr.addColorStop(0, '#fff6b0'); gr.addColorStop(.5, '#ffd13a'); gr.addColorStop(1, '#e0a010');
+      ctx.fillStyle = gr; ctx.strokeStyle = '#a8740a'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.ellipse(p[0], p[1], rw, rh, 0, 0, 7); ctx.fill(); ctx.stroke();
+      ctx.strokeStyle = 'rgba(168,116,10,.55)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.ellipse(p[0], p[1], rw * .6, rh * .66, 0, 0, 7); ctx.stroke();
+    }
+  };
+  // прямоугольный параллелепипед, повёрнутый вокруг вертикали на угол yaw
+  const cub = (cx, cz, y0, w, h, d, yaw, col) => {
+    const fx = Math.sin(yaw), fz = Math.cos(yaw), rx = Math.cos(yaw), rz = -Math.sin(yaw), res = {};
+    const W3 = (lr, lf) => [cx + rx * lr * w / 2 + fx * lf * d / 2, cz + rz * lr * w / 2 + fz * lf * d / 2];
+    [{ n: [0, 1], a: [-1, 1], b: [1, 1], id: 'f' }, { n: [1, 0], a: [1, 1], b: [1, -1] }, { n: [0, -1], a: [1, -1], b: [-1, -1] }, { n: [-1, 0], a: [-1, -1], b: [-1, 1] }].forEach(fc => {
+      const nx = rx * fc.n[0] + fx * fc.n[1], nz = rz * fc.n[0] + fz * fc.n[1], f = fsh(nx, nz); if (!f[0]) return;
+      const a = W3(fc.a[0], fc.a[1]), b = W3(fc.b[0], fc.b[1]), pts = [P(a[0], y0, a[1]), P(b[0], y0, b[1]), P(b[0], y0 + h, b[1]), P(a[0], y0 + h, a[1])];
+      poly(pts, shd(col, f[1] * 1.3), 'rgba(0,0,0,.28)'); if (fc.id) res.front = pts;
+    });
+    poly([W3(-1, -1), W3(1, -1), W3(1, 1), W3(-1, 1)].map(p => P(p[0], y0 + h, p[1])), shd(col, 1.18), 'rgba(0,0,0,.25)');
+    return res;
+  };
+  const drawPl = () => {
+    const f = pl.f || 0, fx = Math.sin(f), fz = Math.cos(f), rx = Math.cos(f), rz = -Math.sin(f), y = pl.y, sw = Math.sin(pl.ph) * .26, air = !pl.on, sh = pl.sh || '#e5484d';
+    ctx.fillStyle = 'rgba(0,0,0,.28)'; const gp = P(pl.x, pl.gy, pl.z); ctx.beginPath(); ctx.ellipse(gp[0], gp[1], s * .34, s * .17, 0, 0, 7); ctx.fill();
+    const at = (lr, lf) => [pl.x + rx * lr + fx * lf, pl.z + rz * lr + fz * lf];
+    const parts = [];
+    const add = (lr, lf, y0, w, h, d, col, face) => { const p = at(lr, lf), r = rot(p[0], p[1]); parts.push({ k: r[0] + r[1] + y0 * .001, p, y0, w, h, d, col, face }); };
+    add(-.11, air ? .1 : sw * 1.1, y + (!air && sw > 0 ? .04 : 0), .2, .4, .24, '#2c3e75');
+    add(.11, air ? -.1 : -sw * 1.1, y + (!air && sw < 0 ? .04 : 0), .2, .4, .24, '#2c3e75');
+    add(0, 0, y + .38, .46, .44, .27, sh);
+    add(-.31, air ? .05 : -sw * 1.2, y + (air ? .52 : .4), .13, .4, .2, '#f2c14e');
+    add(.31, air ? .05 : sw * 1.2, y + (air ? .52 : .4), .13, .4, .2, '#f2c14e');
+    add(0, 0, y + .84, .4, .4, .4, '#f2c14e', 1);
+    add(0, -.01, y + 1.17, .42, .1, .43, '#4a2f1a');
+    parts.sort((a, b) => a.k - b.k).forEach(q => {
+      const r = cub(q.p[0], q.p[1], q.y0, q.w, q.h, q.d, f, q.col);
+      if (q.face && r.front) {
+        const [A0, B0, C0, D0] = r.front, at2 = (u, v) => [A0[0] + (B0[0] - A0[0]) * u + (D0[0] - A0[0]) * v, A0[1] + (B0[1] - A0[1]) * u + (D0[1] - A0[1]) * v];
+        const e1 = at2(.28, .6), e2 = at2(.72, .6), m1 = at2(.35, .26), m2 = at2(.65, .26), k = Math.max(.6, s / 36);
+        ctx.fillStyle = '#151515'; [e1, e2].forEach(e => ctx.fillRect(e[0] - 1.4 * k, e[1] - 2.2 * k, 2.8 * k, 4.4 * k));
+        ctx.strokeStyle = '#7a2b2b'; ctx.lineWidth = 1.4 * k; ctx.beginPath(); ctx.moveTo(m1[0], m1[1]); ctx.lineTo(m2[0], m2[1]); ctx.stroke();
+      }
+    });
+  };
+  items.forEach(it => { if (it.pl) drawPl(); else drawCell(it); });
 }
 /* можно ли дойти от старта до флага (прыжок ~1 блок вверх, ~2 клетки вдаль) */
 function wReach(c) {
@@ -2421,24 +2510,39 @@ function worldGame(box, score, c) {
   const n = c.n, W = 340, H = 420, dpr = Math.min(2, window.devicePixelRatio || 1), K0 = typeof K !== 'undefined' ? K : {};
   const cv = document.createElement('canvas'); cv.width = W * dpr; cv.height = H * dpr; cv.style.cssText = 'width:min(94vw,340px);aspect-ratio:340/420;border-radius:14px;touch-action:none;display:block'; box.append(cv);
   const ctx = cv.getContext('2d'); ctx.scale(dpr, dpr);
-  const jb = document.createElement('button'); jb.className = 'p'; jb.textContent = '⤒ Прыжок (пробел)'; jb.style.cssText = 'margin-top:10px;width:min(94vw,340px);padding:14px'; box.append(jb);
+  const row = document.createElement('div'); row.style.cssText = 'display:flex;gap:8px;margin-top:10px;width:min(94vw,340px)'; box.append(row);
+  const mkb = (t, cls) => { const b = document.createElement('button'); b.textContent = t; if (cls) b.className = cls; b.style.cssText = 'padding:14px 0;touch-action:none'; return b; };
+  const bl = mkb('⟲'), jb = mkb('⤒ Прыжок', 'p'), br = mkb('⟳'); bl.style.flex = '0 0 56px'; br.style.flex = '0 0 56px'; jb.style.flex = '1'; row.append(bl, jb, br);
+  bl.setAttribute('aria-label', 'Повернуть камеру влево'); br.setAttribute('aria-label', 'Повернуть камеру вправо');
   const cellH = (x, z) => { const cx = Math.floor(x), cz = Math.floor(z); if (cx < 0 || cz < 0 || cx >= n || cz >= n) return -99; const i = cz * n + cx; return c.t[i] ? c.h[i] : -99; };
   const R = .27, grd = (x, z) => Math.max(cellH(x - R, z - R), cellH(x + R, z - R), cellH(x - R, z + R), cellH(x + R, z + R));
-  const total = c.k.reduce((a, b) => a + (b ? 1 : 0), 0), got = new Set(); let coins = 0, falls = 0, done = 0, t0 = performance.now(), ck = c.sp.slice(), jr = 0, coy = 0, raf = 0, last = performance.now(), tm = 0, endT = 0;
-  const pl = { x: c.sp[0] + .5, y: c.h[c.sp[1] * n + c.sp[0]], z: c.sp[1] + .5, vx: 0, vy: 0, vz: 0, ph: 0, gy: 0, on: 1, sh: '#e5484d' }, cam = { x: pl.x, z: pl.z, s: 36 };
+  const total = c.k.reduce((a, b) => a + (b ? 1 : 0), 0), got = new Set();
+  let coins = 0, falls = 0, done = 0, t0 = performance.now(), ck = c.sp.slice(), jr = 0, coy = 0, raf = 0, last = performance.now(), tm = 0, endT = 0, rotB = 0;
+  const pl = { x: c.sp[0] + .5, y: c.h[c.sp[1] * n + c.sp[0]], z: c.sp[1] + .5, vx: 0, vy: 0, vz: 0, ph: 0, gy: 0, on: 1, sh: '#e5484d', f: 0 }, cam = { x: pl.x, z: pl.z, s: 36, a: 0, ta: 0 };
   const respawn = () => { pl.x = ck[0] + .5; pl.z = ck[1] + .5; pl.y = c.h[ck[1] * n + ck[0]] + .05; pl.vx = pl.vy = pl.vz = 0; falls++; };
-  score(0); status('Собери монеты и добеги до флага 🏁');
+  score(0); status('WASD — идти, пробел — прыжок, Q/E или перетаскивание — поворот камеры');
   const jump = () => { jr = .12; };
   const kd = e => { if (e.code === 'Space') { e.preventDefault(); jump(); } };
-  document.addEventListener('keydown', kd); jb.onpointerdown = e => { e.preventDefault(); jump(); }; cv.addEventListener('pointerdown', jump);
+  document.addEventListener('keydown', kd); jb.onpointerdown = e => { e.preventDefault(); jump(); };
+  const rb = (b, d) => { b.onpointerdown = e => { e.preventDefault(); rotB = d; }; b.onpointerup = b.onpointerleave = b.onpointercancel = () => { if (rotB === d) rotB = 0; }; };
+  rb(bl, -1); rb(br, 1);
+  let drag = null;
+  cv.addEventListener('pointerdown', e => { drag = { x: e.clientX, y: e.clientY, m: 0 }; try { cv.setPointerCapture(e.pointerId); } catch (x) {} });
+  cv.addEventListener('pointermove', e => { if (!drag) return; const dx = e.clientX - drag.x; drag.m += Math.abs(dx) + Math.abs(e.clientY - drag.y); drag.x = e.clientX; drag.y = e.clientY; cam.ta -= dx * .012; });
+  cv.addEventListener('pointerup', () => { if (drag && drag.m < 8) jump(); drag = null; });
+  cv.addEventListener('pointercancel', () => { drag = null; });
+  cv.addEventListener('wheel', e => { e.preventDefault(); cam.s = Math.max(22, Math.min(60, cam.s - e.deltaY * .03)); }, { passive: false });
   function step(dt) {
     const up = K0.KeyW || K0.ArrowUp, dn = K0.KeyS || K0.ArrowDown, lf = K0.KeyA || K0.ArrowLeft, rt = K0.KeyD || K0.ArrowRight, sy = (dn ? 1 : 0) - (up ? 1 : 0), sx = (rt ? 1 : 0) - (lf ? 1 : 0);
-    let dx = sx + sy, dz = -sx + sy; const L = Math.hypot(dx, dz); if (L) { dx /= L; dz /= L; }
+    cam.ta += ((K0.KeyE | 0) - (K0.KeyQ | 0) + rotB) * dt * 2.2;
+    let ax = sx + sy, az = -sx + sy; const L = Math.hypot(ax, az); if (L) { ax /= L; az /= L; }
+    const ca = Math.cos(cam.a), sa = Math.sin(cam.a), dx = ax * ca + az * sa, dz = -ax * sa + az * ca;
     const k = Math.min(1, dt * 14); pl.vx += (dx * 5.2 - pl.vx) * k; pl.vz += (dz * 5.2 - pl.vz) * k;
     const blocked = (x, z) => grd(x, z) > pl.y + .5;
     let nx = pl.x + pl.vx * dt; if (!blocked(nx, pl.z)) pl.x = nx; else pl.vx = 0;
     let nz = pl.z + pl.vz * dt; if (!blocked(pl.x, nz)) pl.z = nz; else pl.vz = 0;
-    if (L) pl.ph += dt * 11;
+    if (L) { let df = Math.atan2(dx, dz) - pl.f; df = Math.atan2(Math.sin(df), Math.cos(df)); pl.f += df * Math.min(1, dt * 14); }
+    const spd = Math.hypot(pl.vx, pl.vz); if (spd > .3) pl.ph += dt * (3 + spd * 1.5);
     pl.vy -= 28 * dt; pl.y += pl.vy * dt; const gr = grd(pl.x, pl.z); pl.gy = gr > -50 ? gr : pl.y - 3;
     if (pl.y <= gr && pl.vy <= 0) { pl.y = gr; pl.vy = 0; pl.on = 1; coy = .1; const ci = Math.floor(pl.z) * n + Math.floor(pl.x); if (c.t[ci] === 5 && Math.floor(pl.x) >= 0) { pl.vy = 15; pl.on = 0; coy = 0; } } else pl.on = 0;
     if (coy > 0) coy -= dt; if (jr > 0) { jr -= dt; if (coy > 0 && pl.vy <= 0.01) { pl.vy = 8.6; coy = 0; jr = 0; pl.on = 0; } }
@@ -2450,12 +2554,14 @@ function worldGame(box, score, c) {
     if (inb && c.fin[0] === cx && c.fin[1] === cz && pl.y >= c.h[ci] - .1) { done = 1; endT = (performance.now() - t0) / 1000; status('🏁 Финиш! Время ' + endT.toFixed(1) + ' с · монет ' + coins + ' из ' + total + ' · падений ' + falls); }
   }
   function frame(now) {
-    raf = requestAnimationFrame(frame); const dt = Math.min(.05, (now - last) / 1000); last = now; tm += dt;
-    if (!done) step(dt); else { pl.vx = pl.vz = 0; pl.ph += dt * 6; }
-    const k = Math.min(1, dt * 6); cam.x += (pl.x - cam.x) * k; cam.z += (pl.z - cam.z) * k;
+    raf = requestAnimationFrame(frame); const dt = Math.max(0, Math.min(.05, (now - last) / 1000)); last = now; tm += dt;
+    if (!done) step(dt); else { pl.vx = pl.vz = 0; pl.ph += dt * 6; cam.ta += ((K0.KeyE | 0) - (K0.KeyQ | 0) + rotB) * dt * 2.2; }
+    const k = Math.min(1, dt * 6); cam.x += (pl.x - cam.x) * k; cam.z += (pl.z - cam.z) * k; cam.a += (cam.ta - cam.a) * Math.min(1, dt * 10);
     wRender(ctx, c, cam, pl, got, tm, W, H);
-    ctx.fillStyle = 'rgba(0,0,0,.45)'; ctx.fillRect(8, 8, 190, 28); ctx.fillStyle = '#fff'; ctx.font = '700 14px sans-serif'; ctx.textBaseline = 'middle'; ctx.fillText('🪙 ' + coins + '/' + total + '   ⏱ ' + (done ? endT : (performance.now() - t0) / 1000).toFixed(1) + 'с', 16, 22);
-    if (done) { ctx.fillStyle = 'rgba(0,0,0,.5)'; ctx.fillRect(0, H / 2 - 36, W, 72); ctx.fillStyle = '#fff'; ctx.font = '800 26px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('🏁 Победа!', W / 2, H / 2 - 8); ctx.font = '600 14px sans-serif'; ctx.fillText('Монет ' + coins + ' из ' + total + ' · ' + endT.toFixed(1) + ' с', W / 2, H / 2 + 18); ctx.textAlign = 'left'; }
+    const tt = done ? endT : (performance.now() - t0) / 1000;
+    ctx.fillStyle = 'rgba(10,20,40,.55)'; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(8, 8, 200, 30, 15) : ctx.rect(8, 8, 200, 30); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.font = '700 14px sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText('🪙 ' + coins + '/' + total + '   ⏱ ' + tt.toFixed(1) + ' с   💀 ' + falls, 20, 23);
+    if (done) { ctx.fillStyle = 'rgba(10,20,40,.6)'; ctx.fillRect(0, H / 2 - 44, W, 88); ctx.fillStyle = '#fff'; ctx.font = '800 28px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('🏁 Победа!', W / 2, H / 2 - 12); ctx.font = '600 14px sans-serif'; ctx.fillText('Время ' + endT.toFixed(1) + ' с · монет ' + coins + '/' + total, W / 2, H / 2 + 16); ctx.font = '600 12px sans-serif'; ctx.fillStyle = '#9fd8ff'; ctx.fillText('Нажми «Начать заново», чтобы сыграть ещё', W / 2, H / 2 + 36); }
   }
   raf = requestAnimationFrame(frame);
   return { dir: () => {}, held: true, stop: () => { cancelAnimationFrame(raf); document.removeEventListener('keydown', kd); } };
@@ -2547,10 +2653,18 @@ function wDraw() {
   $('wUndo').disabled = !wHist.length; $('wRedo').disabled = !wFut.length; wLive();
   if (!wDraw.q) { wDraw.q = 1; requestAnimationFrame(() => { wDraw.q = 0; wPrev(); }); }
 }
+let wPrevA = 0;
 function wPrev() {
   const cv = $('wPrev'), x = cv.getContext('2d'); if (!WD) return; const s = Math.min(cv.width / (WD.n * 1.75), cv.height / (WD.n * 1.1));
-  wRender(x, WD, { x: WD.n / 2, z: WD.n / 2, s }, null, null, 0, cv.width, cv.height);
+  wRender(x, WD, { x: WD.n / 2, z: WD.n / 2, s, a: wPrevA }, null, null, performance.now() / 1000, cv.width, cv.height);
 }
+(function () {
+  const cv = $('wPrev'); let d = null;
+  cv.style.touchAction = 'none'; cv.style.cursor = 'grab';
+  cv.addEventListener('pointerdown', e => { d = e.clientX; try { cv.setPointerCapture(e.pointerId); } catch (x) {} });
+  cv.addEventListener('pointermove', e => { if (d === null) return; wPrevA -= (e.clientX - d) * .012; d = e.clientX; wPrev(); });
+  cv.addEventListener('pointerup', () => { d = null; }); cv.addEventListener('pointercancel', () => { d = null; });
+})();
 function wApply(i, j, first) {
   const id = j * WD.n + i; if (i < 0 || j < 0 || i >= WD.n || j >= WD.n) return; const h = +$('wH').value;
   if (wTool === 0) { WD.t[id] = 0; WD.h[id] = 0; WD.k[id] = 0; if (WD.sp && WD.sp[0] === i && WD.sp[1] === j) WD.sp = null; if (WD.fin && WD.fin[0] === i && WD.fin[1] === j) WD.fin = null; }
