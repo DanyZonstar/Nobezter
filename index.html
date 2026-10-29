@@ -4138,13 +4138,16 @@ function bzSrc() {
   if (!bzUrl) { const bin = atob(BZ_B64), u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); bzUrl = URL.createObjectURL(new Blob([u], { type: 'text/html;charset=utf-8' })); }
   return bzUrl;
 }
-const ONLINE = [{ id: 'bloodzone', name: 'Зона крови', icon: '🩸', bg: '#f6c3c8', tag: 'Онлайн · Шутер 3D', desc: 'Играй за квадратного человечка с АК-47, пистолетом, факелом и гранатами. Вид от третьего лица, Shift Lock, прокачка, большая карта, кейсы и скины с сохранением, бои с ботами и живыми игроками.' }];
+const STEAM_URL = ''; /* ссылка на страницу Trapped Within в Steam — вставь после публикации */
+const ONLINE = [{ id: 'trapped', steam: true, name: 'Trapped Within', icon: '🚪', bg: '#2a2d31', tag: 'Хоррор · от первого лица · Steam', desc: 'Ты — серое существо, запертое во тьме. Когда-то ты согласился на эксперимент в лаборатории, но на что именно — не помнишь. Во тьме есть только одна дверь. Реалистичная графика, вид от первого лица. Игра выйдет в Steam.' }, { id: 'bloodzone', name: 'Зона крови', icon: '🩸', bg: '#f6c3c8', tag: 'Онлайн · Шутер 3D', desc: 'Играй за квадратного человечка с АК-47, пистолетом, факелом и гранатами. Вид от третьего лица, Shift Lock, прокачка, большая карта, кейсы и скины с сохранением, бои с ботами и живыми игроками.' }];
 function renderOnline() {
   const box = $('onList'); box.innerHTML = '';
   ONLINE.forEach(g => {
     const c = document.createElement('div'); c.className = 'card';
     c.innerHTML = '<div class="top"><div class="ico" style="background:' + g.bg + '">' + g.icon + '</div><div><h2>' + g.name + '</h2><div class="tag">' + g.tag + '</div></div></div><p>' + g.desc + '</p><div class="row"></div>';
-    const b = document.createElement('button'); b.className = 'p'; b.textContent = 'Играть'; b.onclick = () => openBz(); c.lastChild.append(b); box.append(c);
+    const b = document.createElement('button'); b.className = 'p';
+    if (g.steam) { b.textContent = '🎮 Steam'; const note = document.createElement('div'); note.style.cssText = 'font-size:.78rem;color:#8b93a1;margin-top:8px;min-height:1em'; b.onclick = () => { if (STEAM_URL) window.open(STEAM_URL, '_blank', 'noopener'); else { note.textContent = 'Страница в Steam появится после релиза игры.'; setTimeout(() => { note.textContent = ''; }, 3200); } }; c.lastChild.append(b); c.append(note); box.append(c); return; }
+    b.textContent = 'Играть'; b.onclick = () => openBz(); c.lastChild.append(b); box.append(c);
   });
 }
 function openBz() { $('bzf').src = bzSrc(); $('bzov').classList.add('on'); }

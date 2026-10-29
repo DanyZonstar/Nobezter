@@ -1,0 +1,16 @@
+{
+  "name": "trapped-within",
+  "productName": "Trapped Within",
+  "version": "0.1.0",
+  "description": "Trapped Within — first-person horror (demo)",
+  "main": "main.js",
+  "scripts": { "start": "electron .", "dist": "electron-builder --win --linux" },
+  "devDependencies": { "electron": "^31.0.0", "electron-builder": "^24.13.3" },
+  "build": {
+    "appId": "com.nobezter.trappedwithin",
+    "files": ["main.js", "game/**/*"],
+    "directories": { "output": "dist" },
+    "win": { "target": "dir" },
+    "linux": { "target": "dir" }
+  }
+}
