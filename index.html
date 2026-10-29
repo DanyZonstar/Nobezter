@@ -179,6 +179,7 @@ button.no:hover{background:#ef5a5f}
 .aibar{display:flex;align-items:center;gap:12px;padding:calc(8px + env(safe-area-inset-top,0px)) 12px 8px;background:var(--side);border-bottom:1px solid var(--line);flex:none}
 .aibar b{font-size:1rem}
 .aibar button{padding:6px 14px}
+#mute{padding:6px 10px;border-radius:999px;flex:none}
 </style>
 </head>
 <body>
@@ -216,6 +217,7 @@ button.no:hover{background:#ef5a5f}
   <div class="bar">
     <button id="back" aria-label="Назад в каталог">‹ Назад</button>
     <b id="gt"></b>
+    <button id="mute" aria-label="Звук" title="Звук">🔊</button>
     <div class="sc"><span id="sl">Счёт</span> <span id="sv">0</span></div>
   </div>
   <div class="box" id="box"></div>
@@ -348,320 +350,688 @@ const $ = id => document.getElementById(id);
 const status = t => { $('st').textContent = t || ''; };
 
 /* ---------- Змейка ---------- */
-function snake(box, score) {
-  const N = 16, S = 22, STEP = 130, dpr = Math.min(2, window.devicePixelRatio || 1), cv = document.createElement('canvas');
-  cv.width = cv.height = N * S * dpr;
-  cv.style.cssText = 'width:min(92vw,352px);height:auto;border-radius:16px;background:#0d131c';
-  box.append(cv);
-  const x = cv.getContext('2d');
-  let s = [[8, 8], [7, 8], [6, 8]], pv = s.map(p => p.slice()), d = [1, 0], nd = d, f, sc = 0, dead = 0, on = 1, raf, tk = performance.now();
+const snake = (x, sc, st) => {
+  const N = 16, Z = 22;
+  let s = [[8, 8], [7, 8], [6, 8]], pv = s.map(p => p.slice()), d = [1, 0], q = [], f = [12, 8], n = 0, dead = 0, tk = 0, fr = 0;
+  const flowers = Array.from({ length: 18 }, () => [rnd(N), rnd(N), rnd(3), rnd(8)]);
   const food = () => { do f = [rnd(N), rnd(N)]; while (s.some(p => p[0] === f[0] && p[1] === f[1])); };
-  function tick(now) {
-    tk = now; d = nd; pv = s.map(p => p.slice());
-    const h = [s[0][0] + d[0], s[0][1] + d[1]];
-    if (h[0] < 0 || h[1] < 0 || h[0] >= N || h[1] >= N || s.some(p => p[0] === h[0] && p[1] === h[1])) { dead = 1; status('Игра окончена. Нажми «Начать заново»'); return; }
-    s.unshift(h);
-    if (h[0] === f[0] && h[1] === f[1]) { score(++sc); food(); } else s.pop();
-  }
-  function draw(now) {
-    const a = dead ? 1 : Math.min(1, (now - tk) / STEP);
-    x.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const g = x.createLinearGradient(0, 0, 0, N * S); g.addColorStop(0, '#141d2c'); g.addColorStop(1, '#0a0e15');
-    x.fillStyle = g; x.fillRect(0, 0, N * S, N * S);
-    C(x, '#d93025', f[0] * S + S / 2, f[1] * S + S / 2, S / 2 - 3);
-    for (let i = s.length - 1; i >= 0; i--) {
-      const q = pv[i] || s[i];
-      C(x, i ? '#01875f' : '#f9ab00', (q[0] + (s[i][0] - q[0]) * a) * S + S / 2, (q[1] + (s[i][1] - q[1]) * a) * S + S / 2, S / 2 - 1);
+  const STEP = () => Math.max(5, 9 - Math.floor(n / 7));
+  const cx = c => c * Z + Z / 2;
+  const tick = () => {
+    while (q.length) { const c = q.shift(); if (c[0] + d[0] || c[1] + d[1]) { d = c; break; } }
+    pv = s.map(p => p.slice());
+    const h = [s[0][0] + d[0], s[0][1] + d[1]], eat = h[0] === f[0] && h[1] === f[1], body = eat ? s : s.slice(0, -1);
+    if (h[0] < 0 || h[1] < 0 || h[0] >= N || h[1] >= N || body.some(p => p[0] === h[0] && p[1] === h[1])) { dead = 1; boom(cx(s[0][0]), cx(s[0][1]), '#4be07a', 28); SH = 9; st(OVER); return; }
+    s.unshift(h); tk = 0;
+    if (eat) { sc(++n); S.p('eat'); boom(cx(f[0]), cx(f[1]), '#ff6b6b', 12); A.pop(cx(f[0]), cx(f[1]) - 8, '+1'); A.ring(cx(f[0]), cx(f[1]), '#ffb3b3'); food(); } else s.pop();
+  };
+  sc(0); st('Веди змейку: W A S D или свайп');
+  return { held: false, dir: (dx, dy) => { if (q.length < 3) q.push([dx, dy]); }, t() {
+    fr++; if (!dead) { tk++; if (tk >= STEP()) tick(); }
+    A.checker(x, 0, 0, N * Z, N * Z, Z, '#8be484', '#7dd977');
+    flowers.forEach(([i, j, k, o]) => { const px = i * Z + 4 + o, py = j * Z + 6 + (o * 2) % 10; x.fillStyle = ['#ffffff', '#ffc2d6', '#fff0a0'][k]; A.circ(x, px, py, 2.4); x.fill(); x.fillStyle = '#f2a900'; A.circ(x, px, py, 1); x.fill(); });
+    A.apple(x, cx(f[0]), cx(f[1]) + Math.sin(fr * .1) * 1.5, 8.6);
+    const a = dead ? 1 : Math.min(1, tk / STEP()), P = s.map((p, i) => { const o = pv[i] || p; return [cx(o[0] + (p[0] - o[0]) * a), cx(o[1] + (p[1] - o[1]) * a)]; });
+    const pts = []; for (let i = 0; i < P.length - 1; i++) for (let k = 0; k < 5; k++) { const u = k / 5; pts.push([P[i][0] + (P[i + 1][0] - P[i][0]) * u, P[i][1] + (P[i + 1][1] - P[i][1]) * u, (i + u) / Math.max(1, P.length - 1)]); }
+    pts.push([P[P.length - 1][0], P[P.length - 1][1], 1]);
+    const rad = u => 10.2 - 5.4 * u;
+    for (let i = pts.length - 1; i >= 0; i--) { x.fillStyle = dead ? '#5a1b1b' : '#115c34'; A.circ(x, pts[i][0], pts[i][1], rad(pts[i][2]) + 1.6); x.fill(); }
+    for (let i = pts.length - 1; i >= 0; i--) {
+      const u = pts[i][2], c = dead ? A.mix('#e15d5d', '#7a2a2a', u) : A.mix('#52ee86', '#1fa357', u), g = x.createRadialGradient(pts[i][0] - 2, pts[i][1] - 3, 1, pts[i][0], pts[i][1], rad(u));
+      g.addColorStop(0, A.lit(c, .45)); g.addColorStop(1, c); x.fillStyle = g; A.circ(x, pts[i][0], pts[i][1], rad(u)); x.fill();
+      if (i % 5 === 2) { x.fillStyle = 'rgba(255,255,255,.28)'; A.ell(x, pts[i][0], pts[i][1] + 1, rad(u) * .55, rad(u) * .32); x.fill(); }
     }
-  }
-  const loop2 = now => { if (!on) return; if (!dead && now - tk >= STEP) tick(now); draw(now); raf = requestAnimationFrame(loop2); };
-  score(0); food(); status('Веди змейку клавишами W A S D');
-  raf = requestAnimationFrame(loop2);
-  return { dir: (dx, dy) => { if (dx + d[0] || dy + d[1]) nd = [dx, dy]; }, stop() { on = 0; cancelAnimationFrame(raf); } };
-}
+    const hd = P[0], ang = Math.atan2(d[1], d[0]); x.save(); x.translate(hd[0], hd[1]); x.rotate(ang);
+    const hg = x.createRadialGradient(-2, -3, 1, 2, 0, 13); hg.addColorStop(0, '#9bffbd'); hg.addColorStop(1, dead ? '#a84040' : '#27b562'); x.fillStyle = hg; x.strokeStyle = '#115c34'; x.lineWidth = 1.8; A.ell(x, 3, 0, 12, 9.6); x.fill(); x.stroke();
+    if (!dead && (fr % 70) < 16) { x.strokeStyle = '#ef233c'; x.lineWidth = 1.8; x.beginPath(); x.moveTo(14, 0); x.lineTo(21, 0); x.moveTo(21, 0); x.lineTo(24, -3); x.moveTo(21, 0); x.lineTo(24, 3); x.stroke(); }
+    [-1, 1].forEach(sd => { x.fillStyle = '#fff'; A.circ(x, 6, sd * 5.4, 3.6); x.fill(); x.stroke(); x.fillStyle = dead ? '#a00' : '#101010'; A.circ(x, 7.2, sd * 5.4, 1.9); x.fill(); });
+    x.restore();
+    A.vig(x, N * Z, N * Z, .3); x.strokeStyle = '#2d7d3a'; x.lineWidth = 6; x.strokeRect(3, 3, N * Z - 6, N * Z - 6);
+    A.hud(x, N * Z, '🍎 ' + n, 'Длина ' + s.length);
+  } };
+};
 
 /* ---------- 2048 ---------- */
-function g2048(box, score) {
-  const el = document.createElement('div');
-  el.className = 'g4'; box.append(el);
-  const b = Array(16).fill(0); let sc = 0, prev = b.slice();
-  const add = () => { const e = []; b.forEach((v, i) => v || e.push(i)); if (e.length) b[e[rnd(e.length)]] = Math.random() < .9 ? 2 : 4; };
-  function line(a) {
-    a = a.filter(v => v);
-    for (let i = 0; i < a.length - 1; i++) if (a[i] === a[i + 1]) { a[i] *= 2; sc += a[i]; a.splice(i + 1, 1); }
-    while (a.length < 4) a.push(0);
-    return a;
-  }
-  function render() {
-    el.innerHTML = '';
-    const old = prev; prev = b.slice();
-    b.forEach((v, i) => {
-      const c = document.createElement('div');
-      if (v && v !== old[i]) c.style.animation = 'pop .18s ease-out';
-      if (v) { c.textContent = v; c.style.background = 'hsl(' + ((Math.log2(v) * 34 + 250) % 360) + ' 65% 48%)'; }
-      el.append(c);
-    });
-    score(sc);
-  }
-  function stuck() {
-    if (b.includes(0)) return false;
-    for (let i = 0; i < 16; i++) {
-      if (i % 4 < 3 && b[i] === b[i + 1]) return false;
-      if (i < 12 && b[i] === b[i + 4]) return false;
+const g2048 = (x, sc, st) => {
+  const W = 300, H = 340, BX = 10, BY = 48, TS = 62, GP = 8, COL = { 2: '#8fe3ff', 4: '#62c8ff', 8: '#ffb86b', 16: '#ff9a3c', 32: '#ff7a5c', 64: '#ff4d6d', 128: '#ffd166', 256: '#ffc233', 512: '#ffab00', 1024: '#b57bee', 2048: '#ff2e93' };
+  let tiles = [], dying = [], g, score = 0, over = 0, id = 0, an = 1, fr = 0, won = 0, pk = {};
+  const inb = (r, c) => r >= 0 && c >= 0 && r < 4 && c < 4, pos = (r, c) => [BX + 8 + c * (TS + GP), BY + 8 + r * (TS + GP)];
+  const empty = () => { const e = []; for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) if (!g[r][c]) e.push([r, c]); return e; };
+  const add = () => { const e = empty(); if (!e.length) return; const [r, c] = e[rnd(e.length)], t = { id: id++, r, c, pr: r, pc: c, v: rnd(10) ? 2 : 4, nw: 1, mg: 0 }; g[r][c] = t; tiles.push(t); };
+  const canMove = () => { if (empty().length) return true; for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) { const v = g[r][c].v; if ((c < 3 && g[r][c + 1].v === v) || (r < 3 && g[r + 1][c].v === v)) return true; } return false; };
+  g = Array.from({ length: 4 }, () => Array(4).fill(null)); add(); add(); sc(0); st('W A S D, стрелки или свайп — двигай плитки. Сложи 2048!');
+  const move = (dr, dc) => {
+    if (over) return; const ord = [0, 1, 2, 3], rs = dr > 0 ? ord.slice().reverse() : ord, cs = dc > 0 ? ord.slice().reverse() : ord; let moved = 0; const merged = new Set(); dying = [];
+    tiles.forEach(t => { t.pr = t.r; t.pc = t.c; t.nw = 0; t.mg = 0; });
+    for (const r of rs) for (const c of cs) {
+      const t = g[r][c]; if (!t) continue; let nr = r, nc = c; while (inb(nr + dr, nc + dc) && !g[nr + dr][nc + dc]) { nr += dr; nc += dc; }
+      const o = inb(nr + dr, nc + dc) ? g[nr + dr][nc + dc] : null;
+      if (o && o.v === t.v && !merged.has(o.id)) { g[r][c] = null; t.r = o.r; t.c = o.c; o.v *= 2; o.mg = 1; merged.add(o.id); score += o.v; sc(score); dying.push(t); tiles = tiles.filter(q => q !== t); moved = 1; S.p('pop'); A.pop(pos(o.r, o.c)[0] + TS / 2, pos(o.r, o.c)[1], '+' + o.v); if (o.v === 2048 && !won) { won = 1; st('2048! Но играть можно дальше'); S.p('win'); } }
+      else if (nr !== r || nc !== c) { g[r][c] = null; g[nr][nc] = t; t.r = nr; t.c = nc; moved = 1; }
     }
-    return true;
-  }
-  add(); add(); render();
-  status('Двигай плитки клавишами W A S D');
-  return {
-    dir: (dx, dy) => {
-      const old = b.join();
-      for (let k = 0; k < 4; k++) {
-        const idx = [0, 1, 2, 3].map(i => { const j = (dx + dy < 0) ? i : 3 - i; return dx ? k * 4 + j : j * 4 + k; });
-        const r = line(idx.map(i => b[i]));
-        idx.forEach((i, n) => { b[i] = r[n]; });
-      }
-      if (b.join() !== old) { add(); render(); if (stuck()) status('Ходов больше нет. Нажми «Начать заново»'); }
-    },
-    stop() {}
+    if (moved) { an = 0; add(); S.p('tick'); if (!canMove()) { over = 1; st(OVER); } }
   };
-}
+  return { held: false, dir: (dx, dy) => move(dy, dx), t() {
+    fr++; if (an < 1) an = Math.min(1, an + .14);
+    [['ArrowLeft', 0, -1], ['ArrowRight', 0, 1], ['ArrowUp', -1, 0], ['ArrowDown', 1, 0]].forEach(([k, dr, dc]) => { const v = K[k] | 0; if (v && !pk[k]) move(dr, dc); pk[k] = v; });
+    const bg = x.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#2c3263'); bg.addColorStop(1, '#171a3a'); x.fillStyle = bg; x.fillRect(0, 0, W, H);
+    A.box(x, BX, BY, 280, 280, '#3e4580', 16, { nogloss: 1 }); for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) { const p = pos(r, c); x.fillStyle = 'rgba(0,0,0,.28)'; A.rr(x, p[0], p[1], TS, TS, 10); x.fill(); }
+    const e = an < 1 ? 1 - Math.pow(1 - an, 3) : 1;
+    tiles.concat(dying).forEach(t => {
+      const px = t.pc + (t.c - t.pc) * e, py = t.pr + (t.r - t.pr) * e, p = pos(py, px); let s = 1; if (t.nw) s = Math.min(1, an * 2 + .15); else if (t.mg) s = 1 + .2 * Math.sin(Math.min(1, an) * Math.PI);
+      const cx = p[0] + TS / 2, cy = p[1] + TS / 2; x.save(); x.translate(cx, cy); x.scale(s, s); A.box(x, -TS / 2, -TS / 2, TS, TS, COL[t.v] || '#ff2e93', 12);
+      A.txt(x, String(t.v), 0, 1, t.v < 100 ? 28 : t.v < 1000 ? 24 : 19, t.v <= 4 ? '#14507a' : '#fff', 'center', t.v <= 4 ? null : 'rgba(0,0,0,.3)'); x.restore();
+    });
+    A.hud(x, W, 'Счёт ' + score, null);
+  } };
+};
 
 /* ---------- Найди пару ---------- */
-function memory(box, score) {
-  const el = document.createElement('div');
-  el.className = 'g4'; box.append(el);
-  const em = ['🐱', '🐸', '🦊', '🐼', '🐙', '🦄', '🍕', '🚀'];
-  const cards = em.concat(em).sort(() => Math.random() - .5);
-  let open = [], moves = 0, done = 0, lock = false, tm;
-  cards.forEach(e => {
-    const c = document.createElement('button');
-    c.setAttribute('aria-label', 'Карточка');
-    c.onclick = () => {
-      if (lock || c.classList.contains('o') || c.classList.contains('m')) return;
-      c.classList.add('o'); c.textContent = e; open.push(c);
-      if (open.length === 2) {
-        score(++moves); lock = true;
-        const [a, z] = open;
-        if (a.textContent === z.textContent) {
-          a.className = z.className = 'm'; open = []; lock = false;
-          if (++done === 8) status('Победа за ' + moves + ' ходов!');
-        } else {
-          tm = setTimeout(() => { a.className = z.className = ''; a.textContent = z.textContent = ''; open = []; lock = false; }, 700);
-        }
-      }
-    };
-    el.append(c);
-  });
-  score(0);
-  status('Открывай карточки и ищи одинаковые пары');
-  return { dir: null, stop: () => clearTimeout(tm) };
-}
+const memory = (x, sc, st) => {
+  const W = 300, H = 340, CW = 64, GP = 8, X0 = 10, Y0 = 48, EM = ['🐶', '🐱', '🦊', '🐼', '🐸', '🦁', '🐵', '🐙', '🦄', '🐧', '🐢', '🦋'];
+  let cards = [], first = -1, lock = 0, moves = 0, left = 8, fr = 0, wait = 0, pend = null;
+  const pick = EM.slice().sort(() => Math.random() - .5).slice(0, 8); pick.concat(pick).sort(() => Math.random() - .5).forEach(e => cards.push({ e, f: 0, tf: 0, m: 0, pop: 0 }));
+  sc(0); st('Открывай по две карточки и находи пары. Чем меньше ходов — тем лучше');
+  return { click(a, b) {
+    if (lock || left <= 0) return; const c = Math.floor((a - X0) / (CW + GP)), r = Math.floor((b - Y0) / (CW + GP)); if (c < 0 || c > 3 || r < 0 || r > 3) return;
+    const i = r * 4 + c, cd = cards[i]; if (cd.tf || cd.m) return; cd.tf = 1; S.p('click');
+    if (first < 0) { first = i; return; }
+    moves++; sc(moves); const o = cards[first];
+    if (o.e === cd.e) { o.m = cd.m = 1; o.pop = cd.pop = 1; left--; first = -1; S.p('coin'); A.ring(X0 + (c + .5) * (CW + GP), Y0 + (r + .5) * (CW + GP), '#7dff9a'); if (!left) setTimeout(() => st(WIN + 'Все пары найдены за ' + moves + ' ходов'), 500); }
+    else { lock = 1; pend = [first, i]; wait = 42; first = -1; }
+  }, t() {
+    fr++; if (wait > 0 && --wait === 0 && pend) { pend.forEach(k => cards[k].tf = 0); pend = null; lock = 0; S.p('tick'); }
+    const bg = x.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#3a2a6a'); bg.addColorStop(1, '#1b1440'); x.fillStyle = bg; x.fillRect(0, 0, W, H);
+    cards.forEach((c, i) => {
+      c.f += (c.tf - c.f) * .22; if (Math.abs(c.tf - c.f) < .01) c.f = c.tf; if (c.pop > 0) c.pop = Math.max(0, c.pop - .05);
+      const X = X0 + (i % 4) * (CW + GP), Y = Y0 + Math.floor(i / 4) * (CW + GP), sx = Math.abs(Math.cos(c.f * Math.PI)), s = 1 + c.pop * .12 * Math.sin(c.pop * 3.14);
+      x.save(); x.translate(X + CW / 2, Y + CW / 2); x.scale(Math.max(.04, sx) * s, s);
+      if (c.f < .5) { A.box(x, -CW / 2, -CW / 2, CW, CW, '#6c63ff', 12); x.strokeStyle = 'rgba(255,255,255,.35)'; x.lineWidth = 2; for (let k = 0; k < 3; k++) { A.rr(x, -CW / 2 + 8 + k * 4, -CW / 2 + 8 + k * 4, CW - 16 - k * 8, CW - 16 - k * 8, 8); x.stroke(); } A.star5(x, 0, 0, 13, '#ffe27a', fr * .01); }
+      else { A.box(x, -CW / 2, -CW / 2, CW, CW, c.m ? '#b9f5c9' : '#ffffff', 12); A.txt(x, c.e, 0, 3, 34, '#000', 'center'); }
+      x.restore();
+    });
+    A.hud(x, W, 'Ходы ' + moves, 'Осталось пар ' + left);
+  } };
+};
 
 /* ---------- Ещё 10 игр ---------- */
 const K = {};
+function artKit() {
+  const TAU = Math.PI * 2, FONT = 'Onest, system-ui, -apple-system, "Segoe UI", sans-serif';
+  const rgb = h => {
+    if (h[0] === '#') { if (h.length === 4) h = '#' + h[1] + h[1] + h[2] + h[2] + h[3] + h[3]; const v = parseInt(h.slice(1), 16); return [v >> 16, v >> 8 & 255, v & 255]; }
+    const m = h.match(/[\d.]+/g) || [0, 0, 0]; return [+m[0], +m[1], +m[2]];
+  };
+  const hex = a => '#' + a.map(v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('');
+  const mix = (a, b, t) => { const p = rgb(a), q = rgb(b); return hex([0, 1, 2].map(i => p[i] + (q[i] - p[i]) * t)); };
+  const A = { TAU, FONT, mix, lit: (c, k) => mix(c, '#ffffff', k), drk: (c, k) => mix(c, '#000000', k) };
+  A.hit = (a, b, X, Y, W, H) => a >= X && a <= X + W && b >= Y && b <= Y + H;
+  // ---------- примитивы ----------
+  A.rr = (x, X, Y, W, H, r) => { x.beginPath(); x.roundRect(X, Y, W, H, Math.max(0, Math.min(r, W / 2, H / 2))); };
+  A.circ = (x, X, Y, r) => { x.beginPath(); x.arc(X, Y, r, 0, TAU); };
+  A.ell = (x, X, Y, rx, ry, rot) => { x.beginPath(); x.ellipse(X, Y, rx, ry, rot || 0, 0, TAU); };
+  A.shadow = (x, X, Y, rx, ry, a) => { x.fillStyle = 'rgba(0,0,0,' + (a === undefined ? .22 : a) + ')'; A.ell(x, X, Y, rx, ry); x.fill(); };
+  // объёмный блок: тень, градиент, блик, обводка
+  A.box = (x, X, Y, W, H, c, r, o) => {
+    o = o || {}; r = r === undefined ? Math.min(7, W / 2, H / 2) : r; x.save();
+    if (!o.flat) { x.fillStyle = 'rgba(0,0,0,.24)'; A.rr(x, X + 1, Y + Math.min(4, H * .18), W, H, r); x.fill(); }
+    const g = x.createLinearGradient(0, Y, 0, Y + H); g.addColorStop(0, A.lit(c, .3)); g.addColorStop(.55, c); g.addColorStop(1, A.drk(c, .28));
+    x.fillStyle = g; A.rr(x, X, Y, W, H, r); x.fill();
+    x.strokeStyle = A.drk(c, .5); x.lineWidth = o.lw || 1.4; x.stroke();
+    if (H > 8 && W > 8 && H <= 90 && !o.nogloss) { x.fillStyle = 'rgba(255,255,255,.26)'; A.rr(x, X + 2, Y + 2, W - 4, Math.max(2, H * .34), Math.max(1, r - 2)); x.fill(); }
+    x.restore();
+  };
+  // блестящий шар
+  A.orb = (x, X, Y, r, c, o) => {
+    o = o || {}; x.save();
+    if (!o.flat) { x.fillStyle = 'rgba(0,0,0,.22)'; A.ell(x, X + r * .1, Y + r * .24, r, r * .94); x.fill(); }
+    const g = x.createRadialGradient(X - r * .38, Y - r * .42, r * .08, X, Y, r); g.addColorStop(0, A.lit(c, .7)); g.addColorStop(.45, c); g.addColorStop(1, A.drk(c, .42));
+    x.fillStyle = g; A.circ(x, X, Y, r); x.fill(); x.strokeStyle = A.drk(c, .55); x.lineWidth = Math.max(1, r * .09); x.stroke();
+    x.fillStyle = 'rgba(255,255,255,.75)'; A.ell(x, X - r * .36, Y - r * .42, r * .22, r * .13, -.6); x.fill(); x.restore();
+  };
+  // текст с обводкой
+  A.txt = (x, s, X, Y, size, col, align, ol, wt) => {
+    x.save(); x.font = (wt || 800) + ' ' + size + 'px ' + FONT; x.textAlign = align || 'left'; x.textBaseline = 'middle'; x.lineJoin = 'round';
+    if (ol) { x.lineWidth = Math.max(2, size * .2); x.strokeStyle = ol; x.strokeText(s, X, Y); }
+    x.fillStyle = col || '#fff'; x.fillText(s, X, Y); x.restore();
+  };
+  A.tw = (x, s, size, wt) => { x.save(); x.font = (wt || 800) + ' ' + size + 'px ' + FONT; const w = x.measureText(s).width; x.restore(); return w; };
+  A.panel = (x, X, Y, W, H, c, r) => { x.save(); x.fillStyle = c || 'rgba(10,18,36,.62)'; A.rr(x, X, Y, W, H, r === undefined ? 12 : r); x.fill(); x.restore(); };
+  A.btn = (x, X, Y, W, H, label, c, size, down) => { A.box(x, X, Y + (down ? 2 : 0), W, H, c || '#3b82f6', Math.min(10, H / 2)); A.txt(x, label, X + W / 2, Y + H / 2 + (down ? 2 : 0), size || 15, '#fff', 'center', 'rgba(0,0,0,.28)'); };
+  A.bar = (x, X, Y, W, H, v, c) => { x.save(); x.fillStyle = 'rgba(0,0,0,.4)'; A.rr(x, X, Y, W, H, H / 2); x.fill(); if (v > 0) { const g = x.createLinearGradient(0, Y, 0, Y + H); g.addColorStop(0, A.lit(c, .35)); g.addColorStop(1, A.drk(c, .2)); x.fillStyle = g; A.rr(x, X, Y, Math.max(H, W * Math.min(1, v)), H, H / 2); x.fill(); } x.restore(); };
+  A.hud = (x, W, left, right) => {
+    if (left) { const w = A.tw(x, left, 13) + 24; A.panel(x, 8, 8, w, 26, null, 13); A.txt(x, left, 20, 21, 13, '#fff'); }
+    if (right) { const w = A.tw(x, right, 13) + 24; A.panel(x, W - w - 8, 8, w, 26, null, 13); A.txt(x, right, W - w / 2 - 8, 21, 13, '#fff', 'center'); }
+  };
+  A.heart = (x, X, Y, s, c, empty) => {
+    c = c || '#ff4d6d'; x.save(); x.fillStyle = empty ? 'rgba(255,255,255,.18)' : c; x.strokeStyle = empty ? 'rgba(255,255,255,.3)' : A.drk(c, .5); x.lineWidth = Math.max(1, s * .12);
+    x.beginPath(); x.moveTo(X, Y + s * .85); x.bezierCurveTo(X - s * 1.5, Y - s * .1, X - s * .7, Y - s * 1.25, X, Y - s * .42); x.bezierCurveTo(X + s * .7, Y - s * 1.25, X + s * 1.5, Y - s * .1, X, Y + s * .85); x.fill(); x.stroke();
+    if (!empty) { x.fillStyle = 'rgba(255,255,255,.55)'; A.ell(x, X - s * .45, Y - s * .38, s * .2, s * .12, -.6); x.fill(); } x.restore();
+  };
+  A.lives = (x, W, n, max, y) => { for (let i = 0; i < max; i++) A.heart(x, W - 18 - i * 22, y || 22, 8, '#ff4d6d', i >= n); };
+  // ---------- звук ----------
+  const S = { on: true, ctx: null, last: {} };
+  try { S.on = localStorage.getItem('nbz-mute') !== '1'; } catch (e) {}
+  S.tone = (f, d, type, v, to) => {
+    if (!S.on) return;
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+      S.ctx = S.ctx || new AC(); const c = S.ctx; if (c.state === 'suspended') c.resume();
+      const o = c.createOscillator(), g = c.createGain(), t = c.currentTime;
+      o.type = type || 'square'; o.frequency.setValueAtTime(f, t); if (to) o.frequency.exponentialRampToValueAtTime(Math.max(20, to), t + d);
+      g.gain.setValueAtTime(v || .05, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + d + .02);
+    } catch (e) {}
+  };
+  S.p = n => {
+    const now = performance.now(); if (S.last[n] && now - S.last[n] < 50) return; S.last[n] = now; const T = S.tone;
+    if (n === 'coin') { T(988, .07, 'square', .04); setTimeout(() => T(1319, .12, 'square', .04), 60); }
+    else if (n === 'pop') T(520, .09, 'triangle', .06, 180);
+    else if (n === 'boom') T(160, .3, 'sawtooth', .07, 40);
+    else if (n === 'jump') T(300, .14, 'square', .04, 700);
+    else if (n === 'hit') T(200, .12, 'square', .06, 90);
+    else if (n === 'shoot') T(820, .09, 'sawtooth', .03, 200);
+    else if (n === 'click') T(660, .05, 'triangle', .05);
+    else if (n === 'eat') T(440, .07, 'square', .045, 900);
+    else if (n === 'tick') T(900, .03, 'square', .025);
+    else if (n === 'lose') { T(330, .18, 'triangle', .07, 200); setTimeout(() => T(200, .32, 'triangle', .07, 90), 160); }
+    else if (n === 'win') [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => T(f, .17, 'triangle', .06), i * 110));
+  };
+  // ---------- эффекты ----------
+  const POPS = [], RINGS = [];
+  A.reset = () => { POPS.length = 0; RINGS.length = 0; };
+  A.pop = (X, Y, s, c) => POPS.push({ x: X, y: Y, s: String(s), c: c || '#ffd13a', l: 46 });
+  A.ring = (X, Y, c, r) => RINGS.push({ x: X, y: Y, c: c || '#ffffff', r: r || 6, l: 22 });
+  A.fx = x => {
+    for (let i = RINGS.length - 1; i >= 0; i--) { const q = RINGS[i]; q.l--; q.r += 2.4; if (q.l <= 0) { RINGS.splice(i, 1); continue; } x.save(); x.globalAlpha = q.l / 22; x.strokeStyle = q.c; x.lineWidth = 3; A.circ(x, q.x, q.y, q.r); x.stroke(); x.restore(); }
+    for (let i = POPS.length - 1; i >= 0; i--) { const q = POPS[i]; q.l--; q.y -= .75; if (q.l <= 0) { POPS.splice(i, 1); continue; } x.save(); x.globalAlpha = Math.min(1, q.l / 16); A.txt(x, q.s, q.x, q.y, 16, q.c, 'center', 'rgba(0,0,0,.6)'); x.restore(); }
+  };
+  A.over = (x, W, H, o) => {
+    const k = Math.min(1, o.t / 12), cx = W / 2, cy = H / 2; x.save();
+    x.fillStyle = 'rgba(6,10,22,' + (.7 * k) + ')'; x.fillRect(0, 0, W, H);
+    const z = .8 + .2 * Math.min(1, o.t / 10); x.translate(cx, cy); x.scale(z, z); x.translate(-cx, -cy); x.globalAlpha = k;
+    A.box(x, cx - 118, cy - 86, 236, 172, '#26385c', 20, { nogloss: 1 });
+    A.txt(x, o.title || 'Игра окончена', cx, cy - 56, 22, o.title ? '#7dff9a' : '#fff', 'center', 'rgba(0,0,0,.4)');
+    if (o.sub) A.txt(x, o.sub, cx, cy - 32, 12, '#c9d6ee', 'center', null, 600);
+    A.txt(x, (o.label || 'Счёт') + ': ' + o.score, cx, cy - 12, 19, '#ffd13a', 'center', 'rgba(0,0,0,.35)');
+    if (o.best) A.txt(x, (o.rec ? '🏆 Новый рекорд!' : (o.low ? 'Лучший результат: ' : 'Рекорд: ') + o.best), cx, cy + 14, 14, o.rec ? '#7dff9a' : '#9fd8ff', 'center');
+    A.btn(x, cx - 72, cy + 34, 144, 36, 'Ещё раз', '#2f9e44', 16); x.restore();
+  };
+  // ---------- фоны ----------
+  const SKY = { day: ['#3f9dff', '#c4ebff'], dawn: ['#ff8a65', '#ffe3b8'], dusk: ['#4a2f7a', '#ff9a76'], night: ['#070b26', '#27307c'], mint: ['#4cd1a6', '#e9fff7'], candy: ['#ff8fd0', '#ffe6f5'], lava: ['#2a0808', '#c2410c'], ice: ['#6cc0ff', '#eefaff'], deep: ['#0b1d3a', '#1b4a8a'], space: ['#06031a', '#2a1457'], sand: ['#f7c97a', '#fff1cf'] };
+  A.stars = (x, W, H, t, n) => { for (let i = 0; i < n; i++) { const px = (i * 7919 % 1000) / 1000 * W, py = (i * 104729 % 1000) / 1000 * H, r = .5 + (i * 31 % 10) / 10 * 1.3, a = .35 + .65 * Math.abs(Math.sin(t * .03 + i)); x.fillStyle = 'rgba(255,255,255,' + a.toFixed(2) + ')'; x.fillRect(px, py, r, r); } };
+  A.cloud = (x, X, Y, s, a) => { x.save(); x.fillStyle = 'rgba(255,255,255,' + (a === undefined ? .85 : a) + ')'; x.beginPath(); x.arc(X, Y, s, 0, TAU); x.arc(X + s * .95, Y + s * .15, s * .8, 0, TAU); x.arc(X - s * .95, Y + s * .2, s * .7, 0, TAU); x.arc(X + s * .3, Y - s * .5, s * .75, 0, TAU); x.fill(); x.fillStyle = 'rgba(160,200,235,.35)'; A.ell(x, X, Y + s * .72, s * 1.6, s * .25); x.fill(); x.restore(); };
+  A.sky = (x, W, H, t, m) => {
+    m = m || 'day'; const c = SKY[m] || SKY.day, g = x.createLinearGradient(0, 0, 0, H); g.addColorStop(0, c[0]); g.addColorStop(1, c[1]); x.fillStyle = g; x.fillRect(0, 0, W, H);
+    if (m === 'night' || m === 'lava' || m === 'deep' || m === 'space') { A.stars(x, W, H, t, 46); if (m === 'night') { x.fillStyle = '#fff6c8'; A.circ(x, W * .8, H * .13, 14); x.fill(); x.fillStyle = '#27307c'; A.circ(x, W * .8 + 6, H * .13 - 3, 12); x.fill(); } return; }
+    const sg = x.createRadialGradient(W * .84, H * .1, 2, W * .84, H * .1, 70); sg.addColorStop(0, 'rgba(255,250,210,1)'); sg.addColorStop(.25, 'rgba(255,240,170,.5)'); sg.addColorStop(1, 'rgba(255,240,170,0)'); x.fillStyle = sg; x.fillRect(0, 0, W, H);
+    for (let i = 0; i < 4; i++) A.cloud(x, ((i * 113 + t * (.12 + i % 3 * .05)) % (W + 140)) - 70, 40 + (i * 71) % (H * .38), 14 + (i % 3) * 6, .8);
+  };
+  A.hills = (x, W, y, t, c1, c2, amp) => {
+    amp = amp || 22;
+    [[c1, .5, .013, 0, 0], [c2, 1, .021, 2, 14]].forEach(([c, sp, fq, ph, off]) => { x.fillStyle = c; x.beginPath(); x.moveTo(0, y + 400); for (let px = 0; px <= W + 6; px += 6) x.lineTo(px, y + off - Math.sin((px + t * sp * .4) * fq + ph) * amp); x.lineTo(W, y + 400); x.closePath(); x.fill(); });
+  };
+  A.grass = (x, W, y, H, c) => {
+    c = c || '#5fcf5f'; const g = x.createLinearGradient(0, y, 0, y + H); g.addColorStop(0, A.lit(c, .15)); g.addColorStop(1, A.drk(c, .3)); x.fillStyle = g; x.fillRect(0, y, W, H);
+    x.fillStyle = A.drk(c, .25); x.fillRect(0, y, W, 3); x.strokeStyle = A.lit(c, .3); x.lineWidth = 1.5; x.beginPath(); for (let px = 3; px < W; px += 9) { x.moveTo(px, y + 3); x.lineTo(px - 2, y - 3); x.moveTo(px + 4, y + 3); x.lineTo(px + 5, y - 2); } x.stroke();
+  };
+  A.checker = (x, X, Y, W, H, s, c1, c2) => { for (let j = 0; j * s < H; j++) for (let i = 0; i * s < W; i++) { x.fillStyle = (i + j) % 2 ? c2 : c1; x.fillRect(X + i * s, Y + j * s, Math.min(s, W - i * s), Math.min(s, H - j * s)); } };
+  A.water = (x, W, y, H, t, c1, c2) => {
+    c1 = c1 || '#2ea8ff'; c2 = c2 || '#0b5fb5'; const g = x.createLinearGradient(0, y, 0, y + H); g.addColorStop(0, c1); g.addColorStop(1, c2); x.fillStyle = g; x.fillRect(0, y, W, H);
+    x.strokeStyle = 'rgba(255,255,255,.35)'; x.lineWidth = 1.5; for (let k = 0; k < 3; k++) { x.beginPath(); for (let px = 0; px <= W; px += 5) { const py = y + 6 + k * 16 + Math.sin((px + t * (1 + k * .4)) * .06 + k) * 3; px ? x.lineTo(px, py) : x.moveTo(px, py); } x.stroke(); }
+  };
+  A.vig = (x, W, H, a) => { const g = x.createRadialGradient(W / 2, H / 2, Math.min(W, H) * .45, W / 2, H / 2, Math.max(W, H) * .78); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,' + (a === undefined ? .35 : a) + ')'); x.fillStyle = g; x.fillRect(0, 0, W, H); };
+  // ---------- спрайты ----------
+  A.star5 = (x, X, Y, r, c, rot) => {
+    c = c || '#ffd13a'; x.save(); x.translate(X, Y); x.rotate(rot || 0); x.beginPath(); for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? r * .46 : r; i ? x.lineTo(Math.cos(a) * rr, Math.sin(a) * rr) : x.moveTo(Math.cos(a) * rr, Math.sin(a) * rr); } x.closePath();
+    const g = x.createRadialGradient(-r * .2, -r * .3, 1, 0, 0, r); g.addColorStop(0, A.lit(c, .6)); g.addColorStop(1, A.drk(c, .15)); x.fillStyle = g; x.fill(); x.strokeStyle = A.drk(c, .5); x.lineWidth = Math.max(1, r * .1); x.lineJoin = 'round'; x.stroke(); x.restore();
+  };
+  A.coin = (x, X, Y, r, ph) => {
+    const w = Math.max(.12, Math.abs(Math.cos(ph || 0))); x.save(); A.shadow(x, X, Y + r + 2, r * .7, r * .2, .2);
+    x.fillStyle = '#a8740a'; A.ell(x, X, Y, r * w + 1.2, r + 1.2); x.fill();
+    const g = x.createRadialGradient(X - r * w * .3, Y - r * .35, 1, X, Y, r); g.addColorStop(0, '#fff6b0'); g.addColorStop(.5, '#ffd13a'); g.addColorStop(1, '#e0a010'); x.fillStyle = g; A.ell(x, X, Y, r * w, r); x.fill();
+    if (w > .45) { x.strokeStyle = 'rgba(168,116,10,.6)'; x.lineWidth = 1.2; A.ell(x, X, Y, r * w * .66, r * .66); x.stroke(); A.txt(x, '★', X, Y + 1, r * .9, '#c98a0a', 'center'); } x.restore();
+  };
+  A.gem = (x, X, Y, r, c) => {
+    c = c || '#4fc3f7'; x.save(); A.shadow(x, X, Y + r * .95, r * .8, r * .22, .22);
+    const P = [[0, -1], [.9, -.4], [.9, .45], [0, 1], [-.9, .45], [-.9, -.4]].map(p => [X + p[0] * r, Y + p[1] * r]);
+    x.beginPath(); P.forEach((p, i) => i ? x.lineTo(p[0], p[1]) : x.moveTo(p[0], p[1])); x.closePath();
+    const g = x.createLinearGradient(X - r, Y - r, X + r, Y + r); g.addColorStop(0, A.lit(c, .6)); g.addColorStop(.5, c); g.addColorStop(1, A.drk(c, .4)); x.fillStyle = g; x.fill(); x.strokeStyle = A.drk(c, .55); x.lineWidth = Math.max(1, r * .08); x.lineJoin = 'round'; x.stroke();
+    x.strokeStyle = 'rgba(255,255,255,.55)'; x.lineWidth = 1; x.beginPath(); x.moveTo(P[0][0], P[0][1]); x.lineTo(X, Y + r * .1); x.moveTo(P[1][0], P[1][1]); x.lineTo(X, Y + r * .1); x.moveTo(P[5][0], P[5][1]); x.lineTo(X, Y + r * .1); x.moveTo(P[3][0], P[3][1]); x.lineTo(X, Y + r * .1); x.stroke();
+    x.fillStyle = 'rgba(255,255,255,.7)'; A.ell(x, X - r * .3, Y - r * .45, r * .16, r * .08, -.5); x.fill(); x.restore();
+  };
+  A.apple = (x, X, Y, r, c) => {
+    c = c || '#e53935'; x.save(); A.shadow(x, X, Y + r * .98, r * .78, r * .22, .24);
+    const g = x.createRadialGradient(X - r * .35, Y - r * .35, r * .1, X, Y, r * 1.1); g.addColorStop(0, A.lit(c, .55)); g.addColorStop(.5, c); g.addColorStop(1, A.drk(c, .42));
+    x.fillStyle = g; x.strokeStyle = A.drk(c, .55); x.lineWidth = Math.max(1, r * .1); x.lineJoin = 'round';
+    x.beginPath(); x.moveTo(X, Y - r * .7); x.bezierCurveTo(X + r * .25, Y - r * 1.05, X + r * 1.15, Y - r * .7, X + r * .98, Y + r * .22); x.bezierCurveTo(X + r * .86, Y + r * .86, X + r * .4, Y + r * 1.04, X, Y + r * .88); x.bezierCurveTo(X - r * .4, Y + r * 1.04, X - r * .86, Y + r * .86, X - r * .98, Y + r * .22); x.bezierCurveTo(X - r * 1.15, Y - r * .7, X - r * .25, Y - r * 1.05, X, Y - r * .7); x.closePath(); x.fill(); x.stroke();
+    x.fillStyle = 'rgba(255,255,255,.6)'; A.ell(x, X - r * .42, Y - r * .3, r * .17, r * .3, -.5); x.fill();
+    x.strokeStyle = '#6b4423'; x.lineWidth = Math.max(1.5, r * .13); x.lineCap = 'round'; x.beginPath(); x.moveTo(X, Y - r * .68); x.quadraticCurveTo(X + r * .08, Y - r * 1.0, X + r * .16, Y - r * 1.14); x.stroke();
+    x.fillStyle = '#4caf50'; x.strokeStyle = '#2e7d32'; x.lineWidth = Math.max(1, r * .07); x.beginPath(); x.moveTo(X + r * .12, Y - r * .95); x.quadraticCurveTo(X + r * .55, Y - r * 1.38, X + r * .92, Y - r * 1.0); x.quadraticCurveTo(X + r * .55, Y - r * .78, X + r * .12, Y - r * .95); x.fill(); x.stroke(); x.restore();
+  };
+  A.tree = (x, X, Y, s, c) => {
+    c = c || '#3fae49'; x.save(); A.shadow(x, X, Y, s * .7, s * .18, .2); x.fillStyle = '#7a4b22'; A.rr(x, X - s * .13, Y - s * .55, s * .26, s * .6, 3); x.fill();
+    [[0, -1.05, .62], [-.34, -.78, .46], [.34, -.78, .46], [0, -.62, .55]].forEach(([dx, dy, rr], i) => A.orb(x, X + dx * s, Y + dy * s, rr * s, i % 2 ? A.lit(c, .08) : c, { flat: true })); x.restore();
+  };
+  A.flower = (x, X, Y, s, c) => { c = c || '#ff7aa8'; x.save(); x.strokeStyle = '#3d9a3d'; x.lineWidth = Math.max(1.5, s * .12); x.beginPath(); x.moveTo(X, Y + s * 1.2); x.lineTo(X, Y); x.stroke(); for (let i = 0; i < 6; i++) { const a = i * TAU / 6; x.fillStyle = c; A.circ(x, X + Math.cos(a) * s * .55, Y + Math.sin(a) * s * .55, s * .42); x.fill(); } x.fillStyle = '#ffd13a'; A.circ(x, X, Y, s * .4); x.fill(); x.restore(); };
+  A.bird = (x, X, Y, s, wing, rot) => {
+    x.save(); x.translate(X, Y); x.rotate(rot || 0); A.shadow(x, 0, s * 1.3, s * .7, s * .15, .15);
+    let g = x.createRadialGradient(-s * .3, -s * .4, 1, 0, 0, s * 1.1); g.addColorStop(0, '#fff1a0'); g.addColorStop(.5, '#ffcf3a'); g.addColorStop(1, '#e8920c'); x.fillStyle = g; x.strokeStyle = '#7a4a05'; x.lineWidth = Math.max(1.2, s * .1); A.ell(x, 0, 0, s * 1.05, s * .9); x.fill(); x.stroke();
+    x.fillStyle = '#fff8d6'; A.ell(x, s * .1, s * .35, s * .62, s * .38, .1); x.fill();
+    x.fillStyle = '#ff6a3d'; x.beginPath(); x.moveTo(s * .85, -s * .05); x.lineTo(s * 1.55, s * .12); x.lineTo(s * .85, s * .38); x.closePath(); x.fill(); x.stroke();
+    x.fillStyle = '#fff'; A.circ(x, s * .42, -s * .3, s * .32); x.fill(); x.stroke(); x.fillStyle = '#151515'; A.circ(x, s * .52, -s * .3, s * .15); x.fill();
+    x.save(); x.translate(-s * .3, s * .1); x.rotate(Math.sin(wing || 0) * .7); x.fillStyle = '#ff9a3c'; x.beginPath(); x.moveTo(0, 0); x.quadraticCurveTo(-s * .9, -s * .1, -s * .8, s * .55); x.quadraticCurveTo(-s * .2, s * .6, 0, 0); x.fill(); x.stroke(); x.restore(); x.restore();
+  };
+  A.rocket = (x, X, Y, s, c, fl) => {
+    c = c || '#e8ecf4'; x.save(); x.translate(X, Y);
+    if (fl) { const f = s * (1.1 + Math.random() * .5); x.fillStyle = '#ffb703'; x.beginPath(); x.moveTo(-s * .32, s * .9); x.quadraticCurveTo(0, s * .9 + f * 1.5, s * .32, s * .9); x.fill(); x.fillStyle = '#fff4b0'; x.beginPath(); x.moveTo(-s * .17, s * .9); x.quadraticCurveTo(0, s * .9 + f, s * .17, s * .9); x.fill(); }
+    x.fillStyle = '#e5484d'; x.strokeStyle = '#7a1d20'; x.lineWidth = Math.max(1.2, s * .08); x.beginPath(); x.moveTo(-s * .5, s * .35); x.lineTo(-s * .95, s * 1.05); x.lineTo(-s * .4, s * .85); x.closePath(); x.fill(); x.stroke(); x.beginPath(); x.moveTo(s * .5, s * .35); x.lineTo(s * .95, s * 1.05); x.lineTo(s * .4, s * .85); x.closePath(); x.fill(); x.stroke();
+    const g = x.createLinearGradient(-s * .5, 0, s * .5, 0); g.addColorStop(0, A.drk(c, .12)); g.addColorStop(.4, A.lit(c, .4)); g.addColorStop(1, A.drk(c, .25)); x.fillStyle = g; x.strokeStyle = A.drk(c, .55); x.beginPath(); x.moveTo(0, -s * 1.25); x.bezierCurveTo(s * .7, -s * .6, s * .62, s * .5, s * .42, s * .92); x.lineTo(-s * .42, s * .92); x.bezierCurveTo(-s * .62, s * .5, -s * .7, -s * .6, 0, -s * 1.25); x.closePath(); x.fill(); x.stroke();
+    x.fillStyle = '#e5484d'; x.beginPath(); x.moveTo(0, -s * 1.25); x.bezierCurveTo(s * .3, -s * .95, s * .4, -s * .7, s * .46, -s * .52); x.lineTo(-s * .46, -s * .52); x.bezierCurveTo(-s * .4, -s * .7, -s * .3, -s * .95, 0, -s * 1.25); x.fill();
+    x.fillStyle = '#7fd4ff'; x.strokeStyle = '#1b4a6b'; A.circ(x, 0, -s * .1, s * .26); x.fill(); x.stroke(); x.fillStyle = 'rgba(255,255,255,.7)'; A.ell(x, -s * .08, -s * .18, s * .08, s * .05, -.5); x.fill(); x.restore();
+  };
+  A.ship = (x, X, Y, s, c, fl) => {
+    c = c || '#4fc3f7'; x.save(); x.translate(X, Y);
+    if (fl) { x.fillStyle = '#ffb703'; x.beginPath(); x.moveTo(-s * .25, s * .6); x.lineTo(0, s * (1.1 + Math.random() * .5)); x.lineTo(s * .25, s * .6); x.fill(); }
+    x.fillStyle = A.drk(c, .3); x.strokeStyle = A.drk(c, .6); x.lineWidth = Math.max(1.2, s * .08); x.beginPath(); x.moveTo(-s * .2, -s * .2); x.lineTo(-s * 1.05, s * .6); x.lineTo(-s * .9, s * .78); x.lineTo(-s * .2, s * .5); x.closePath(); x.fill(); x.stroke(); x.beginPath(); x.moveTo(s * .2, -s * .2); x.lineTo(s * 1.05, s * .6); x.lineTo(s * .9, s * .78); x.lineTo(s * .2, s * .5); x.closePath(); x.fill(); x.stroke();
+    const g = x.createLinearGradient(-s * .4, 0, s * .4, 0); g.addColorStop(0, A.drk(c, .1)); g.addColorStop(.45, A.lit(c, .45)); g.addColorStop(1, A.drk(c, .3)); x.fillStyle = g; x.beginPath(); x.moveTo(0, -s * 1.1); x.quadraticCurveTo(s * .52, -s * .1, s * .38, s * .72); x.lineTo(-s * .38, s * .72); x.quadraticCurveTo(-s * .52, -s * .1, 0, -s * 1.1); x.closePath(); x.fill(); x.stroke();
+    x.fillStyle = '#ffd13a'; A.ell(x, 0, -s * .1, s * .17, s * .3); x.fill(); x.stroke(); x.restore();
+  };
+  A.ufo = (x, X, Y, s, c) => {
+    c = c || '#a5b4fc'; x.save(); x.translate(X, Y); A.shadow(x, 0, s * .8, s * .8, s * .12, .15);
+    x.fillStyle = '#9bdcff'; x.strokeStyle = '#3b6e8f'; x.lineWidth = Math.max(1.2, s * .08); x.beginPath(); x.arc(0, -s * .1, s * .5, Math.PI, 0); x.closePath(); x.fill(); x.stroke();
+    const g = x.createLinearGradient(0, -s * .2, 0, s * .4); g.addColorStop(0, A.lit(c, .4)); g.addColorStop(1, A.drk(c, .35)); x.fillStyle = g; x.strokeStyle = A.drk(c, .6); A.ell(x, 0, s * .1, s * 1.05, s * .38); x.fill(); x.stroke();
+    for (let i = -2; i <= 2; i++) { x.fillStyle = i % 2 ? '#ffd13a' : '#ff7aa8'; A.circ(x, i * s * .38, s * .14, s * .09); x.fill(); } x.restore();
+  };
+  A.car = (x, X, Y, w, h, c) => {
+    c = c || '#e5484d'; x.save(); x.translate(X, Y); A.shadow(x, 3, h * .5 + 3, w * .62, h * .08, .22);
+    x.fillStyle = '#1b1b1f'; A.rr(x, -w * .62, -h * .32, w * .16, h * .26, 3); x.fill(); A.rr(x, w * .46, -h * .32, w * .16, h * .26, 3); x.fill(); A.rr(x, -w * .62, h * .2, w * .16, h * .26, 3); x.fill(); A.rr(x, w * .46, h * .2, w * .16, h * .26, 3); x.fill();
+    A.box(x, -w * .5, -h * .5, w, h, c, w * .28);
+    x.fillStyle = '#16324a'; A.rr(x, -w * .36, -h * .28, w * .72, h * .2, 4); x.fill(); A.rr(x, -w * .34, h * .16, w * .68, h * .16, 4); x.fill();
+    x.fillStyle = 'rgba(255,255,255,.28)'; A.rr(x, -w * .3, -h * .26, w * .24, h * .06, 2); x.fill();
+    x.fillStyle = '#fff3a8'; A.circ(x, -w * .3, -h * .46, w * .08); x.fill(); A.circ(x, w * .3, -h * .46, w * .08); x.fill(); x.fillStyle = '#ff5252'; A.circ(x, -w * .3, h * .46, w * .06); x.fill(); A.circ(x, w * .3, h * .46, w * .06); x.fill(); x.restore();
+  };
+  A.pipe = (x, X, Y, W, H, cap) => {
+    const g = x.createLinearGradient(X, 0, X + W, 0); g.addColorStop(0, '#3fb04a'); g.addColorStop(.25, '#8be07f'); g.addColorStop(.6, '#3fb04a'); g.addColorStop(1, '#2a7d34'); x.fillStyle = g; x.fillRect(X, Y, W, H); x.strokeStyle = '#1e5a27'; x.lineWidth = 2; x.strokeRect(X, Y, W, H);
+    const cy = cap === 'top' ? Y + H - 16 : Y; const g2 = x.createLinearGradient(X - 4, 0, X + W + 4, 0); g2.addColorStop(0, '#3fb04a'); g2.addColorStop(.25, '#a6ee98'); g2.addColorStop(.6, '#3fb04a'); g2.addColorStop(1, '#2a7d34'); x.fillStyle = g2; A.rr(x, X - 4, cy, W + 8, 16, 4); x.fill(); x.strokeStyle = '#1e5a27'; x.stroke();
+  };
+  A.blob = (x, X, Y, s, c, dir, sq) => {
+    c = c || '#7bd96a'; sq = sq || 1; x.save(); x.translate(X, Y); x.scale(1 / sq, sq); A.shadow(x, 0, s * .98, s * .8, s * .14, .22);
+    const g = x.createRadialGradient(-s * .3, -s * .4, 1, 0, 0, s * 1.15); g.addColorStop(0, A.lit(c, .55)); g.addColorStop(.5, c); g.addColorStop(1, A.drk(c, .4)); x.fillStyle = g; x.strokeStyle = A.drk(c, .55); x.lineWidth = Math.max(1.2, s * .09); x.beginPath(); x.moveTo(-s * .9, s * .6); x.bezierCurveTo(-s * 1.05, -s * .3, -s * .55, -s * 1.0, 0, -s * 1.0); x.bezierCurveTo(s * .55, -s * 1.0, s * 1.05, -s * .3, s * .9, s * .6); x.quadraticCurveTo(s * .6, s * 1.0, 0, s * .95); x.quadraticCurveTo(-s * .6, s * 1.0, -s * .9, s * .6); x.closePath(); x.fill(); x.stroke();
+    const d = dir || 0; x.fillStyle = '#fff'; A.circ(x, -s * .33 + d * s * .08, -s * .2, s * .26); x.fill(); A.circ(x, s * .33 + d * s * .08, -s * .2, s * .26); x.fill(); x.fillStyle = '#151515'; A.circ(x, -s * .33 + d * s * .2, -s * .18, s * .12); x.fill(); A.circ(x, s * .33 + d * s * .2, -s * .18, s * .12); x.fill();
+    x.strokeStyle = '#151515'; x.lineWidth = Math.max(1, s * .07); x.beginPath(); x.arc(d * s * .1, s * .12, s * .22, .2, Math.PI - .2); x.stroke(); x.restore();
+  };
+  return { A, S };
+}
+
+const { A, S } = artKit();
 function loop(box, score, W, H, mk) {
-  const dpr = Math.min(2, window.devicePixelRatio || 1), cv = document.createElement('canvas');
-  cv.width = W * dpr; cv.height = H * dpr;
-  cv.style.cssText = 'width:auto;max-width:92vw;height:min(64vh,' + (360 * H / W) + 'px);aspect-ratio:' + W + '/' + H + ';border-radius:16px;background:#0d131c';
+  const q = Math.min(3, (window.devicePixelRatio || 1) * 1.5), cv = document.createElement('canvas');
+  cv.width = Math.round(W * q); cv.height = Math.round(H * q);
+  cv.style.cssText = 'width:auto;max-width:94vw;height:min(68vh,' + (440 * H / W) + 'px);aspect-ratio:' + W + '/' + H + ';border-radius:18px;background:#101826;touch-action:none;box-shadow:0 12px 44px rgba(0,0,0,.5)';
   box.append(cv);
-  const x = cv.getContext('2d'); let on = 1, raf, acc = 0, last = performance.now();
+  const x = cv.getContext('2d'); let on = 1, raf, acc = 0, last = performance.now(), ended = 0, endT = 0, cur = 0, best = 0, rec = 0;
+  const lbl = ($('sl') || {}).textContent || '', low = /Ходы|Попытки|Время|Шаги/.test(lbl), key = 'nbz-best-' + (mk.name || 'game');
+  try { best = +localStorage.getItem(key) || 0; } catch (e) {}
+  PARTS = []; SH = 0; A.reset();
+  const sc2 = v => { cur = +v || 0; score(v); };
+  let title = '', sub = '', best0 = best;
+  const st2 = t => {
+    if (ended) return;
+    if (t === OVER || (typeof t === 'string' && t.startsWith(WIN))) {
+      const won = t !== OVER; status(won ? t.slice(WIN.length) : t); ended = 1; endT = 0; title = won ? 'Победа!' : ''; sub = won ? t.slice(WIN.length) : ''; S.p(won ? 'win' : 'lose');
+    } else status(t);
+  };
+  const settle = () => { if (cur && (low ? (!best || cur < best) : cur > best)) { best = cur; rec = best0 ? 1 : 0; try { localStorage.setItem(key, String(best)); } catch (e) {} } };
+  const g = mk(x, sc2, st2);
+  const pos = e => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) * W / r.width, (e.clientY - r.top) * H / r.height]; };
+  cv.onclick = e => { if (ended) { if (endT > 18) start(); return; } const p = pos(e); g.click && g.click(p[0], p[1]); };
+  cv.onpointerdown = e => { if (ended || !g.down) return; try { cv.setPointerCapture(e.pointerId); } catch (x2) {} const p = pos(e); g.down(p[0], p[1]); };
+  cv.onpointermove = e => { if (ended || !g.move) return; const p = pos(e); g.move(p[0], p[1], e.buttons); };
+  cv.onpointerup = e => { if (ended || !g.up) return; const p = pos(e); g.up(p[0], p[1]); };
   const bg = x.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#141d2c'); bg.addColorStop(1, '#0a0e15');
-  PARTS = []; SH = 0;
-  const g = mk(x, score, status);
-  cv.onclick = e => { const r = cv.getBoundingClientRect(); g.click && g.click((e.clientX - r.left) * W / r.width, (e.clientY - r.top) * H / r.height); };
   const f = now => {
     if (!on) return;
     acc += Math.min(50, now - last); last = now;
     if (Math.abs(acc - 16.67) < 2) acc = 16.67;
     let n = 0;
-    while (acc >= 16.67 && n < 3) { acc -= 16.67; n++; x.setTransform(dpr, 0, 0, dpr, 0, 0); x.fillStyle = bg; x.fillRect(0, 0, W, H); if (SH > .3) { x.translate((Math.random() - .5) * SH, (Math.random() - .5) * SH); SH *= .85; } g.t(); stepFx(x); }
+    while (acc >= 16.67 && n < 3) {
+      acc -= 16.67; n++; x.setTransform(q, 0, 0, q, 0, 0); x.fillStyle = bg; x.fillRect(0, 0, W, H);
+      x.save(); if (SH > .3) { x.translate((Math.random() - .5) * SH, (Math.random() - .5) * SH); SH *= .85; } g.t(); stepFx(x); x.restore();
+      if (ended) { endT++; settle(); A.over(x, W, H, { t: endT, score: cur, best, rec, label: lbl, low, title, sub }); }
+    }
     if (n === 3) acc = 0;
     raf = requestAnimationFrame(f);
   };
   raf = requestAnimationFrame(f);
-  return { dir: g.dir || (() => {}), held: !g.click, stop() { on = 0; cancelAnimationFrame(raf); } };
+  return { dir: g.dir || (() => {}), held: g.held !== undefined ? g.held : !g.click, stop() { on = 0; cancelAnimationFrame(raf); } };
 }
 const L = (W, H, m) => (b, s) => loop(b, s, W, H, m);
-const sh = (c, k) => { const n = parseInt(c.slice(1), 16), f = v => Math.round(k > 0 ? v + (255 - v) * k : v * (1 + k)); return 'rgb(' + f(n >> 16) + ',' + f(n >> 8 & 255) + ',' + f(n & 255) + ')'; };
-const R = (x, c, a, b, w, h) => {
-  x.save(); x.shadowColor = 'rgba(0,0,0,.22)'; x.shadowBlur = 6; x.shadowOffsetY = 3;
-  const g = x.createLinearGradient(0, b, 0, b + h); g.addColorStop(0, sh(c, .28)); g.addColorStop(1, sh(c, -.2));
-  x.fillStyle = g; x.beginPath(); x.roundRect(a, b, w, h, Math.min(6, w / 2, h / 2)); x.fill(); x.restore();
-};
-const C = (x, c, a, b, r) => {
-  x.save(); x.shadowColor = 'rgba(0,0,0,.25)'; x.shadowBlur = 6; x.shadowOffsetY = 3;
-  const g = x.createRadialGradient(a - r / 3, b - r / 3, r / 6, a, b, r); g.addColorStop(0, sh(c, .55)); g.addColorStop(1, sh(c, -.25));
-  x.fillStyle = g; x.beginPath(); x.arc(a, b, r, 0, 7); x.fill(); x.restore();
-};
+const sh = (c, k) => A.mix(c, k > 0 ? '#ffffff' : '#000000', Math.abs(k));
+const R = (x, c, a, b, w, h) => A.box(x, a, b, w, h, c);
+const C = (x, c, a, b, r) => A.orb(x, a, b, r, c);
 const hit = (a, b, c, d, e, f, g, h) => a < e + g && a + c > e && b < f + h && b + d > f;
 const cl = (v, a, b) => Math.max(a, Math.min(b, v));
-const OVER = 'Игра окончена. Нажми «Начать заново»';
+const OVER = 'Игра окончена. Нажми «Начать заново»', WIN = '🏆 ';
 
 const flappy = (x, sc, st) => {
-  let y = 200, v = 0, p = [{ x: 300, g: 200 }], n = 0, dead = 0, fr = 0;
-  st('Нажимай W или тапай по полю');
-  const fl = () => { if (!dead) v = -6; };
-  return { dir: (dx, dy) => { if (dy < 0) fl(); }, click: fl, t() {
+  const GAP = 122, GY = 350;
+  let y = 180, v = 0, pp = [], n = 0, dead = 0, fr = 0, go = 0, pk = 0, rot = 0, off = 0, wing = 0;
+  const flap = () => { if (dead) return; if (!go) { go = 1; st('Пролетай между трубами'); } v = -6.2; wing = 0; S.p('jump'); };
+  sc(0); st('Тапни, нажми W или пробел — взлетаем!');
+  return { click: flap, dir: (dx, dy) => { if (dy < 0) flap(); }, t() {
+    fr++; const kk = (K.Space | 0) || (K.ArrowUp | 0); if (kk && !pk) flap(); pk = kk;
+    const sp = 2 + Math.min(1.4, n / 22);
     if (!dead) {
-      v += .35; y += v; fr++;
-      if (fr % 90 === 0) p.push({ x: 300, g: 90 + rnd(220) });
-      p.forEach(o => o.x -= 2); if (p[0].x < -40) p.shift();
-      p.forEach(o => {
-        if (70 > o.x && 50 < o.x + 40 && (y - 10 < o.g - 60 || y + 10 > o.g + 60)) dead = 1;
-        if (!o.s && o.x + 40 < 50) { o.s = 1; sc(++n); }
-      });
-      if (y < 0 || y > 400) dead = 1;
-      if (dead) { boom(60, y, '#f9ab00', 22); st(OVER); }
-    }
-    p.forEach(o => {
-      R(x, '#01875f', o.x, 0, 40, o.g - 60); R(x, '#01875f', o.x, o.g + 60, 40, 400);
-      R(x, '#0b6b4d', o.x - 3, o.g - 74, 46, 14); R(x, '#0b6b4d', o.x - 3, o.g + 60, 46, 14);
-    });
-    x.save(); x.translate(60, y); x.rotate(cl(v / 10, -.5, 1));
-    x.shadowColor = 'rgba(0,0,0,.25)'; x.shadowBlur = 6; x.shadowOffsetY = 3;
-    const gr = x.createRadialGradient(-3, -4, 2, 0, 0, 15); gr.addColorStop(0, '#ffd54f'); gr.addColorStop(1, '#f29900');
-    x.fillStyle = gr; x.beginPath(); x.ellipse(0, 0, 14, 11, 0, 0, 7); x.fill(); x.shadowColor = 'transparent';
-    x.fillStyle = '#ea4335'; x.beginPath(); x.moveTo(11, -1); x.lineTo(20, 3); x.lineTo(11, 6); x.fill();
-    x.fillStyle = '#e37400'; x.beginPath(); x.ellipse(-4, 3, 7, 4, Math.sin(fr / 4) * .5 - .2, 0, 7); x.fill();
-    x.fillStyle = '#fff'; x.beginPath(); x.arc(6, -4, 4.5, 0, 7); x.fill();
-    x.fillStyle = '#e8ecf4'; x.beginPath(); x.arc(7.5, -4, 2, 0, 7); x.fill();
-    x.restore();
+      if (go) {
+        v += .36; y += v; off = (off + sp) % 24;
+        if (!pp.length || pp[pp.length - 1].x < 300 - 168) pp.push({ x: 330, g: 110 + rnd(150), s: 0 });
+        pp.forEach(o => o.x -= sp); if (pp[0].x < -60) pp.shift();
+        pp.forEach(o => { if (!o.s && o.x + 48 < 62) { o.s = 1; sc(++n); S.p('coin'); A.pop(70, y - 22, '+1'); } });
+        if (pp.some(o => 82 > o.x && 58 < o.x + 48 && (y - 10 < o.g - GAP / 2 || y + 10 > o.g + GAP / 2)) || y > GY - 11 || y < 8) { dead = 1; boom(70, y, '#ffcf3a', 26); SH = 8; S.p('hit'); st(OVER); }
+      } else y = 180 + Math.sin(fr / 10) * 7;
+    } else if (y < GY - 11) { v += .5; y += v; if (y > GY - 11) y = GY - 11; }
+    rot = dead ? Math.min(1.4, rot + .08) : Math.max(-.5, Math.min(1.1, v * .09)); wing += go && !dead ? .5 : .2;
+    A.sky(x, 300, 400, fr, 'day'); A.hills(x, 300, 300, fr * sp * .4, '#8fd3a1', '#5cbf7a', 18);
+    pp.forEach(o => { A.pipe(x, o.x, 0, 48, o.g - GAP / 2, 'top'); A.pipe(x, o.x, o.g + GAP / 2, 48, GY - o.g - GAP / 2, 'bot'); });
+    A.grass(x, 300, GY, 50, '#6bd05a'); x.fillStyle = 'rgba(0,0,0,.08)'; for (let i = -1; i < 14; i++) x.fillRect(i * 24 - off, GY + 6, 12, 44);
+    A.bird(x, 70, y, 12, wing, rot);
+    A.txt(x, String(n), 150, 58, 46, '#fff', 'center', '#16324f');
+    if (!go && !dead) A.txt(x, 'Тапни!', 150, 130, 22, '#fff', 'center', '#16324f');
   } };
 };
 const pong = (x, sc, st) => {
-  let pvy = 0, py = 120, ay = 120, bx = 200, by = 150, vx = 3.5, vy = 2, n = 0, over = 0;
-  st('W и S двигают ракетку');
-  return { dir: (dx, dy) => { py = cl(py + dy * 30, 0, 240); }, t() {
+  const W = 400, H = 300, PH = 56, PW = 8;
+  let py = 122, ay = 122, tgt = null, pts = 0, bp = 0, over = 0, serve = 60, fr = 0, hitF = 0, aimErr = 0, sp = 4.2, b = { x: 200, y: 150, vx: 0, vy: 0 }, tr = [];
+  const launch = dir => { sp = 4.2; const a = (Math.random() - .5) * .9; b = { x: 200, y: 150, vx: dir * sp * Math.cos(a), vy: sp * Math.sin(a) }; tr = []; serve = 0; };
+  sc(0); st('W и S, мышь или палец двигают ракетку. Бот забьёт 5 раз — игра окончена');
+  return { down: (a, c) => { tgt = c - PH / 2; }, move: (a, c) => { tgt = c - PH / 2; }, t() {
+    fr++;
     if (!over) {
-      py += (pvy = pvy * .8 + ((K.KeyS | 0) - (K.KeyW | 0)) * 1.1); py = cl(py, 0, 240);
-      ay = cl(ay + cl(by - 30 - ay, -2.8, 2.8), 0, 240);
-      bx += vx; by += vy; if (by < 6 || by > 294) vy = -vy;
-      if (bx < 24 && bx > 8 && by > py && by < py + 60 && vx < 0) { vx = -vx * 1.05; sc(++n); boom(bx, by, '#01875f', 8); }
-      if (bx > 376 && by > ay && by < ay + 60 && vx > 0) vx = -vx;
-      if (bx < 0) { over = 1; st('Мимо! Нажми «Начать заново»'); }
-      if (bx > 400) { bx = 200; by = 150; vx = -3.5; }
+      const kd = (K.KeyS | 0) - (K.KeyW | 0); if (kd) { py += kd * 5; tgt = null; } else if (tgt !== null) py += (tgt - py) * .35; py = cl(py, 8, H - PH - 8);
+      if (serve > 0) { if (--serve === 0) launch(Math.random() < .5 ? 1 : -1); }
+      else {
+        b.x += b.vx; b.y += b.vy; tr.push([b.x, b.y]); if (tr.length > 9) tr.shift();
+        if (b.y < 12) { b.y = 12; b.vy = Math.abs(b.vy); S.p('tick'); } if (b.y > H - 12) { b.y = H - 12; b.vy = -Math.abs(b.vy); S.p('tick'); }
+        if (b.vx < 0 && b.x - 7 < 14 + PW && b.x > 8 && b.y > py - 4 && b.y < py + PH + 4) { const rel = (b.y - (py + PH / 2)) / (PH / 2); sp = Math.min(9, sp + .28); b.vx = sp * Math.cos(rel * .9); b.vy = sp * Math.sin(rel * .9); b.x = 14 + PW + 7; hitF = 8; S.p('hit'); boom(b.x, b.y, '#7ae8ff', 6); aimErr = (Math.random() - .5) * 40; }
+        const ax = W - 14 - PW;
+        if (b.vx > 0 && b.x + 7 > ax && b.x < W - 8 && b.y > ay - 4 && b.y < ay + PH + 4) { const rel = (b.y - (ay + PH / 2)) / (PH / 2); sp = Math.min(9, sp + .2); b.vx = -sp * Math.cos(rel * .9); b.vy = sp * Math.sin(rel * .9); b.x = ax - 7; hitF = 8; S.p('hit'); boom(b.x, b.y, '#ff7ad5', 6); }
+        if (b.x < -10) { bp++; serve = 70; S.p('lose'); A.pop(40, 150, 'Мимо'); SH = 4; if (bp >= 5) { over = 1; st(OVER); } }
+        else if (b.x > W + 10) { pts++; sc(pts); serve = 70; S.p('coin'); A.pop(W - 40, 150, '+1'); }
+      }
+      const want = (b.vx > 0 || serve > 0 ? b.y : H / 2) + aimErr - PH / 2, spd = 2.5 + Math.min(2.6, pts * .22); ay += cl(want - ay, -spd, spd); ay = cl(ay, 8, H - PH - 8);
     }
-    R(x, '#01875f', 10, py, 8, 60); R(x, '#d93025', 382, ay, 8, 60); C(x, '#e8ecf4', bx, by, 6);
+    const g = x.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#0e3a5c'); g.addColorStop(1, '#0a2238'); x.fillStyle = g; x.fillRect(0, 0, W, H);
+    x.strokeStyle = 'rgba(120,200,255,.08)'; x.lineWidth = 1; x.beginPath(); for (let i = 0; i < W; i += 25) { x.moveTo(i, 0); x.lineTo(i, H); } for (let j = 0; j < H; j += 25) { x.moveTo(0, j); x.lineTo(W, j); } x.stroke();
+    x.strokeStyle = 'rgba(255,255,255,.35)'; x.setLineDash([10, 10]); x.lineWidth = 3; x.beginPath(); x.moveTo(W / 2, 8); x.lineTo(W / 2, H - 8); x.stroke(); x.setLineDash([]);
+    x.strokeStyle = 'rgba(120,220,255,.5)'; x.lineWidth = 4; x.strokeRect(2, 2, W - 4, H - 4);
+    A.txt(x, String(pts), W / 2 - 56, 56, 58, 'rgba(255,255,255,.16)', 'center'); A.txt(x, String(bp), W / 2 + 56, 56, 58, 'rgba(255,255,255,.16)', 'center');
+    tr.forEach((p, i) => { x.fillStyle = 'rgba(255,255,255,' + (i / tr.length * .3) + ')'; A.circ(x, p[0], p[1], 3 + i * .45); x.fill(); });
+    const pad = (X, Y, c, fl) => { x.save(); x.shadowColor = c; x.shadowBlur = 12 + fl; A.box(x, X, Y, PW, PH, c, 4, { flat: 1 }); x.restore(); };
+    pad(14, py, '#4de1ff', hitF); pad(W - 14 - PW, ay, '#ff5ccf', 0); hitF = Math.max(0, hitF - 1);
+    if (serve === 0) A.orb(x, b.x, b.y, 7, '#ffffff'); else if (!over) A.txt(x, 'Готовься', W / 2, H / 2, 20, 'rgba(255,255,255,.7)', 'center');
+    A.hud(x, W, 'Ты ' + pts, 'Бот ' + bp + ' / 5');
   } };
 };
 const brick = (x, sc, st) => {
-  let pv = 0, px = 120, bx = 150, by = 300, vx = 2.5, vy = -3.5, n = 0, over = 0, b = [];
-  for (let r = 0; r < 5; r++) for (let c = 0; c < 6; c++) b.push([c * 50 + 3, r * 20 + 30, 44, 14, r]);
-  st('A и D двигают платформу');
-  return { dir: dx => { px = cl(px + dx * 30, 0, 240); }, t() {
+  const W = 300, H = 400, BW = 31, BH = 14, GX = 3, OX = 16, OY = 54, COLS = 8, COLORS = ['#ef476f', '#ff9f1c', '#ffd23f', '#06d6a0', '#4cc9f0', '#9b5de5'];
+  let lvl = 1, lives = 3, n = 0, over = 0, px = 150, wide = 0, slow = 0, bricks = [], balls = [], caps = [], fr = 0, stuck = 1, tgt = null;
+  const pat = L => { const r = []; for (let j = 0; j < 6; j++) for (let i = 0; i < COLS; i++) { let t = 1; if (L % 3 === 2 && (i + j) % 2) t = 0; if (L % 3 === 0) { if (j === 5 && i % 2 === 0) t = 3; else if (j === 2) t = 2; } else if (L % 3 === 1 && j === 1) t = 2; if (L > 3 && j === 0) t = 2; if (t) r.push({ i, j, t, hp: t === 2 ? 2 : 1, c: COLORS[j % 6] }); } return r; };
+  const pw = () => wide > 0 ? 88 : 56, spd = () => (3.8 + Math.min(2.6, (lvl - 1) * .4)) * (slow > 0 ? .7 : 1);
+  const newBall = () => { balls = [{ x: px, y: 366, vx: 0, vy: 0 }]; stuck = 1; };
+  const start = () => { bricks = pat(lvl); caps = []; newBall(); st('Уровень ' + lvl + '. Нажми, тапни или пробел — запуск'); };
+  const launch = () => { if (stuck && !over) { stuck = 0; balls.forEach(b => { b.vx = (Math.random() - .5) * 2.4; b.vy = -spd(); }); S.p('shoot'); } };
+  start(); sc(0);
+  return { click: launch, down: (a) => { tgt = a; }, move: (a) => { tgt = a; }, t() {
+    fr++; if (K.Space && stuck) launch();
     if (!over) {
-      px += (pv = pv * .8 + ((K.KeyD | 0) - (K.KeyA | 0)) * 1.1); px = cl(px, 0, 240);
-      bx += vx; by += vy; if (bx < 5 || bx > 295) vx = -vx; if (by < 5) vy = -vy;
-      if (by > 380 && by < 392 && bx > px && bx < px + 60 && vy > 0) { vy = -vy; vx = (bx - px - 30) / 10; }
-      const i = b.findIndex(k => hit(bx - 5, by - 5, 10, 10, k[0], k[1], k[2], k[3]));
-      if (i >= 0) { boom(b[i][0] + 22, b[i][1] + 7, ['#d93025', '#f9ab00', '#01875f', '#1a73e8', '#a142f4'][b[i][4]], 10); b.splice(i, 1); vy = -vy; sc(++n); if (!b.length) { over = 1; st('Победа!'); } }
-      if (by > 400) { over = 1; st('Мяч упал. Нажми «Начать заново»'); }
+      const kd = (K.KeyD | 0) - (K.KeyA | 0); if (kd) { px += kd * 6; tgt = null; } else if (tgt !== null) px += (tgt - px) * .4; px = cl(px, pw() / 2 + 4, W - pw() / 2 - 4);
+      if (wide > 0) wide--; if (slow > 0) slow--;
+      balls.forEach(b => {
+        if (stuck) { b.x = px; b.y = 366; return; }
+        const k = spd() / Math.hypot(b.vx, b.vy); b.vx *= k; b.vy *= k; b.x += b.vx; b.y += b.vy;
+        if (b.x < 6) { b.x = 6; b.vx = Math.abs(b.vx); S.p('tick'); } if (b.x > W - 6) { b.x = W - 6; b.vx = -Math.abs(b.vx); S.p('tick'); } if (b.y < 6) { b.y = 6; b.vy = Math.abs(b.vy); S.p('tick'); }
+        if (b.vy > 0 && b.y + 5 >= 372 && b.y - 5 <= 384 && b.x > px - pw() / 2 - 4 && b.x < px + pw() / 2 + 4) { const rel = (b.x - px) / (pw() / 2); const a = rel * 1.05, s2 = spd(); b.vx = s2 * Math.sin(a); b.vy = -s2 * Math.cos(a); b.y = 366; S.p('hit'); }
+        for (const br of bricks) {
+          const bx = OX + br.i * (BW + GX), by = OY + br.j * (BH + GX), cx = cl(b.x, bx, bx + BW), cy = cl(b.y, by, by + BH), dx = b.x - cx, dy = b.y - cy;
+          if (dx * dx + dy * dy < 25) {
+            if (Math.abs(dx) > Math.abs(dy)) b.vx = dx > 0 ? Math.abs(b.vx) : -Math.abs(b.vx); else b.vy = dy > 0 ? Math.abs(b.vy) : -Math.abs(b.vy);
+            if (br.t === 3) { S.p('tick'); break; }
+            br.hp--; if (br.hp <= 0) { br.dead = 1; n += 10 * (6 - br.j) + 10; sc(n); boom(bx + BW / 2, by + BH / 2, br.c, 9); A.pop(bx + BW / 2, by, '+' + (10 * (6 - br.j) + 10)); if (rnd(100) < 15) caps.push({ x: bx + BW / 2, y: by, k: 'WMSL'[rnd(4)] }); S.p('pop'); } else { S.p('hit'); boom(bx + BW / 2, by + BH / 2, '#cfd8e6', 3); }
+            break;
+          }
+        }
+      });
+      bricks = bricks.filter(b => !b.dead);
+      balls = balls.filter(b => b.y < H + 10);
+      if (!balls.length) { lives--; S.p('lose'); SH = 6; if (lives <= 0) { over = 1; st(OVER); } else { newBall(); st('Жизней: ' + lives + '. Запускай шар'); } }
+      caps.forEach(c => c.y += 2.1); caps = caps.filter(c => { if (c.y > 366 && c.y < 392 && c.x > px - pw() / 2 - 8 && c.x < px + pw() / 2 + 8) { S.p('coin'); if (c.k === 'W') wide = 600; if (c.k === 'S') slow = 600; if (c.k === 'L' && lives < 5) lives++; if (c.k === 'M') { const b = balls[0]; if (b) { balls.push({ x: b.x, y: b.y, vx: -b.vx - 1, vy: b.vy }, { x: b.x, y: b.y, vx: b.vx + 1, vy: b.vy }); } } A.pop(c.x, 360, { W: 'Шире', M: 'x3', S: 'Медленнее', L: '+1 жизнь' }[c.k], '#7dff9a'); return false; } return c.y < H + 10; });
+      if (!bricks.some(b => b.t !== 3) && !over) { lvl++; n += 100; sc(n); S.p('win'); start(); }
     }
-    b.forEach(k => R(x, ['#d93025', '#f9ab00', '#01875f', '#1a73e8', '#a142f4'][k[4]], k[0], k[1], k[2], k[3]));
-    R(x, '#e8ecf4', px, 385, 60, 8); C(x, '#e8ecf4', bx, by, 5);
+    A.sky(x, W, H, fr, 'deep'); A.stars(x, W, H, fr, 30);
+    bricks.forEach(br => { const bx = OX + br.i * (BW + GX), by = OY + br.j * (BH + GX), c = br.t === 3 ? '#d4a017' : br.t === 2 ? (br.hp === 2 ? '#c9d3e3' : '#8995ab') : br.c; A.box(x, bx, by, BW, BH, c, 4); if (br.t === 3) { x.fillStyle = '#7a5a05'; A.circ(x, bx + 5, by + 7, 1.6); x.fill(); A.circ(x, bx + BW - 5, by + 7, 1.6); x.fill(); } });
+    caps.forEach(c => { const col = { W: '#4cc9f0', M: '#06d6a0', S: '#ffd23f', L: '#ef476f' }[c.k]; A.box(x, c.x - 11, c.y - 7, 22, 14, col, 7); A.txt(x, c.k, c.x, c.y + 1, 11, '#fff', 'center', 'rgba(0,0,0,.4)'); });
+    x.save(); x.shadowColor = '#7ae8ff'; x.shadowBlur = 12; A.box(x, px - pw() / 2, 372, pw(), 12, wide > 0 ? '#4cc9f0' : '#e8ecf4', 6, { flat: 1 }); x.restore();
+    balls.forEach(b => { x.save(); x.shadowColor = '#fff'; x.shadowBlur = 10; A.orb(x, b.x, b.y, 5.2, '#ffffff', { flat: 1 }); x.restore(); });
+    A.hud(x, W, 'Уровень ' + lvl, null); A.lives(x, W, lives, Math.max(3, lives));
   } };
 };
 const dodge = (x, sc, st) => {
-  let pv = 0, px = 135, e = [], n = 0, fr = 0, over = 0;
-  st('A и D двигают героя. Уворачивайся!');
-  return { dir: dx => { px = cl(px + dx * 30, 0, 270); }, t() {
+  const W = 300, H = 400, GY = 340;
+  let px = 150, vx = 0, over = 0, fr = 0, secs = 0, face = 1, sq = 1, dashT = 0, dashCd = 0, pk = 0, shield = 0, inv = 0, wn = [], ob = [], it = [], tr = [];
+  const spawn = () => { const big = rnd(6) === 0; wn.push({ x: 18 + rnd(264), t: 36, r: big ? 18 : 8 + rnd(6), v: 2.6 + Math.min(3.6, fr / 800) + Math.random() * 1.3 - (big ? .9 : 0), rock: rnd(3) === 0 }); };
+  sc(0); st('A и D — бежать, пробел — рывок (на миг неуязвим). Лови щит');
+  return { held: true, t() {
+    fr++;
     if (!over) {
-      px += (pv = pv * .8 + ((K.KeyD | 0) - (K.KeyA | 0)) * 1.1); px = cl(px, 0, 270); fr++;
-      if (fr % 25 === 0) e.push([rnd(270), -30, 2 + fr / 900]);
-      e.forEach(k => k[1] += k[2]); e = e.filter(k => k[1] < 400);
-      if (fr % 30 === 0) sc(++n);
-      if (e.some(k => hit(px, 365, 30, 30, k[0], k[1], 30, 30))) { over = 1; boom(px + 15, 380, '#d93025', 24); st(OVER); }
+      if (fr % 60 === 0) { secs++; sc(secs); }
+      const ax = (K.KeyD | 0) - (K.KeyA | 0); if (ax) face = ax; vx += ax * .9; vx *= .82;
+      const dk = K.Space | 0; if (dk && !pk && dashCd <= 0) { dashT = 14; dashCd = 75; inv = 16; S.p('jump'); boom(px, GY - 10, '#ffffff', 8); } pk = dk;
+      if (dashT > 0) { dashT--; vx = face * 10.5; tr.push([px, 1]); } dashCd--; inv--;
+      px = cl(px + vx, 16, W - 16); sq += (1 - sq) * .2;
+      if (fr % Math.max(14, 44 - Math.floor(fr / 220)) === 0) spawn();
+      if (fr % 680 === 0 && !shield) it.push({ x: 30 + rnd(240), y: -20, v: 1.8 });
+      wn.forEach(w => w.t--); wn.filter(w => w.t <= 0).forEach(w => ob.push({ x: w.x, y: -20, r: w.r, v: w.v, rock: w.rock, a: 0 })); wn = wn.filter(w => w.t > 0);
+      ob.forEach(o => { o.y += o.v; o.a += .06; }); it.forEach(o => o.y += o.v);
+      ob = ob.filter(o => {
+        if (o.y > GY + 10) { boom(o.x, GY, o.rock ? '#8a8a8a' : '#ffb347', 6); return false; }
+        if (Math.hypot(o.x - px, o.y - (GY - 13)) < o.r + 10 && inv <= 0) { if (shield) { shield = 0; inv = 50; boom(o.x, o.y, '#7ae8ff', 18); SH = 5; S.p('hit'); return false; } over = 1; boom(px, GY - 13, '#7bd96a', 28); SH = 9; st(OVER); }
+        return true;
+      });
+      it = it.filter(o => { if (Math.hypot(o.x - px, o.y - (GY - 13)) < 22) { shield = 1; S.p('coin'); A.pop(px, GY - 40, 'Щит!', '#7ae8ff'); return false; } return o.y < H; });
     }
-    e.forEach(k => R(x, '#d93025', k[0], k[1], 30, 30)); R(x, '#01875f', px, 365, 30, 30);
+    tr = tr.filter(t => --t[1] > -10);
+    A.sky(x, W, H, fr, 'lava');
+    x.fillStyle = '#1b0a0a'; x.beginPath(); x.moveTo(20, GY); x.lineTo(122, 160); x.lineTo(178, 160); x.lineTo(280, GY); x.closePath(); x.fill();
+    const gl = x.createRadialGradient(150, 160, 4, 150, 160, 80 + Math.sin(fr * .05) * 8); gl.addColorStop(0, 'rgba(255,190,60,.95)'); gl.addColorStop(1, 'rgba(255,80,0,0)'); x.fillStyle = gl; x.fillRect(40, 60, 220, 200);
+    A.box(x, 0, GY, W, H - GY, '#3a1a1a', 0, { flat: 1 }); x.strokeStyle = 'rgba(255,140,40,.7)'; x.lineWidth = 2; x.beginPath(); for (let i = 0; i < 8; i++) { const lx = i * 40 + 10; x.moveTo(lx, GY + 8); x.lineTo(lx + 14, GY + 22 + Math.sin(fr * .04 + i) * 3); x.lineTo(lx + 4, GY + 40); } x.stroke();
+    A.water(x, W, H - 22, 22, fr, '#ff9a2a', '#c2310c');
+    wn.forEach(w => { x.globalAlpha = .5 + .5 * Math.abs(Math.sin(fr * .3)); A.txt(x, '!', w.x, 22, 24, '#ffdd55', 'center', '#7a1d00'); x.globalAlpha = 1; });
+    ob.forEach(o => { if (o.rock) { A.orb(x, o.x, o.y, o.r, '#8d8d97'); x.fillStyle = 'rgba(0,0,0,.25)'; A.circ(x, o.x + o.r * .25, o.y + o.r * .2, o.r * .3); x.fill(); } else { for (let k = 3; k > 0; k--) { x.fillStyle = 'rgba(255,' + (150 + k * 30) + ',40,' + (.18 * (4 - k)) + ')'; A.circ(x, o.x, o.y - k * o.r * .7, o.r * (1 - k * .12)); x.fill(); } A.orb(x, o.x, o.y, o.r, '#ff7a18'); x.fillStyle = '#ffe08a'; A.circ(x, o.x - o.r * .2, o.y - o.r * .2, o.r * .4); x.fill(); } });
+    it.forEach(o => { x.fillStyle = 'rgba(122,232,255,.35)'; x.strokeStyle = '#7ae8ff'; x.lineWidth = 2; A.circ(x, o.x, o.y, 13); x.fill(); x.stroke(); A.txt(x, '🛡', o.x, o.y + 1, 14, '#fff', 'center'); });
+    tr.forEach(t => { x.globalAlpha = Math.max(0, t[1] / 20) * .5; A.blob(x, t[0], GY - 13, 12, '#9be7ff', face, 1); x.globalAlpha = 1; });
+    if (!over || fr % 8 < 6) { if (inv > 0 && inv % 4 < 2 && !dashT) x.globalAlpha = .45; A.blob(x, px, GY - 13, 12, '#7bd96a', face, 1 + Math.abs(vx) * .015); x.globalAlpha = 1; }
+    if (shield) { x.strokeStyle = 'rgba(122,232,255,' + (.6 + .3 * Math.sin(fr * .2)) + ')'; x.lineWidth = 3; A.circ(x, px, GY - 13, 21); x.stroke(); }
+    A.hud(x, W, '⏱ ' + secs + ' с', shield ? '🛡 щит' : (dashCd > 0 ? 'рывок ' + Math.ceil(dashCd / 60 * 10) / 10 : 'рывок готов'));
   } };
 };
 const shoot = (x, sc, st) => {
-  let pv = 0, px = 135, s = [], e = [], n = 0, fr = 0, over = 0, cd = 0;
-  st('A и D двигают корабль, W стреляет');
-  const fire = () => { if (!over && cd <= 0) { s.push([px + 13, 360]); cd = 12; } };
-  return { dir: (dx, dy) => { if (dy < 0) fire(); else px = cl(px + dx * 30, 0, 270); }, t() {
+  const W = 300, H = 400;
+  let px = 150, tgt = null, fire = 0, cd = 0, fr = 0, n = 0, lives = 3, wave = 0, over = 0, inv = 0, dbl = 0, shl = 0, wt = 30, boss = null, bl = [], en = [], eb = [], pu = [];
+  const mkWave = () => {
+    wave++; st('Волна ' + wave + (wave % 4 === 0 ? ' — БОСС!' : ''));
+    if (wave % 4 === 0) { const hp = 40 + wave * 6; boss = { x: 150, y: -60, hp, max: hp, vx: 1.4, t: 0 }; return; }
+    const cols = wave > 3 ? 6 : 5, rows = Math.min(4, 2 + Math.floor(wave / 3));
+    for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) en.push({ x: 40 + i * (220 / (cols - 1)), y: -30 - j * 36, by: 52 + j * 34, hp: j === 0 && wave > 2 ? 2 : 1, ph: Math.random() * 6, k: j % 3 });
+  };
+  const hurt = () => { if (inv > 0) return; if (shl) { shl = 0; inv = 60; boom(px, 366, '#7ae8ff', 16); S.p('hit'); return; } lives--; inv = 100; SH = 8; boom(px, 366, '#ff7a45', 24); S.p('boom'); if (lives <= 0) { over = 1; st(OVER); } };
+  sc(0); st('A и D — лететь, пробел/W или зажми палец — огонь');
+  return { down: a => { fire = 1; tgt = a; }, move: a => { tgt = a; }, up: () => { fire = 0; }, t() {
+    fr++;
     if (!over) {
-      px += (pv = pv * .8 + ((K.KeyD | 0) - (K.KeyA | 0)) * 1.1); if (K.KeyW) fire(); px = cl(px, 0, 270); cd--; fr++;
-      if (fr % 40 === 0) e.push([rnd(270), -30]);
-      s.forEach(k => k[1] -= 7); e.forEach(k => k[1] += 1.5 + fr / 2000);
-      e.forEach(k => { const i = s.findIndex(q => hit(q[0], q[1], 4, 12, k[0], k[1], 30, 30)); if (i >= 0) { s.splice(i, 1); k.d = 1; sc(++n); boom(k[0] + 15, k[1] + 15, '#a142f4', 16); } });
-      e = e.filter(k => !k.d); s = s.filter(k => k[1] > -12);
-      if (e.some(k => k[1] > 370)) { over = 1; st('Враг прорвался. Нажми «Начать заново»'); }
+      const kd = (K.KeyD | 0) - (K.KeyA | 0); if (kd) { px += kd * 5; tgt = null; } else if (tgt !== null) px += (tgt - px) * .25; px = cl(px, 20, W - 20);
+      const fk = fire || (K.Space | 0) || (K.KeyW | 0); cd--; inv--;
+      if (fk && cd <= 0) { cd = dbl > 0 ? 8 : 11; bl.push({ x: px - (dbl > 0 ? 8 : 0), y: 348 }); if (dbl > 0) bl.push({ x: px + 8, y: 348 }); S.p('shoot'); } if (dbl > 0) dbl--;
+      bl.forEach(b => b.y -= 8); bl = bl.filter(b => b.y > -10);
+      if (!en.length && !boss) { if (--wt <= 0) { mkWave(); wt = 90; } }
+      const gx = Math.sin(fr / 60) * 34;
+      en.forEach(e => { if (e.y < e.by) e.y += 1.8; else e.y += .06 + wave * .008; e.dx = gx + Math.sin(fr / 30 + e.ph) * 6; });
+      if (rnd(Math.max(24, 80 - wave * 4)) === 0 && en.length) { const e = en[rnd(en.length)]; if (e.y > 10) eb.push({ x: e.x + e.dx, y: e.y + 12, vx: 0, vy: 3 + wave * .08 }); }
+      if (boss) { boss.t++; if (boss.y < 70) boss.y += 1.2; boss.x += boss.vx; if (boss.x < 50 || boss.x > 250) boss.vx = -boss.vx; if (boss.t % 55 === 0 && boss.y >= 60) for (let k = -2; k <= 2; k++) eb.push({ x: boss.x, y: boss.y + 26, vx: k * .9, vy: 3.2 }); }
+      eb.forEach(b => { b.x += b.vx; b.y += b.vy; });
+      eb = eb.filter(b => { if (b.y > 352 && b.y < 384 && Math.abs(b.x - px) < 13) { hurt(); return false; } return b.y < H + 10 && b.x > -10 && b.x < W + 10; });
+      bl = bl.filter(b => {
+        for (const e of en) if (!e.dead && Math.hypot(b.x - (e.x + e.dx), b.y - e.y) < 15) { e.hp--; if (e.hp <= 0) { e.dead = 1; n += 10; sc(n); boom(e.x + e.dx, e.y, ['#ff7aa8', '#ffd13a', '#7ae8ff'][e.k], 14); S.p('pop'); if (rnd(100) < 11) pu.push({ x: e.x + e.dx, y: e.y, k: 'DSH'[rnd(3)] }); } else { S.p('hit'); boom(b.x, b.y, '#fff', 3); } return false; }
+        if (boss && Math.hypot(b.x - boss.x, b.y - boss.y) < 30) { boss.hp--; boom(b.x, b.y, '#ffd13a', 2); S.p('tick'); if (boss.hp <= 0) { n += 200; sc(n); boom(boss.x, boss.y, '#ff7a45', 40); SH = 12; S.p('boom'); pu.push({ x: boss.x - 20, y: boss.y, k: 'D' }, { x: boss.x + 20, y: boss.y, k: 'H' }); boss = null; } return false; }
+        return true;
+      });
+      en = en.filter(e => { if (e.dead) return false; if (e.y > 352) { hurt(); return false; } if (Math.abs(e.x + e.dx - px) < 16 && Math.abs(e.y - 366) < 16) { hurt(); e.dead = 1; boom(e.x + e.dx, e.y, '#ff7aa8', 10); return false; } return true; });
+      pu.forEach(p => p.y += 1.7); pu = pu.filter(p => { if (Math.abs(p.x - px) < 18 && p.y > 346 && p.y < 386) { S.p('coin'); if (p.k === 'D') dbl = 720; if (p.k === 'S') shl = 1; if (p.k === 'H' && lives < 5) lives++; A.pop(px, 340, { D: 'Двойной огонь', S: 'Щит', H: '+1 жизнь' }[p.k], '#7dff9a'); return false; } return p.y < H; });
     }
-    s.forEach(k => R(x, '#e8ecf4', k[0], k[1], 4, 12)); e.forEach(k => R(x, '#a142f4', k[0], k[1], 30, 30)); R(x, '#01875f', px, 370, 30, 20);
+    A.sky(x, W, H, fr, 'space');
+    x.fillStyle = 'rgba(120,80,200,.18)'; x.beginPath(); x.arc(250, 90 + (fr * .05) % 40, 60, 0, 7); x.fill(); const pl = x.createRadialGradient(236, 80, 4, 250, 100, 46); pl.addColorStop(0, '#c9a6ff'); pl.addColorStop(1, '#4b2c8a'); x.fillStyle = pl; A.circ(x, 252, 96, 26); x.fill();
+    for (let l = 0; l < 3; l++) { x.fillStyle = 'rgba(255,255,255,' + (.35 + l * .2) + ')'; for (let i = 0; i < 14; i++) { const sx = (i * 53 + l * 17) % 300, sy = ((i * 97 + fr * (.6 + l * .7)) % 420); x.fillRect(sx, sy, 1 + l * .6, 1 + l * .6); } }
+    pu.forEach(p => { const col = { D: '#ffd13a', S: '#4cc9f0', H: '#ef476f' }[p.k]; x.save(); x.shadowColor = col; x.shadowBlur = 10; A.box(x, p.x - 12, p.y - 8, 24, 16, col, 8, { flat: 1 }); x.restore(); A.txt(x, p.k, p.x, p.y + 1, 12, '#fff', 'center', 'rgba(0,0,0,.4)'); });
+    en.forEach(e => A.ufo(x, e.x + e.dx, e.y, 11, ['#a5b4fc', '#ffb3c7', '#9be7c4'][e.k]));
+    if (boss) { A.ufo(x, boss.x, boss.y, 30, '#ff9f68'); A.bar(x, 70, 16, 160, 8, boss.hp / boss.max, '#ef476f'); }
+    eb.forEach(b => { x.save(); x.shadowColor = '#ff5252'; x.shadowBlur = 8; A.orb(x, b.x, b.y, 4, '#ff5252', { flat: 1 }); x.restore(); });
+    bl.forEach(b => { x.save(); x.shadowColor = '#7ae8ff'; x.shadowBlur = 8; x.fillStyle = '#d6f6ff'; A.rr(x, b.x - 1.8, b.y - 7, 3.6, 12, 2); x.fill(); x.restore(); });
+    if (!over && !(inv > 0 && inv % 6 < 3)) { A.ship(x, px, 366, 14, '#4fc3f7', 1); if (shl) { x.strokeStyle = 'rgba(122,232,255,.8)'; x.lineWidth = 3; A.circ(x, px, 366, 24); x.stroke(); } }
+    A.hud(x, W, 'Волна ' + Math.max(1, wave), dbl > 0 ? '✦ двойной огонь' : null); A.lives(x, W, lives, 3, 44);
   } };
 };
 const coins = (x, sc, st) => {
-  let vx = 0, vy = 0, px = 140, py = 140, c = [150, 60], n = 0, fr = 0, over = 0;
-  st('W A S D двигают героя. Собери монеты за 30 секунд');
-  return { dir: (dx, dy) => { px = cl(px + dx * 20, 0, 270); py = cl(py + dy * 20, 0, 270); }, t() {
+  const W = 300, H = 300, TL = 1800;
+  let px = 150, py = 170, vx = 0, vy = 0, t = 0, n = 0, over = 0, cs = [], sp = [], combo = 0, ctime = -999, fr = 0, face = 1, hurt = 0, boost = 0;
+  const addCoin = () => cs.push({ x: 26 + rnd(248), y: 46 + rnd(232), life: 420, g: rnd(8) === 0, ph: Math.random() * 6 });
+  const addSpike = () => sp.push({ x: 34 + rnd(232), y: 56 + rnd(214), t: 80, a: 110 });
+  for (let i = 0; i < 3; i++) addCoin();
+  sc(0); st('WASD — собирай монеты 30 секунд. Быстрые подборы дают комбо, шипов избегай');
+  return { held: true, t() {
+    fr++;
     if (!over) {
-      vx = vx * .82 + ((K.KeyD | 0) - (K.KeyA | 0)) * .8; vy = vy * .82 + ((K.KeyS | 0) - (K.KeyW | 0)) * .8; px = cl(px + vx, 0, 270); py = cl(py + vy, 0, 270);
-      if (hit(px, py, 30, 30, c[0] - 10, c[1] - 10, 20, 20)) { boom(c[0], c[1], '#f9ab00', 12); sc(++n); c = [10 + rnd(280), 10 + rnd(280)]; }
-      if (++fr > 1800) { over = 1; st('Время вышло! Монет: ' + n); }
+      t++; if (t >= TL) { over = 1; boom(px, py, '#ffd13a', 24); st(OVER); }
+      const ax = (K.KeyD | 0) - (K.KeyA | 0), ay = (K.KeyS | 0) - (K.KeyW | 0), L = Math.hypot(ax, ay) || 1; vx += ax / L * .75; vy += ay / L * .75; vx *= .84; vy *= .84; if (ax) face = ax;
+      px = cl(px + vx, 18, W - 18); py = cl(py + vy, 44, H - 18); hurt--;
+      if (cs.length < 4 && fr % 28 === 0) addCoin(); if (fr % 140 === 0 && sp.length < 3 + Math.floor(t / 600)) addSpike();
+      cs.forEach(c => c.life--);
+      cs = cs.filter(c => {
+        if (Math.hypot(c.x - px, c.y - py) < 19) { combo = t - ctime < 110 ? Math.min(5, combo + 1) : 1; ctime = t; const v = (c.g ? 5 : 1) * combo; n += v; sc(n); A.pop(c.x, c.y - 12, '+' + v + (combo > 1 ? ' x' + combo : ''), c.g ? '#ff7aa8' : '#ffd13a'); A.ring(c.x, c.y, '#ffe27a'); S.p('coin'); return false; }
+        return c.life > 0;
+      });
+      sp.forEach(s => { if (s.t > 0) s.t--; else s.a--; if (s.t <= 0 && s.a > 0 && Math.hypot(s.x - px, s.y - py) < 20 && hurt <= 0) { hurt = 60; t += 120; SH = 6; boom(px, py, '#ff5252', 12); S.p('hit'); A.pop(px, py - 20, '-2 с', '#ff7a7a'); vx = (px - s.x) * .5; vy = (py - s.y) * .5; } });
+      sp = sp.filter(s => s.a > 0);
     }
-    C(x, '#f9ab00', c[0], c[1], 10); R(x, '#01875f', px, py, 30, 30); R(x, '#1a73e8', 0, 296, Math.max(0, 300 * (1 - fr / 1800)), 4);
+    A.checker(x, 0, 0, W, H, 30, '#d8a76a', '#cf9b5c'); x.strokeStyle = 'rgba(80,45,15,.18)'; x.lineWidth = 1; x.beginPath(); for (let i = 0; i <= W; i += 30) { x.moveTo(i, 0); x.lineTo(i, H); x.moveTo(0, i); x.lineTo(W, i); } x.stroke();
+    A.vig(x, W, H, .4); x.strokeStyle = '#5a3a22'; x.lineWidth = 8; x.strokeRect(4, 4, W - 8, H - 8);
+    [[18, 18], [W - 18, 18], [18, H - 18], [W - 18, H - 18]].forEach(([tx, ty], i) => { const g = x.createRadialGradient(tx, ty, 1, tx, ty, 34 + Math.sin(fr * .1 + i) * 3); g.addColorStop(0, 'rgba(255,200,90,.55)'); g.addColorStop(1, 'rgba(255,160,40,0)'); x.fillStyle = g; x.fillRect(tx - 40, ty - 40, 80, 80); });
+    sp.forEach(s => { if (s.t > 0) { x.strokeStyle = 'rgba(255,60,60,' + (.4 + .4 * Math.abs(Math.sin(fr * .3))) + ')'; x.lineWidth = 3; A.circ(x, s.x, s.y, 16); x.stroke(); A.txt(x, '!', s.x, s.y, 16, '#ff5252', 'center'); } else { x.fillStyle = '#6b6f7a'; A.circ(x, s.x, s.y, 15); x.fill(); x.fillStyle = '#b7bcc9'; for (let k = 0; k < 6; k++) { const a = k * 1.047; x.beginPath(); x.moveTo(s.x + Math.cos(a - .25) * 11, s.y + Math.sin(a - .25) * 11); x.lineTo(s.x + Math.cos(a) * 21, s.y + Math.sin(a) * 21); x.lineTo(s.x + Math.cos(a + .25) * 11, s.y + Math.sin(a + .25) * 11); x.fill(); } } });
+    cs.forEach(c => { if (c.life < 100 && fr % 10 < 5) return; if (c.g) A.gem(x, c.x, c.y, 10, '#ec407a'); else A.coin(x, c.x, c.y, 9, fr * .08 + c.ph); });
+    if (!over || fr % 10 < 7) { if (hurt > 0 && hurt % 6 < 3) x.globalAlpha = .4; A.blob(x, px, py, 12, '#7bd96a', face, 1 + Math.hypot(vx, vy) * .012); x.globalAlpha = 1; }
+    A.bar(x, 8, 38, W - 16, 7, 1 - t / TL, t > TL * .8 ? '#ff5252' : '#5cd65c');
+    A.hud(x, W, 'Монеты ' + n, combo > 1 && t - ctime < 110 ? 'Комбо x' + combo : null);
   } };
 };
-function ttt(box, score) {
-  const el = document.createElement('div'); el.className = 'g4'; el.style.gridTemplateColumns = 'repeat(3,1fr)'; el.style.gridTemplateRows = 'repeat(3,1fr)'; box.append(el);
-  const b = Array(9).fill(''), Wn = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
-  const win = p => Wn.some(l => l.every(i => b[i] === p));
-  let over = 0; score(0); status('Ты играешь крестиками. Кликай по клетке');
-  const cells = b.map((_, i) => { const c = document.createElement('button'); c.setAttribute('aria-label', 'Клетка'); c.style.background = 'var(--surf)'; c.onclick = () => play(i); el.append(c); return c; });
-  const put = (i, p) => { b[i] = p; cells[i].textContent = p; cells[i].style.color = p === 'X' ? '#01875f' : '#d93025'; };
-  function play(i) {
-    if (over || b[i]) return; put(i, 'X');
-    if (win('X')) { over = 1; score(1); status('Ты победил!'); return; }
-    const e = b.map((v, k) => v ? -1 : k).filter(k => k >= 0);
-    if (!e.length) { over = 1; status('Ничья'); return; }
-    put(e[rnd(e.length)], 'O');
-    if (win('O')) { over = 1; status('Победил компьютер'); } else if (!b.includes('')) { over = 1; status('Ничья'); }
-  }
-  return { dir: null, stop() {} };
-}
-function react(box, score) {
-  const bt = document.createElement('button');
-  bt.style.cssText = 'width:min(92vw,352px);height:240px;border-radius:16px;font-size:1.3rem;background:#1a73e8;color:#fff;border:0';
-  bt.textContent = 'Нажми, чтобы начать'; box.append(bt);
-  let t0 = 0, tm, state = 0; score('—'); status('Жми, как только кнопка станет зелёной');
-  bt.onclick = () => {
-    if (state === 1) { clearTimeout(tm); state = 0; bt.style.background = '#1a73e8'; bt.textContent = 'Рано! Нажми, чтобы повторить'; }
-    else if (state === 2) { const ms = Math.round(performance.now() - t0); score(ms + ' мс'); state = 0; bt.style.background = '#1a73e8'; bt.textContent = ms + ' мс. Нажми ещё раз'; }
-    else {
-      state = 1; bt.style.background = '#d93025'; bt.textContent = 'Жди зелёного…';
-      tm = setTimeout(() => { state = 2; t0 = performance.now(); bt.style.background = '#01875f'; bt.textContent = 'Жми!'; }, 1500 + rnd(2500));
-    }
+const ttt = (x, sc, st) => {
+  const W = 300, H = 360, BX = 15, BY = 55, CS = 90, LINES = [[0, 1, 2], [3, 4, 5], [6, 7, 8], [0, 3, 6], [1, 4, 7], [2, 5, 8], [0, 4, 8], [2, 4, 6]];
+  let b, turn, wins = 0, fr = 0, res = '', win = null, bot = 0, over = 0, anim = Array(9).fill(0);
+  const winner = (bb) => { for (const l of LINES) if (bb[l[0]] && bb[l[0]] === bb[l[1]] && bb[l[0]] === bb[l[2]]) return l; return null; };
+  const mm = (bb, p) => { const w = winner(bb); if (w) return bb[w[0]] === 2 ? 1 : -1; if (bb.every(v => v)) return 0; let best = p === 2 ? -2 : 2; for (let i = 0; i < 9; i++) if (!bb[i]) { bb[i] = p; const v = mm(bb, p === 2 ? 1 : 2); bb[i] = 0; best = p === 2 ? Math.max(best, v) : Math.min(best, v); } return best; };
+  const botMove = () => { const free = []; for (let i = 0; i < 9; i++) if (!b[i]) free.push(i); if (rnd(100) < 28) return free[rnd(free.length)]; let bs = -3, bi = free[0]; for (const i of free) { b[i] = 2; const v = mm(b, 1); b[i] = 0; if (v > bs) { bs = v; bi = i; } } return bi; };
+  const newRound = () => { b = Array(9).fill(0); anim = Array(9).fill(0); win = null; res = ''; turn = 1; bot = 0; st('Ты играешь крестиками. Нажми на клетку'); };
+  const fin = () => { const w = winner(b); if (w) { win = w; if (b[w[0]] === 1) { wins++; sc(wins); res = 'Ты победил! Нажми, чтобы играть дальше'; S.p('win'); } else { res = 'Победил бот'; S.p('lose'); setTimeout(() => st(OVER), 900); } return 1; } if (b.every(v => v)) { res = 'Ничья. Нажми, чтобы играть дальше'; return 1; } return 0; };
+  newRound(); sc(0);
+  return { click(a, c) {
+    if (over) return; if (res) { if (!res.startsWith('Победил бот')) newRound(); return; } if (turn !== 1) return; const i = Math.floor((c - BY) / CS) * 3 + Math.floor((a - BX) / CS); if (a < BX || a > BX + 270 || c < BY || c > BY + 270 || b[i]) return;
+    b[i] = 1; anim[i] = 0; S.p('click'); if (fin()) return; turn = 2; bot = 24;
+  }, t() {
+    fr++; if (turn === 2 && !res && --bot <= 0) { const m = botMove(); b[m] = 2; anim[m] = 0; S.p('tick'); if (!fin()) turn = 1; }
+    const bg = x.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#173a63'); bg.addColorStop(1, '#0d2038'); x.fillStyle = bg; x.fillRect(0, 0, W, H);
+    A.box(x, BX - 6, BY - 6, 282, 282, '#24517f', 18, { nogloss: 1 });
+    x.strokeStyle = '#7fb7ea'; x.lineWidth = 5; x.lineCap = 'round'; x.beginPath(); for (let k = 1; k < 3; k++) { x.moveTo(BX + k * CS, BY + 12); x.lineTo(BX + k * CS, BY + 258); x.moveTo(BX + 12, BY + k * CS); x.lineTo(BX + 258, BY + k * CS); } x.stroke();
+    for (let i = 0; i < 9; i++) { if (!b[i]) continue; anim[i] = Math.min(1, anim[i] + .09); const cx = BX + (i % 3) * CS + CS / 2, cy = BY + Math.floor(i / 3) * CS + CS / 2, p = anim[i]; x.lineWidth = 11; x.lineCap = 'round';
+      if (b[i] === 1) { x.strokeStyle = '#ff5c8a'; x.beginPath(); x.moveTo(cx - 24, cy - 24); x.lineTo(cx - 24 + 48 * Math.min(1, p * 2), cy - 24 + 48 * Math.min(1, p * 2)); if (p > .5) { x.moveTo(cx + 24, cy - 24); x.lineTo(cx + 24 - 48 * (p * 2 - 1), cy - 24 + 48 * (p * 2 - 1)); } x.stroke(); }
+      else { x.strokeStyle = '#5cc8ff'; x.beginPath(); x.arc(cx, cy, 26, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * p); x.stroke(); } }
+    if (win) { x.save(); x.strokeStyle = '#ffe27a'; x.lineWidth = 8; x.shadowColor = '#ffe27a'; x.shadowBlur = 14; x.beginPath(); const a = win[0], c2 = win[2]; x.moveTo(BX + (a % 3) * CS + CS / 2, BY + Math.floor(a / 3) * CS + CS / 2); x.lineTo(BX + (c2 % 3) * CS + CS / 2, BY + Math.floor(c2 / 3) * CS + CS / 2); x.stroke(); x.restore(); }
+    A.txt(x, res || (turn === 1 ? 'Твой ход' : 'Бот думает…'), W / 2, 330, 16, res ? '#ffe27a' : '#cfe6ff', 'center');
+    A.hud(x, W, 'Победы ' + wins, null);
+  } };
+};
+const react = (x, sc, st) => {
+  const W = 300, H = 300;
+  let state = 'idle', t0 = 0, tw = 0, fr = 0, times = [], msg = '', over = 0;
+  sc(0); st('Нажми, когда экран станет зелёным. 5 попыток');
+  const go = () => { state = 'wait'; tw = 60 + rnd(140); };
+  return { click() {
+    if (over) return; if (state === 'idle' || state === 'res' || state === 'early') { go(); return; }
+    if (state === 'wait') { state = 'early'; msg = 'Слишком рано!'; S.p('hit'); return; }
+    if (state === 'go') { const ms = Math.round(performance.now() - t0); times.push(ms); sc(ms); msg = ms + ' мс'; S.p('coin');
+      if (times.length >= 5) { const avg = Math.round(times.reduce((a, b) => a + b, 0) / 5); over = 1; sc(avg); setTimeout(() => st(WIN + 'Среднее время реакции: ' + avg + ' мс'), 700); state = 'res'; } else state = 'res'; }
+  }, t() {
+    fr++; if (state === 'wait' && --tw <= 0) { state = 'go'; t0 = performance.now(); S.p('tick'); }
+    const C = { idle: ['#2f6fed', '#1b3f9a'], wait: ['#e5484d', '#9a1d22'], go: ['#2fcf6a', '#157a3a'], res: ['#2f6fed', '#1b3f9a'], early: ['#f59f00', '#a66100'] }[state], g = x.createLinearGradient(0, 0, 0, H); g.addColorStop(0, C[0]); g.addColorStop(1, C[1]); x.fillStyle = g; x.fillRect(0, 0, W, H);
+    if (state === 'go') { const r = 40 + (fr % 20) * 3; x.strokeStyle = 'rgba(255,255,255,' + (1 - (fr % 20) / 20) * .5 + ')'; x.lineWidth = 6; A.circ(x, 150, 130, r); x.stroke(); }
+    A.txt(x, { idle: 'Нажми, чтобы начать', wait: 'Жди зелёного…', go: 'ЖМИ!', res: msg, early: msg }[state], 150, 120, state === 'go' ? 54 : 30, '#fff', 'center', 'rgba(0,0,0,.25)');
+    if (state === 'res' || state === 'early') A.txt(x, over ? 'Готово!' : 'Нажми — следующая попытка', 150, 170, 15, 'rgba(255,255,255,.85)', 'center');
+    for (let i = 0; i < 5; i++) { x.fillStyle = i < times.length ? '#fff' : 'rgba(255,255,255,.28)'; A.circ(x, 100 + i * 25, 240, 6); x.fill(); if (times[i]) A.txt(x, String(times[i]), 100 + i * 25, 262, 10, '#fff', 'center', null, 600); }
+    A.hud(x, W, 'Попытка ' + Math.min(5, times.length + (state === 'idle' ? 0 : 1)) + ' / 5', null);
+  } };
+};
+const mole = (x, sc, st) => {
+  const W = 300, H = 340, TL = 1800, HX = [60, 150, 240], HY = [130, 215, 300];
+  let ms = Array(9).fill(null), t = 0, n = 0, fr = 0, over = 0, mx = 150, my = 170, sw = 0, hp = [];
+  sc(0); st('Бей кротов кликом! 🟤 +1, 🟡 +5, ёж ✖ −3. У тебя 30 секунд');
+  return { move: (a, b) => { mx = a; my = b; }, click(a, b) {
+    mx = a; my = b; if (over) return; sw = 9; S.p('click'); let h = 0;
+    for (let i = 0; i < 9; i++) { const m = ms[i]; if (!m || m.dead) continue; const hx = HX[i % 3], hy = HY[Math.floor(i / 3)]; if (m.up > .35 && Math.hypot(a - hx, b - (hy - 26 * m.up)) < 30) { m.dead = 14; h = 1; const v = m.k === 'g' ? 5 : m.k === 'h' ? -3 : 1; n = Math.max(0, n + v); sc(n); A.pop(hx, hy - 50, (v > 0 ? '+' : '') + v, v > 0 ? '#ffd13a' : '#ff7a7a'); boom(hx, hy - 20, m.k === 'g' ? '#ffd13a' : '#c98a5a', 12); S.p(v > 0 ? 'pop' : 'hit'); break; } }
+  }, t() {
+    fr++; sw = Math.max(0, sw - 1);
+    if (!over) { t++; if (t >= TL) { over = 1; st(OVER); }
+      if (fr % Math.max(16, 40 - Math.floor(t / 90)) === 0) { const f = []; ms.forEach((m, i) => { if (!m) f.push(i); }); if (f.length) { const i = f[rnd(f.length)], r = rnd(100); ms[i] = { k: r < 10 ? 'g' : r < 28 ? 'h' : 'm', up: 0, ph: 0, life: 60 + rnd(40) - Math.min(30, t / 60) }; } }
+      ms.forEach((m, i) => { if (!m) return; if (m.dead) { if (--m.dead <= 0) ms[i] = null; return; } m.ph++; if (m.ph < 9) m.up = Math.min(1, m.up + .12); else if (m.ph > m.life) { m.up -= .1; if (m.up <= 0) ms[i] = null; } }); }
+    const sk = x.createLinearGradient(0, 0, 0, 90); sk.addColorStop(0, '#6fc3ff'); sk.addColorStop(1, '#d6f0ff'); x.fillStyle = sk; x.fillRect(0, 0, W, 90); A.cloud(x, 80 + Math.sin(fr * .01) * 10, 40, 12, .8); A.cloud(x, 230, 56, 10, .7);
+    A.grass(x, W, 84, H - 84, '#62c95a'); x.fillStyle = 'rgba(0,0,0,.06)'; for (let i = 0; i < 12; i++) x.fillRect(0, 100 + i * 22, W, 10);
+    for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) { const i = r * 3 + c, hx = HX[c], hy = HY[r], m = ms[i];
+      x.fillStyle = '#3a2410'; A.ell(x, hx, hy, 34, 12); x.fill();
+      if (m) { x.save(); x.beginPath(); x.rect(hx - 40, hy - 70, 80, 70); x.clip(); const my2 = hy + 8 - m.up * 38, sq = m.dead ? .7 : 1; x.translate(hx, my2); x.scale(1, sq);
+        const body = m.k === 'g' ? '#ffd23f' : m.k === 'h' ? '#8a6bb8' : '#9a6a3a'; A.orb(x, 0, 0, 24, body, { flat: 1 });
+        if (m.k === 'h') { x.fillStyle = '#4b3578'; for (let q = -3; q <= 3; q++) { x.beginPath(); x.moveTo(q * 7 - 4, -14); x.lineTo(q * 7, -30 + Math.abs(q) * 2); x.lineTo(q * 7 + 4, -14); x.fill(); } }
+        x.fillStyle = '#ffb3c1'; A.ell(x, 0, 6, 8, 5); x.fill(); x.fillStyle = '#fff'; A.circ(x, -9, -5, 5.5); x.fill(); A.circ(x, 9, -5, 5.5); x.fill(); x.fillStyle = m.dead ? '#e5484d' : '#151515'; A.circ(x, -9, -4, 2.4); x.fill(); A.circ(x, 9, -4, 2.4); x.fill();
+        if (m.dead) { x.strokeStyle = '#ffd13a'; x.lineWidth = 2; for (let q = 0; q < 3; q++) { x.beginPath(); x.arc(0, -30, 6 + q * 4, 0, 6.28); x.stroke(); } } x.restore(); }
+      x.fillStyle = '#8a5a32'; x.beginPath(); x.ellipse(hx, hy + 5, 40, 14, 0, 0, Math.PI); x.fill(); x.strokeStyle = '#5a3a1c'; x.lineWidth = 2; x.stroke(); }
+    if (!over) { x.save(); x.translate(mx, my); x.rotate(sw ? -.9 + sw * .1 : -.4); x.fillStyle = '#8a5a32'; A.rr(x, -3, -4, 6, 38, 3); x.fill(); A.box(x, -18, -24, 36, 22, '#c9c9d6', 5); x.restore(); }
+    A.bar(x, 8, 40, W - 16, 6, 1 - t / TL, '#ffd13a'); A.hud(x, W, 'Счёт ' + n, null);
+  } };
+};
+const guess = (x, sc, st) => {
+  const W = 300, H = 420, MAXA = 8;
+  let secret = rnd(100) + 1, lo = 1, hi = 100, buf = '', att = 0, msg = 'Я загадал число от 1 до 100', fr = 0, over = 0, shake = 0, pk = {}, mc = '#cfe6ff';
+  sc(0); st('Набери число на клавиатуре и нажми ✓. У тебя 8 попыток');
+  const submit = () => {
+    if (over || !buf) return; const v = +buf; buf = ''; if (v < 1 || v > 100) { msg = 'Только от 1 до 100'; mc = '#ff9a9a'; shake = 10; return; }
+    att++; sc(att);
+    if (v === secret) { over = 1; msg = 'Угадал! Это ' + secret; mc = '#7dff9a'; S.p('win'); boom(150, 100, '#ffd13a', 30); setTimeout(() => st(WIN + 'Угадал число ' + secret + ' за ' + att + ' попыток'), 700); return; }
+    if (v < secret) { lo = Math.max(lo, v + 1); msg = v + ': загаданное БОЛЬШЕ ⬆'; mc = '#9fd8ff'; } else { hi = Math.min(hi, v - 1); msg = v + ': загаданное МЕНЬШЕ ⬇'; mc = '#ffcf9f'; }
+    shake = 8; S.p('tick'); if (att >= MAXA) { over = 1; msg = 'Попытки кончились. Было ' + secret; mc = '#ff9a9a'; setTimeout(() => st(OVER), 900); }
   };
-  return { dir: null, stop: () => clearTimeout(tm) };
-}
-function mole(box, score) {
-  const el = document.createElement('div'); el.className = 'g4'; el.style.gridTemplateColumns = 'repeat(3,1fr)'; el.style.gridTemplateRows = 'repeat(3,1fr)'; box.append(el);
-  let n = 0, m = -1, k = 0; score(0); status('Кликай по кроту. Осталось 30 с');
-  const cs = Array.from({ length: 9 }, (_, i) => { const c = document.createElement('button'); c.setAttribute('aria-label', 'Нора'); c.style.background = 'var(--surf)'; c.onclick = () => { if (i === m) { score(++n); m = -1; c.textContent = ''; } }; el.append(c); return c; });
-  const iv = setInterval(() => {
-    cs.forEach(c => { c.textContent = ''; });
-    if (++k > 43) { clearInterval(iv); m = -1; status('Время вышло! Поймано: ' + n); return; }
-    m = rnd(9); cs[m].textContent = '🐹'; status('Осталось ' + Math.round(30 - k * .7) + ' с');
-  }, 700);
-  return { dir: null, stop: () => clearInterval(iv) };
-}
-function guess(box, score) {
-  const w = document.createElement('div'); w.style.cssText = 'display:flex;gap:8px';
-  const inp = document.createElement('input'); inp.type = 'number'; inp.placeholder = '1–100'; inp.className = 'search'; inp.style.cssText = 'width:140px;margin:0';
-  const bt = document.createElement('button'); bt.className = 'p'; bt.textContent = 'Проверить';
-  w.append(inp, bt); box.append(w);
-  const sec = 1 + rnd(100); let n = 0; score(0); status('Я загадал число от 1 до 100');
-  bt.onclick = () => { const v = +inp.value; if (!v) return; score(++n); status(v === sec ? 'Верно! Попыток: ' + n : v < sec ? 'Больше' : 'Меньше'); inp.value = ''; };
-  inp.onkeydown = e => { e.stopPropagation(); if (e.key === 'Enter') bt.onclick(); };
-  return { dir: null, stop() {} };
-}
+  const press = k => { if (over) return; S.p('click'); if (k === 'ok') submit(); else if (k === 'del') buf = buf.slice(0, -1); else if (buf.length < 3) buf += k; };
+  const keys = [['1', '2', '3'], ['4', '5', '6'], ['7', '8', '9'], ['del', '0', 'ok']];
+  return { click(a, b) { if (b < 190) return; const c = Math.floor((a - 10) / 93), r = Math.floor((b - 196) / 54); if (c < 0 || c > 2 || r < 0 || r > 3) return; press(keys[r][c]); }, t() {
+    fr++; shake = Math.max(0, shake - 1); for (let d = 0; d <= 9; d++) { const v = (K['Digit' + d] | 0) || (K['Numpad' + d] | 0); if (v && !pk['d' + d]) press(String(d)); pk['d' + d] = v; } const bk = K.Backspace | 0, en = (K.Enter | 0) || (K.NumpadEnter | 0); if (bk && !pk.b) press('del'); if (en && !pk.e) press('ok'); pk.b = bk; pk.e = en;
+    const bg = x.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#34206b'); bg.addColorStop(1, '#150d33'); x.fillStyle = bg; x.fillRect(0, 0, W, H); A.stars(x, W, 190, fr, 24);
+    const ox = shake ? Math.sin(fr * 2) * shake * .6 : 0; x.save(); x.translate(ox, 0);
+    const g = x.createRadialGradient(150, 90, 6, 150, 96, 70); g.addColorStop(0, '#d7b8ff'); g.addColorStop(.6, '#8a5cd6'); g.addColorStop(1, '#2e1a66'); x.fillStyle = g; x.strokeStyle = '#4b2a99'; x.lineWidth = 3; A.circ(x, 150, 92, 62 + Math.sin(fr * .05) * 2); x.fill(); x.stroke(); x.fillStyle = 'rgba(255,255,255,.35)'; A.ell(x, 128, 68, 18, 10, -.6); x.fill();
+    A.txt(x, buf || '?', 150, 94, 52, '#fff', 'center', '#3b1d80'); x.restore();
+    A.txt(x, msg, 150, 176 - 0, 15, mc, 'center');
+    A.bar(x, 10, 38, 280, 8, 1, '#3b2a77'); x.fillStyle = '#7ae8a0'; x.fillRect(10 + (lo - 1) * 2.8, 38, Math.max(4, (hi - lo + 1) * 2.8), 8);
+    keys.forEach((row, r) => row.forEach((k, c) => A.btn(x, 12 + c * 93, 196 + r * 54, 86, 46, k === 'del' ? '⌫' : k === 'ok' ? '✓' : k, k === 'ok' ? '#2f9e44' : k === 'del' ? '#c0392b' : '#4c5aa8', 22)));
+    A.hud(x, W, 'Попытка ' + Math.min(att + 1, MAXA) + ' / ' + MAXA, null);
+  } };
+};
 
 /* ---------- Эффекты и ещё 17 игр ---------- */
 let PARTS = [], SH = 0;
-const boom = (a, b, c, n) => { for (let i = 0; i < (n || 12); i++) { const t = Math.random() * 6.28, s = 1 + Math.random() * 3; PARTS.push({ x: a, y: b, vx: Math.cos(t) * s, vy: Math.sin(t) * s - 1, l: 28 + rnd(14), c, r: 1.5 + Math.random() * 2 }); } SH = Math.max(SH, 2.5); };
-const stepFx = x => { PARTS = PARTS.filter(p => --p.l > 0); PARTS.forEach(p => { p.x += p.vx; p.y += p.vy; p.vy += .12; x.globalAlpha = Math.min(1, p.l / 20); x.fillStyle = p.c; x.beginPath(); x.arc(p.x, p.y, p.r, 0, 7); x.fill(); }); x.globalAlpha = 1; };
+const boom = (a, b, c, n) => { n = n || 12; for (let i = 0; i < n; i++) { const t = Math.random() * 6.28, s = 1 + Math.random() * 3.2; PARTS.push({ x: a, y: b, vx: Math.cos(t) * s, vy: Math.sin(t) * s - 1.2, l: 26 + rnd(16), r: 1.8 + Math.random() * 3, c, sq: Math.random() < .35 }); } S.p(n > 18 ? 'boom' : 'pop'); };
+const stepFx = x => { PARTS = PARTS.filter(p => --p.l > 0); PARTS.forEach(p => { p.x += p.vx; p.y += p.vy; p.vy += .12; x.globalAlpha = Math.min(1, p.l / 18); x.fillStyle = p.c; if (p.sq) x.fillRect(p.x - p.r, p.y - p.r, p.r * 2, p.r * 2); else { x.beginPath(); x.arc(p.x, p.y, p.r, 0, 7); x.fill(); } }); x.globalAlpha = 1; A.fx(x); };
 
 const tetris = (x, sc, st) => {
   const P = [[[1, 1, 1, 1]], [[1, 1], [1, 1]], [[0, 1, 0], [1, 1, 1]], [[0, 1, 1], [1, 1, 0]], [[1, 1, 0], [0, 1, 1]], [[1, 0, 0], [1, 1, 1]], [[0, 0, 1], [1, 1, 1]]];
@@ -687,129 +1057,213 @@ const tetris = (x, sc, st) => {
     if (!over) p.m.forEach((r, j) => r.forEach((v, i) => { if (v) cell(p.c, p.x + i, p.y + j); }));
   } };
 };
-function sweeper(box, score) {
-  const N = 8, M = 10, el = document.createElement('div'); el.className = 'g4'; el.style.gridTemplateColumns = 'repeat(8,1fr)'; el.style.gridTemplateRows = 'repeat(8,1fr)'; el.style.gap = '3px'; el.style.padding = '5px'; box.append(el);
-  const tg = document.createElement('button'); tg.textContent = '🚩 Флажок: выкл'; tg.style.marginTop = '10px'; box.append(tg);
-  let mn = null, op = Array(64).fill(0), fl = Array(64).fill(0), flag = false, over = 0, opened = 0;
-  const nbs = i => { const r = [], x0 = i % N, y0 = (i / N) | 0; for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const a = x0 + dx, b = y0 + dy; if ((dx || dy) && a >= 0 && b >= 0 && a < N && b < N) r.push(b * N + a); } return r; };
-  const cnt = i => nbs(i).filter(k => mn[k]).length;
-  const cs = Array.from({ length: 64 }, (_, i) => { const c = document.createElement('button'); c.style.fontSize = '1rem'; c.setAttribute('aria-label', 'Клетка'); c.onclick = () => click(i); el.append(c); return c; });
-  const paint = i => { const c = cs[i]; if (op[i]) { c.style.background = 'var(--bg)'; c.style.border = '1px solid var(--line)'; c.style.color = ['', '#4fa8ff', '#1ea672', '#e5484d', '#a142f4', '#f9ab00', '#4ddba0', '#fff', '#fff'][cnt(i)]; c.textContent = mn[i] ? '💣' : (cnt(i) || ''); } else c.textContent = fl[i] ? '🚩' : ''; };
-  function click(i) {
-    if (over || op[i]) return;
-    if (flag) { fl[i] = !fl[i]; paint(i); return; }
-    if (fl[i]) return;
-    if (!mn) { mn = Array(64).fill(0); let k = 0; while (k < M) { const r = rnd(64); if (!mn[r] && r !== i && !nbs(i).includes(r)) { mn[r] = 1; k++; } } }
-    if (mn[i]) { over = 1; mn.forEach((m, k) => { if (m) { op[k] = 1; paint(k); } }); status('Бум! Ты подорвался. Нажми «Начать заново»'); return; }
-    const q = [i]; while (q.length) { const k = q.pop(); if (op[k] || mn[k]) continue; op[k] = 1; fl[k] = 0; opened++; paint(k); if (!cnt(k)) nbs(k).forEach(z => { if (!op[z]) q.push(z); }); }
-    score(opened); if (opened === 64 - M) { over = 1; status('Победа! Все безопасные клетки открыты'); }
-  }
-  tg.onclick = () => { flag = !flag; tg.textContent = '🚩 Флажок: ' + (flag ? 'вкл' : 'выкл'); };
-  score(0); status('Открывай клетки. Цифра показывает, сколько мин рядом');
-  return { dir: null, stop() {} };
-}
+const sweeper = (x, sc, st) => {
+  const N = 8, MN = 10, CS = 34, X0 = 14, Y0 = 56, W = 300, H = 372, NC = ['', '#1976d2', '#2e7d32', '#d32f2f', '#512da8', '#c62828', '#00838f', '#212121', '#616161'];
+  let g, first = 1, flags = 0, rev = 0, over = 0, mode = 0, fr = 0, boomAt = null, endT = 0;
+  g = Array.from({ length: N }, () => Array.from({ length: N }, () => ({ m: 0, r: 0, f: 0, n: 0, a: 0 })));
+  const around = (r, c, fn) => { for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) if ((dr || dc) && r + dr >= 0 && c + dc >= 0 && r + dr < N && c + dc < N) fn(r + dr, c + dc); };
+  const plant = (sr, sc2) => { let k = 0; while (k < MN) { const r = rnd(N), c = rnd(N); if (!g[r][c].m && !(Math.abs(r - sr) < 2 && Math.abs(c - sc2) < 2)) { g[r][c].m = 1; k++; } } for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) { let n = 0; around(r, c, (a, b) => { if (g[a][b].m) n++; }); g[r][c].n = n; } };
+  const flood = (r, c) => { const q = [[r, c]]; while (q.length) { const [a, b] = q.pop(), cell = g[a][b]; if (cell.r || cell.f) continue; cell.r = 1; cell.a = 1; rev++; if (!cell.n) around(a, b, (u, v) => { if (!g[u][v].r) q.push([u, v]); }); } sc(rev); };
+  sc(0); st('Нажимай на клетки. Кнопка «Флажок» помечает мины');
+  return { click(a, b) {
+    if (over) return; if (b > 336) { if (a > 60 && a < 240) { mode = 1 - mode; S.p('click'); } return; }
+    const c = Math.floor((a - X0) / CS), r = Math.floor((b - Y0) / CS); if (c < 0 || c >= N || r < 0 || r >= N) return; const cell = g[r][c]; if (cell.r) return;
+    if (mode) { cell.f = 1 - cell.f; flags += cell.f ? 1 : -1; S.p('tick'); return; } if (cell.f) return;
+    if (first) { plant(r, c); first = 0; }
+    if (cell.m) { over = 1; boomAt = [r, c]; SH = 12; S.p('boom'); boom(X0 + c * CS + CS / 2, Y0 + r * CS + CS / 2, '#ff7043', 40); for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) if (g[i][j].m) g[i][j].r = 1; setTimeout(() => st(OVER), 700); return; }
+    flood(r, c); S.p('click'); if (rev >= N * N - MN) { over = 1; S.p('win'); boom(150, 180, '#ffd13a', 30); setTimeout(() => st(WIN + 'Поле разминировано!'), 500); }
+  }, t() {
+    fr++; const bg = x.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#2b3a67'); bg.addColorStop(1, '#141b36'); x.fillStyle = bg; x.fillRect(0, 0, W, H);
+    A.box(x, X0 - 6, Y0 - 6, N * CS + 12, N * CS + 12, '#46548f', 14, { nogloss: 1 });
+    for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) { const cell = g[r][c], X = X0 + c * CS, Y = Y0 + r * CS;
+      if (cell.r) { x.fillStyle = cell.m && boomAt && boomAt[0] === r && boomAt[1] === c ? '#ff8a65' : '#dfe6f5'; A.rr(x, X + 1, Y + 1, CS - 2, CS - 2, 5); x.fill(); x.strokeStyle = 'rgba(0,0,0,.12)'; x.stroke();
+        if (cell.m) { x.fillStyle = '#1a1a22'; A.circ(x, X + CS / 2, Y + CS / 2, 8); x.fill(); x.strokeStyle = '#1a1a22'; x.lineWidth = 2; for (let k = 0; k < 8; k++) { const an = k * .785; x.beginPath(); x.moveTo(X + CS / 2 + Math.cos(an) * 8, Y + CS / 2 + Math.sin(an) * 8); x.lineTo(X + CS / 2 + Math.cos(an) * 13, Y + CS / 2 + Math.sin(an) * 13); x.stroke(); } x.fillStyle = '#fff'; A.circ(x, X + CS / 2 - 3, Y + CS / 2 - 3, 2); x.fill(); }
+        else if (cell.n) A.txt(x, String(cell.n), X + CS / 2, Y + CS / 2 + 1, 19, NC[cell.n], 'center'); }
+      else { A.box(x, X + 1, Y + 1, CS - 2, CS - 2, (r + c) % 2 ? '#7f95e0' : '#8aa0ea', 6); if (cell.f) { x.strokeStyle = '#4a2f12'; x.lineWidth = 2.4; x.beginPath(); x.moveTo(X + 13, Y + 26); x.lineTo(X + 13, Y + 8); x.stroke(); x.fillStyle = '#ef476f'; x.beginPath(); x.moveTo(X + 13, Y + 8); x.lineTo(X + 27, Y + 14); x.lineTo(X + 13, Y + 20); x.fill(); } } }
+    A.btn(x, 60, 340, 180, 28, mode ? '🚩 Флажок: ВКЛ' : '🚩 Флажок: выкл', mode ? '#ef476f' : '#4c5aa8', 14);
+    A.hud(x, W, '💣 ' + (MN - flags), 'Открыто ' + rev + ' / ' + (N * N - MN));
+  } };
+};
 const racer = (x, sc, st) => {
-  let px = 135, pv = 0, e = [], n = 0, fr = 0, off = 0, over = 0;
-  st('A и D — руль. Не врезайся в машины');
-  const car = (c, a, b) => { R(x, c, a, b, 30, 50); R(x, '#cfe8ff', a + 5, b + 10, 20, 12); R(x, 'rgba(0,0,0,.35)', a + 5, b + 34, 20, 8); };
-  return { dir: dx => { px = cl(px + dx * 30, 55, 215); }, t() {
-    const sp = 3 + fr / 600;
+  const W = 300, H = 400, RL = 52, RR = 248;
+  let px = 150, vx = 0, spd = 4, dist = 0, over = 0, tr = [], cn = [], fr = 0, off = 0, nit = 0, nitCd = 0, n = 0, scen = [], tilt = 0, pts = 0;
+  const cols = ['#4dabf7', '#ffd43b', '#51cf66', '#cc5de8', '#ff922b', '#e8ecf4'];
+  const spawn = () => { const xx = RL + 26 + rnd(4) * 48 + rnd(10) - 5; if (!tr.some(c => c.y < 60 && Math.abs(c.x - xx) < 40)) tr.push({ x: xx, y: -70, v: 1.8 + Math.random() * 2.4, c: cols[rnd(6)], p: 0 }); };
+  const mkScen = () => scen.push({ side: rnd(2), y: -30, k: rnd(3), o: rnd(30) });
+  for (let y = 0; y < 400; y += 50) scen.push({ side: rnd(2), y, k: rnd(3), o: rnd(30) });
+  sc(0); st('A и D — руль, W — нитро, S — тормоз. Обгоняй и не сталкивайся');
+  return { held: true, t() {
+    fr++;
     if (!over) {
-      px = cl(px + (pv = pv * .82 + ((K.KeyD | 0) - (K.KeyA | 0)) * 1.0), 55, 215); fr++; off = (off + sp) % 40;
-      if (fr % Math.max(30, 75 - Math.floor(fr / 50)) === 0) e.push([60 + rnd(4) * 50, -60, ['#e5484d', '#f9ab00', '#a142f4', '#4fa8ff'][rnd(4)]]);
-      e.forEach(k => { k[1] += sp * .6; }); e = e.filter(k => k[1] < 410);
-      if (fr % 10 === 0) sc(++n);
-      if (e.some(k => hit(px, 335, 30, 50, k[0], k[1], 30, 50))) { over = 1; boom(px + 15, 360, '#f9ab00', 26); st(OVER); }
+      const ax = (K.KeyD | 0) - (K.KeyA | 0); vx += ax * .55; vx *= .85; px = cl(px + vx, RL + 18, RR - 18); tilt += (vx * .05 - tilt) * .3;
+      const base = 4 + Math.min(4.5, dist / 3500); if ((K.KeyW | 0) && nitCd <= 0 && !nit) { nit = 80; nitCd = 300; S.p('jump'); } nitCd--; if (nit > 0) nit--;
+      spd += ((nit > 0 ? base * 1.7 : (K.KeyS | 0) ? base * .55 : base) - spd) * .08; dist += spd; off = (off + spd) % 40;
+      if (fr % Math.max(24, Math.round(70 - spd * 5)) === 0) spawn(); if (fr % 190 === 0) cn.push({ x: RL + 26 + rnd(4) * 48, y: -20 });
+      if (fr % 22 === 0) mkScen();
+      tr.forEach(c => c.y += spd - c.v); cn.forEach(c => c.y += spd); scen.forEach(s => s.y += spd);
+      tr = tr.filter(c => {
+        if (Math.abs(c.x - px) < 29 && Math.abs(c.y - 330) < 54) { over = 1; boom(px, 330, '#ff7043', 34); SH = 10; st(OVER); return true; }
+        if (!c.p && c.y > 330 + 30 && Math.abs(c.x - px) < 46) { c.p = 1; pts += 5; A.pop(px, 300, 'Близко! +5', '#7dff9a'); S.p('coin'); }
+        return c.y < H + 80 && c.y > -120;
+      });
+      cn = cn.filter(c => { if (Math.abs(c.x - px) < 24 && Math.abs(c.y - 330) < 34) { pts += 10; S.p('coin'); A.pop(c.x, c.y, '+10'); return false; } return c.y < H + 30; });
+      scen = scen.filter(s => s.y < H + 40); sc(Math.floor(dist / 12) + pts);
     }
-    x.fillStyle = '#10321f'; x.fillRect(0, 0, 300, 400); x.fillStyle = '#2b303b'; x.fillRect(50, 0, 200, 400);
-    x.fillStyle = '#e8ecf4'; for (let l = 1; l < 4; l++) for (let y = -40 + off; y < 400; y += 40) x.fillRect(50 + l * 50 - 2, y, 4, 22);
-    x.fillStyle = '#f9ab00'; x.fillRect(48, 0, 3, 400); x.fillRect(249, 0, 3, 400);
-    e.forEach(k => car(k[2], k[0], k[1])); if (!over) car('#1ea672', px, 335);
+    A.checker(x, 0, 0, W, H, 40, '#69c95f', '#62c258'); x.fillStyle = 'rgba(0,0,0,.05)'; for (let i = 0; i < 9; i++) x.fillRect(0, ((i * 50 + off) % 440) - 20, W, 20);
+    scen.forEach(s => { const sx = s.side ? RR + 24 + s.o % 20 : RL - 24 - s.o % 20; if (s.k === 0) A.tree(x, sx, s.y, 20); else if (s.k === 1) { A.orb(x, sx, s.y, 9, '#3aa655'); } else A.flower(x, sx, s.y, 6, ['#ff7aa8', '#ffd13a', '#fff'][s.o % 3]); });
+    x.fillStyle = '#3b3f48'; x.fillRect(RL, 0, RR - RL, H); x.fillStyle = '#464b55'; x.fillRect(RL + 6, 0, RR - RL - 12, H);
+    for (let i = -1; i < 11; i++) { x.fillStyle = i % 2 ? '#fff' : '#e5484d'; x.fillRect(RL - 6, i * 20 + off % 40 - 20, 6, 20); x.fillRect(RR, i * 20 + off % 40 - 20, 6, 20); }
+    x.fillStyle = 'rgba(255,255,255,.7)'; for (let l = 1; l < 4; l++) for (let i = -1; i < 11; i++) x.fillRect(RL + l * 48 + 2, i * 40 + off - 10, 4, 22);
+    cn.forEach(c => A.coin(x, c.x, c.y, 9, fr * .1));
+    tr.forEach(c => A.car(x, c.x, c.y, 32, 56, c.c));
+    if (nit > 0) { for (let k = 0; k < 3; k++) { x.fillStyle = 'rgba(255,' + (150 + k * 40) + ',40,' + (.6 - k * .15) + ')'; A.ell(x, px, 366 + k * 7 + Math.random() * 4, 7 - k * 2, 10 + k * 4); x.fill(); } x.strokeStyle = 'rgba(255,255,255,.35)'; x.lineWidth = 2; x.beginPath(); for (let i = 0; i < 10; i++) { const lx = 60 + (i * 53) % 190; x.moveTo(lx, (fr * 18 + i * 77) % H); x.lineTo(lx, (fr * 18 + i * 77) % H + 30); } x.stroke(); }
+    if (!over || fr % 8 < 6) { x.save(); x.translate(px, 330); x.rotate(tilt); A.car(x, 0, 0, 32, 56, '#e5484d'); x.restore(); }
+    A.vig(x, W, H, .3); A.hud(x, W, Math.floor(dist / 12) + pts + ' очк.', Math.floor(spd * 18) + ' км/ч'); A.bar(x, 8, 40, 80, 6, nitCd > 0 ? 1 - nitCd / 300 : 1, '#ff9f1c');
   } };
 };
 const maze = (x, sc, st) => {
-  const N = 12, S = 25, g = Array.from({ length: N * N }, () => [1, 1, 1, 1]), seen = Array(N * N).fill(0), stk = [0], DX = [0, 1, 0, -1], DY = [-1, 0, 1, 0]; seen[0] = 1;
-  while (stk.length) {
-    const c = stk[stk.length - 1], cx = c % N, cy = (c / N) | 0, o = [0, 1, 2, 3].filter(d => { const a = cx + DX[d], b = cy + DY[d]; return a >= 0 && b >= 0 && a < N && b < N && !seen[b * N + a]; });
-    if (!o.length) { stk.pop(); continue; }
-    const d = o[rnd(o.length)], m = (cy + DY[d]) * N + cx + DX[d]; g[c][d] = 0; g[m][(d + 2) % 4] = 0; seen[m] = 1; stk.push(m);
-  }
-  let px = 0, py = 0, steps = 0, won = 0;
-  st('W A S D — иди к зелёному выходу');
-  return { dir: (dx, dy) => {
-    if (won) return; const d = dx > 0 ? 1 : dx < 0 ? 3 : dy > 0 ? 2 : 0;
-    if (!g[py * N + px][d]) { px += dx; py += dy; sc(++steps); if (px === N - 1 && py === N - 1) { won = 1; boom(px * S + 12, py * S + 12, '#1ea672', 24); st('Выход найден за ' + steps + ' шагов!'); } }
-  }, click() {}, t() {
-    x.strokeStyle = '#62c8ff'; x.lineWidth = 2; x.lineCap = 'round'; x.beginPath();
-    g.forEach((w, c) => { const a = (c % N) * S, b = ((c / N) | 0) * S; if (w[0]) { x.moveTo(a, b); x.lineTo(a + S, b); } if (w[1]) { x.moveTo(a + S, b); x.lineTo(a + S, b + S); } if (w[2]) { x.moveTo(a, b + S); x.lineTo(a + S, b + S); } if (w[3]) { x.moveTo(a, b); x.lineTo(a, b + S); } });
-    x.stroke(); R(x, '#1ea672', (N - 1) * S + 5, (N - 1) * S + 5, 15, 15); C(x, '#f9ab00', px * S + 12.5, py * S + 12.5, 8);
-  } };
-};
-function simon(box, score) {
-  const el = document.createElement('div'); el.className = 'g4'; el.style.gridTemplateColumns = 'repeat(2,1fr)'; el.style.gridTemplateRows = 'repeat(2,1fr)'; box.append(el);
-  const col = ['#e5484d', '#f9ab00', '#1ea672', '#1a73e8'];
-  const bs = col.map((c, i) => { const b = document.createElement('button'); b.style.background = c; b.style.opacity = .45; b.setAttribute('aria-label', 'Цвет ' + (i + 1)); b.onclick = () => press(i); el.append(b); return b; });
-  let seq = [], pos = 0, lock = 1; const tm = [];
-  const flash = i => { bs[i].style.opacity = 1; tm.push(setTimeout(() => { bs[i].style.opacity = .45; }, 350)); };
-  function play() { lock = 1; pos = 0; seq.push(rnd(4)); score(seq.length - 1); status('Запоминай…'); seq.forEach((v, k) => tm.push(setTimeout(() => flash(v), 700 + k * 600))); tm.push(setTimeout(() => { lock = 0; status('Твой ход'); }, 700 + seq.length * 600)); }
-  function press(i) { if (lock) return; flash(i); if (i !== seq[pos]) { lock = 1; status('Ошибка! Пройдено раундов: ' + (seq.length - 1) + '. Нажми «Начать заново»'); return; } if (++pos === seq.length) { lock = 1; tm.push(setTimeout(play, 700)); } }
-  play();
-  return { dir: null, stop: () => tm.forEach(clearTimeout) };
-}
-const jumper = (x, sc, st) => {
-  let px = 135, py = 300, vy = -9, pv = 0, cam = 0, over = 0, pl = [[120, 380]];
-  for (let i = 1; i < 9; i++) pl.push([rnd(240), 380 - i * 48]);
-  st('A и D — в стороны. Прыгай всё выше');
-  return { dir: dx => { px += dx * 25; }, t() {
+  const W = 300, H = 300;
+  let lvl = 1, tl = 5400, n, cs, wl, pos, tgt, anim = 1, gems, ex, seen, steps = 0, fr = 0, over = 0, got = 0;
+  const gen = N => { const w = Array.from({ length: N }, () => Array.from({ length: N }, () => [1, 1, 1, 1])), sn = Array.from({ length: N }, () => Array(N).fill(0)), stk = [[0, 0]]; sn[0][0] = 1; while (stk.length) { const [cx, cy] = stk[stk.length - 1], nb = [[0, -1, 0, 2], [1, 0, 1, 3], [0, 1, 2, 0], [-1, 0, 3, 1]].filter(([dx, dy]) => cx + dx >= 0 && cy + dy >= 0 && cx + dx < N && cy + dy < N && !sn[cy + dy][cx + dx]); if (!nb.length) { stk.pop(); continue; } const [dx, dy, a, b] = nb[rnd(nb.length)]; w[cy][cx][a] = 0; w[cy + dy][cx + dx][b] = 0; sn[cy + dy][cx + dx] = 1; stk.push([cx + dx, cy + dy]); } return w; };
+  const build = () => { n = Math.min(14, 7 + lvl * 2); cs = W / n; wl = gen(n); pos = [0, 0]; tgt = [0, 0]; anim = 1; ex = [n - 1, n - 1]; seen = Array.from({ length: n }, () => Array(n).fill(0)); gems = []; while (gems.length < 3) { const g = [rnd(n), rnd(n)]; if ((g[0] || g[1]) && !(g[0] === n - 1 && g[1] === n - 1) && !gems.some(q => q[0] === g[0] && q[1] === g[1])) gems.push(g); } steps = 0; };
+  build(); sc(0); st('WASD или свайп — иди к порталу. Светит только рядом. Собери кристаллы');
+  const P = () => [(pos[0] + (tgt[0] - pos[0]) * Math.min(1, anim)) , (pos[1] + (tgt[1] - pos[1]) * Math.min(1, anim))];
+  return { held: false, dir: (dx, dy) => {
+    if (over || anim < 1) return; const k = dx > 0 ? 1 : dx < 0 ? 3 : dy > 0 ? 2 : 0; if (wl[pos[1]][pos[0]][k]) { S.p('tick'); return; }
+    tgt = [pos[0] + dx, pos[1] + dy]; anim = 0; steps++; S.p('click');
+  }, t() {
+    fr++;
     if (!over) {
-      px += (pv = pv * .85 + ((K.KeyD | 0) - (K.KeyA | 0)) * 1.0); if (px < -15) px = 315; if (px > 315) px = -15;
-      vy += .35; py += vy;
-      if (vy > 0) pl.forEach(p => { if (px + 12 > p[0] && px - 12 < p[0] + 60 && py + 14 > p[1] && py + 14 - vy <= p[1] + 3) { vy = -10; boom(px, p[1], '#4ddba0', 6); } });
-      if (py < 200) { const d = 200 - py; py = 200; pl.forEach(p => { p[1] += d; }); cam += d; sc(Math.floor(cam / 10)); }
-      pl = pl.filter(p => p[1] < 410); let top = Math.min(...pl.map(p => p[1])); while (pl.length < 9) { top -= 40 + rnd(26); pl.push([rnd(240), top]); }
-      if (py > 420) { over = 1; st(OVER); }
+      tl--; if (tl <= 0) { over = 1; st(OVER); }
+      if (anim < 1) { anim += .22; if (anim >= 1) { anim = 1; pos = tgt.slice(); gems = gems.filter(g => { if (g[0] === pos[0] && g[1] === pos[1]) { got++; sc(lvl - 1 + got * 0); tl += 180; S.p('coin'); A.pop(pos[0] * cs + cs / 2, pos[1] * cs, '+3 с', '#7ae8ff'); return false; } return true; }); if (pos[0] === ex[0] && pos[1] === ex[1]) { sc(lvl); lvl++; tl += 900; S.p('win'); A.pop(150, 150, 'Уровень ' + lvl + '! +15 с', '#7dff9a'); build(); } } }
     }
-    pl.forEach(p => R(x, '#1ea672', p[0], p[1], 60, 10)); C(x, '#f9ab00', px, py, 14);
+    const p = P(), pc = [p[0] * cs + cs / 2, p[1] * cs + cs / 2];
+    A.checker(x, 0, 0, W, H, cs, '#3a3f5c', '#343954');
+    for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) if (Math.hypot(i - p[0], j - p[1]) < 3.6) seen[j][i] = 1;
+    x.lineCap = 'round'; x.strokeStyle = '#8b93b8'; x.lineWidth = Math.max(4, cs * .16);
+    for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) { const w = wl[j][i], X = i * cs, Y = j * cs; x.beginPath(); if (w[0]) { x.moveTo(X, Y); x.lineTo(X + cs, Y); } if (w[3]) { x.moveTo(X, Y); x.lineTo(X, Y + cs); } if (i === n - 1 && w[1]) { x.moveTo(X + cs, Y); x.lineTo(X + cs, Y + cs); } if (j === n - 1 && w[2]) { x.moveTo(X, Y + cs); x.lineTo(X + cs, Y + cs); } x.stroke(); }
+    const e = [ex[0] * cs + cs / 2, ex[1] * cs + cs / 2]; for (let k = 0; k < 3; k++) { x.strokeStyle = ['#c77dff', '#9d4edd', '#e0aaff'][k]; x.lineWidth = 2.4; x.beginPath(); x.arc(e[0], e[1], cs * (.18 + k * .1) + Math.sin(fr * .1 + k) * 1.5, fr * .08 * (k % 2 ? -1 : 1), fr * .08 * (k % 2 ? -1 : 1) + 4.2); x.stroke(); }
+    gems.forEach(g => A.gem(x, g[0] * cs + cs / 2, g[1] * cs + cs / 2 + Math.sin(fr * .1 + g[0]) * 1.5, cs * .28, '#4fc3f7'));
+    A.blob(x, pc[0], pc[1], cs * .34, '#7bd96a', 0, 1);
+    for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) { const d = Math.hypot(i - p[0], j - p[1]), a = d < 2.2 ? 0 : Math.min(seen[j][i] ? .58 : .94, (d - 2.2) / 1.6 * (seen[j][i] ? .58 : .94)); if (a > 0) { x.fillStyle = 'rgba(8,10,24,' + a.toFixed(2) + ')'; x.fillRect(i * cs - .5, j * cs - .5, cs + 1, cs + 1); } }
+    A.hud(x, W, 'Уровень ' + lvl, '⏱ ' + Math.max(0, Math.ceil(tl / 60)) + ' с · шагов ' + steps);
   } };
 };
-function clicker(box, score) {
-  let c = 0, per = 1, auto = 0, c1 = 15, c2 = 60;
-  const w = document.createElement('div'); w.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:10px;width:min(92vw,340px)';
-  const big = document.createElement('button'); big.style.cssText = 'font-size:5rem;width:150px;height:150px;border-radius:50%'; big.textContent = '🥕'; big.setAttribute('aria-label', 'Собрать урожай');
-  const u1 = document.createElement('button'), u2 = document.createElement('button'), info = document.createElement('div');
-  const draw = () => { score(c); u1.textContent = '🧤 +1 за клик · ' + c1 + ' монет'; u2.textContent = '🚜 +1 в секунду · ' + c2 + ' монет'; info.textContent = 'За клик: ' + per + ' · В секунду: ' + auto; };
-  big.onclick = () => { c += per; draw(); };
-  u1.onclick = () => { if (c >= c1) { c -= c1; per++; c1 = Math.round(c1 * 1.6); draw(); } };
-  u2.onclick = () => { if (c >= c2) { c -= c2; auto++; c2 = Math.round(c2 * 1.7); draw(); } };
-  w.append(big, info, u1, u2); box.append(w); draw(); status('Кликай по морковке и покупай улучшения');
-  const iv = setInterval(() => { if (auto) { c += auto; draw(); } }, 1000);
-  return { dir: null, stop: () => clearInterval(iv) };
-}
-function bj(box, score) {
-  let chips = 100, deck, pl = [], de = [], over = 1;
-  const w = document.createElement('div'); w.style.cssText = 'display:flex;flex-direction:column;gap:10px;width:min(92vw,340px);text-align:center';
-  const dh = document.createElement('div'), ph = document.createElement('div'), row = document.createElement('div'); dh.style.cssText = ph.style.cssText = 'font-size:1.3rem;min-height:2.6rem'; row.style.cssText = 'display:flex;gap:8px;justify-content:center';
-  const more = document.createElement('button'), stand = document.createElement('button'), deal = document.createElement('button'); more.textContent = 'Ещё'; stand.textContent = 'Хватит'; deal.textContent = 'Новая раздача (ставка 10)'; deal.className = 'p';
-  const rank = c => c % 13 + 1, face = c => ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'][c % 13] + ['♠', '♥', '♦', '♣'][(c / 13) | 0];
-  const val = h => { let s = h.reduce((a, c) => a + Math.min(10, rank(c)), 0); if (h.some(c => rank(c) === 1) && s + 10 <= 21) s += 10; return s; };
-  const show = hide => { dh.textContent = 'Дилер: ' + (pl.length ? (hide ? face(de[0]) + ' ??' : de.map(face).join(' ') + ' (' + val(de) + ')') : ''); ph.textContent = 'Ты: ' + (pl.length ? pl.map(face).join(' ') + ' (' + val(pl) + ')' : ''); };
-  const fin = (msg, d) => { over = 1; chips += d; score(chips); show(false); status(msg + (chips <= 0 ? ' Фишки закончились. Нажми «Начать заново»' : '')); };
-  deal.onclick = () => { if (!over || chips <= 0) return; deck = Array.from({ length: 52 }, (_, i) => i).sort(() => Math.random() - .5); pl = [deck.pop(), deck.pop()]; de = [deck.pop(), deck.pop()]; over = 0; show(true); status('Твой ход'); if (val(pl) === 21) fin('Блэкджек! +15', 15); };
-  more.onclick = () => { if (over) return; pl.push(deck.pop()); show(true); if (val(pl) > 21) fin('Перебор! −10', -10); };
-  stand.onclick = () => { if (over) return; while (val(de) < 17) de.push(deck.pop()); const a = val(pl), b = val(de); if (b > 21 || a > b) fin('Ты выиграл! +10', 10); else if (a === b) fin('Ничья', 0); else fin('Дилер выиграл. −10', -10); };
-  row.append(more, stand); w.append(dh, ph, row, deal); box.append(w); score(chips); show(true); status('Нажми «Новая раздача»');
-  return { dir: null, stop() {} };
-}
-function rps(box, score) {
-  const w = document.createElement('div'); w.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:14px';
-  const res = document.createElement('div'); res.style.cssText = 'font-size:2.6rem;min-height:4rem'; const row = document.createElement('div'); row.style.cssText = 'display:flex;gap:10px';
-  let win = 0, lose = 0; const E = ['✊', '✋', '✌️'];
-  E.forEach((e, i) => { const b = document.createElement('button'); b.textContent = e; b.style.cssText = 'font-size:2.4rem;padding:10px 18px'; b.setAttribute('aria-label', ['Камень', 'Бумага', 'Ножницы'][i]);
-    b.onclick = () => { const c = rnd(3), r = (i - c + 3) % 3; res.textContent = e + '  vs  ' + E[c]; if (r === 0) status('Ничья. Побед: ' + win + ', поражений: ' + lose); else if (r === 1) { score(++win); status('Ты победил! Побед: ' + win + ', поражений: ' + lose); } else { lose++; status('Компьютер победил. Побед: ' + win + ', поражений: ' + lose); } };
-    row.append(b); });
-  w.append(res, row); box.append(w); score(0); status('Выбери камень, бумагу или ножницы');
-  return { dir: null, stop() {} };
-}
+const simon = (x, sc, st) => {
+  const W = 300, H = 330, CX = 150, CY = 170, COL = ['#2fd25a', '#ef4444', '#facc15', '#3b82f6'], TONE = [392, 330, 262, 523], ST = [[-Math.PI, -Math.PI / 2], [-Math.PI / 2, 0], [Math.PI / 2, Math.PI], [0, Math.PI / 2]];
+  let seq = [], round = 0, state = 'idle', idx = 0, lit = -1, litT = 0, wait = 40, inp = 0, fr = 0, over = 0;
+  const addStep = () => { seq.push(rnd(4)); round++; state = 'show'; idx = 0; wait = 40; inp = 0; };
+  const flash = (i, d) => { lit = i; litT = d || 22; S.tone(TONE[i], .3, 'sine', .09); };
+  sc(0); st('Запомни цепочку цветов и повтори её. Нажми, чтобы начать');
+  return { click(a, b) {
+    if (over) return; if (state === 'idle') { addStep(); return; } if (state !== 'input') return; const d = Math.hypot(a - CX, b - CY); if (d < 38 || d > 142) return;
+    const an = Math.atan2(b - CY, a - CX), i = an < -Math.PI / 2 ? 0 : an < 0 ? 1 : an < Math.PI / 2 ? 3 : 2; flash(i, 14);
+    if (i === seq[inp]) { inp++; if (inp >= seq.length) { sc(round); state = 'wait'; wait = 50; S.p('coin'); A.pop(CX, 60, 'Верно!', '#7dff9a'); } } else { over = 1; S.p('lose'); SH = 8; st(OVER); }
+  }, t() {
+    fr++; if (litT > 0) litT--; else lit = -1;
+    if (state === 'wait' && --wait <= 0) addStep();
+    if (state === 'show') { if (--wait <= 0) { if (idx < seq.length) { flash(seq[idx], 24); idx++; wait = 38; } else { state = 'input'; st('Твоя очередь: повтори цепочку'); } } }
+    const bg = x.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#242a52'); bg.addColorStop(1, '#10132b'); x.fillStyle = bg; x.fillRect(0, 0, W, H);
+    ST.forEach((s, i) => { const on = lit === i; x.save(); if (on) { x.shadowColor = COL[i]; x.shadowBlur = 26; } x.fillStyle = on ? A.lit(COL[i], .35) : A.drk(COL[i], .25); x.strokeStyle = '#0b0d1f'; x.lineWidth = 5; x.beginPath(); x.arc(CX, CY, 138, s[0], s[1]); x.arc(CX, CY, 44, s[1], s[0], true); x.closePath(); x.fill(); x.stroke(); x.restore(); });
+    x.fillStyle = '#0b0d1f'; A.circ(x, CX, CY, 46); x.fill(); A.txt(x, state === 'idle' ? 'СТАРТ' : String(round), CX, CY + 1, state === 'idle' ? 15 : 30, '#fff', 'center');
+    A.hud(x, W, 'Раунд ' + round, null);
+  } };
+};
+const jumper = (x, sc, st) => {
+  const W = 300, H = 400;
+  let px = 150, py = 330, vx = 0, vy = -10, cam = 0, over = 0, pl = [], fr = 0, sq = 1, tgt = null, face = 1, n = 0, stars = [];
+  const mk = y => { const r = rnd(100); pl.push({ x: 14 + rnd(212), y, w: 58, k: r < 10 ? 'spring' : r < 24 ? 'move' : r < 36 ? 'break' : r < 42 ? 'cloud' : 'norm', dx: 1 + Math.random() * .8, a: 0 }); if (rnd(7) === 0) stars.push({ x: 30 + rnd(240), y: y - 40 - rnd(30) }); };
+  pl.push({ x: 110, y: 372, w: 80, k: 'norm', a: 0 }); let top = 372; while (top > -500) { top -= 60 + rnd(16); mk(top); }
+  sc(0); st('A и D или палец — двигайся. Прыгай выше, лови звёзды');
+  return { down: a => { tgt = a; }, move: a => { tgt = a; }, up: () => { tgt = null; }, t() {
+    fr++;
+    if (!over) {
+      const ax = (K.KeyD | 0) - (K.KeyA | 0); if (ax) { vx += ax * .6; face = ax; tgt = null; } else if (tgt !== null) { vx += (tgt - px) * .02; face = tgt > px ? 1 : -1; } vx *= .86; px += vx; if (px < -10) px = W + 10; if (px > W + 10) px = -10;
+      vy += .42; py += vy; sq += (1 - sq) * .15;
+      if (vy > 0) for (const p of pl) { if (p.a === 2) continue; if (px + 11 > p.x && px - 11 < p.x + p.w && py + 14 >= p.y && py + 14 - vy <= p.y + 4) { vy = p.k === 'spring' ? -17 : -10.5; sq = 1.3; S.p(p.k === 'spring' ? 'jump' : 'tick'); if (p.k === 'break') p.a = 2; if (p.k === 'cloud') p.a = 2; boom(px, py + 14, '#ffffff', 4); break; } }
+      pl.forEach(p => { if (p.k === 'move') { p.x += p.dx; if (p.x < 0 || p.x + p.w > W) p.dx = -p.dx; } if (p.a === 2) p.y += 6; });
+      stars = stars.filter(s => { if (Math.hypot(s.x - px, s.y - py) < 22) { n += 30; S.p('coin'); A.pop(s.x, s.y - cam, '+30', '#ffd13a'); return false; } return true; });
+      if (py - cam < 170) cam = py - 170; n = Math.max(n, Math.floor((330 - py) / 10)); sc(n);
+      let t2 = Math.min.apply(null, pl.map(p => p.y)); while (t2 > cam - 120) { t2 -= 62 + Math.min(40, n / 25) + rnd(16); mk(t2); }
+      pl = pl.filter(p => p.y - cam < H + 40); stars = stars.filter(s => s.y - cam < H + 40);
+      if (py - cam > H + 40) { over = 1; S.p('lose'); st(OVER); }
+    }
+    const mode = n < 150 ? 'day' : n < 320 ? 'dusk' : n < 520 ? 'night' : 'space'; A.sky(x, W, H, fr + cam, mode);
+    pl.forEach(p => { const X = p.x, Y = p.y - cam;
+      if (p.k === 'cloud') { A.cloud(x, X + 29, Y + 4, 11, p.a === 2 ? .4 : .95); return; }
+      const c = p.k === 'move' ? '#5b8dee' : p.k === 'break' ? '#b07a45' : '#8a5a32'; A.box(x, X, Y, p.w, 13, c, 5); if (p.k !== 'move') { x.fillStyle = p.k === 'break' ? '#c9a066' : '#5fcf5f'; A.rr(x, X + 1, Y - 3, p.w - 2, 7, 3); x.fill(); } if (p.k === 'break') { x.strokeStyle = '#4a2f12'; x.lineWidth = 1.5; x.beginPath(); x.moveTo(X + 18, Y); x.lineTo(X + 24, Y + 8); x.lineTo(X + 20, Y + 13); x.moveTo(X + 40, Y); x.lineTo(X + 36, Y + 7); x.stroke(); }
+      if (p.k === 'spring') { x.strokeStyle = '#e5484d'; x.lineWidth = 3; x.beginPath(); for (let i = 0; i < 4; i++) { x.moveTo(X + p.w / 2 - 8, Y - 4 - i * 3); x.lineTo(X + p.w / 2 + 8, Y - 6 - i * 3); } x.stroke(); A.box(x, X + p.w / 2 - 10, Y - 17, 20, 5, '#ffd13a', 2); } });
+    stars.forEach(s => A.star5(x, s.x, s.y - cam, 10, '#ffd13a', fr * .04));
+    if (!over || py - cam < H + 40) A.blob(x, px, py - cam, 13, '#7bd96a', face, sq);
+    A.hud(x, W, n + ' м', null);
+  } };
+};
+const clicker = (x, sc, st) => {
+  const W = 300, H = 440;
+  const UP = [['🧤', 'Перчатки', '+1 за клик', 15, 1.35, 'c', 1], ['🚜', 'Трактор', '+1 в секунду', 60, 1.4, 's', 1], ['🌾', 'Поле', '+5 в секунду', 400, 1.5, 's', 5], ['🐓', 'Помощники', '+25 в секунду', 3000, 1.55, 's', 25]];
+  let coins = 0, total = 0, per = 1, ps = 0, lv = [0, 0, 0, 0], fr = 0, sq = 1, acc = 0, mx = 150, my = 150;
+  try { const d = JSON.parse(localStorage.getItem('nbz-farm') || 'null'); if (d) { coins = d.coins || 0; total = d.total || 0; lv = d.lv || lv; } } catch (e) {}
+  const recalc = () => { per = 1; ps = 0; UP.forEach((u, i) => { if (u[5] === 'c') per += u[6] * lv[i]; else ps += u[6] * lv[i]; }); };
+  const cost = i => Math.round(UP[i][3] * Math.pow(UP[i][4], lv[i]));
+  recalc(); sc(total); st('Жми на морковку и покупай улучшения. Прогресс сохраняется');
+  const save = () => { try { localStorage.setItem('nbz-farm', JSON.stringify({ coins, total, lv })); } catch (e) {} };
+  return { click(a, b) {
+    if (b > 250) { const i = Math.floor((b - 252) / 46); if (i >= 0 && i < 4 && coins >= cost(i)) { coins -= cost(i); lv[i]++; recalc(); S.p('coin'); A.ring(150, b, '#7dff9a'); save(); } else if (i >= 0 && i < 4) S.p('hit'); return; }
+    coins += per; total += per; sc(total); sq = .86; S.p('pop'); A.pop(a, b - 10, '+' + per); boom(a, b, '#ff9f1c', 4);
+  }, move: (a, b) => { mx = a; my = b; }, t() {
+    fr++; acc += ps / 60; if (acc >= 1) { const k = Math.floor(acc); acc -= k; coins += k; total += k; sc(total); } if (fr % 180 === 0) save(); sq += (1 - sq) * .2;
+    A.sky(x, W, H, fr, 'day'); A.hills(x, W, 150, fr, '#8fd3a1', '#5cbf7a', 16); A.grass(x, W, 190, 62, '#6bd05a');
+    x.fillStyle = '#c98a4b'; for (let i = 0; i < 8; i++) { A.rr(x, 8 + i * 38, 180, 6, 40, 2); x.fill(); } x.fillRect(0, 192, W, 5); x.fillRect(0, 210, W, 5);
+    x.save(); x.translate(150, 150); x.scale(1 + (1 - sq) * .6, sq); A.shadow(x, 0, 62, 44, 9, .22);
+    x.fillStyle = '#4caf50'; x.strokeStyle = '#2e7d32'; x.lineWidth = 2.5; [[-14, -50, -30], [0, -62, 0], [14, -50, 30]].forEach(([dx, dy, rot]) => { x.save(); x.translate(dx * .6, -42); x.rotate(rot * Math.PI / 180); A.ell(x, 0, -14, 7, 18); x.fill(); x.stroke(); x.restore(); });
+    const g = x.createLinearGradient(-30, -40, 30, 60); g.addColorStop(0, '#ffb347'); g.addColorStop(1, '#e8590c'); x.fillStyle = g; x.strokeStyle = '#a63a00'; x.lineWidth = 3; x.beginPath(); x.moveTo(-26, -44); x.quadraticCurveTo(0, -56, 26, -44); x.quadraticCurveTo(30, 10, 0, 64); x.quadraticCurveTo(-30, 10, -26, -44); x.closePath(); x.fill(); x.stroke();
+    x.strokeStyle = 'rgba(166,58,0,.5)'; x.lineWidth = 2; for (let i = 0; i < 4; i++) { x.beginPath(); x.moveTo(-18 + i % 2 * 6, -28 + i * 20); x.lineTo(-6 + i % 2 * 8, -26 + i * 20); x.stroke(); } x.fillStyle = 'rgba(255,255,255,.35)'; A.ell(x, -14, -22, 5, 16, .2); x.fill(); x.restore();
+    A.panel(x, 8, 250, W - 16, 4 * 46 + 4, 'rgba(10,18,36,.55)', 14);
+    UP.forEach((u, i) => { const Y = 252 + i * 46, ok = coins >= cost(i); A.box(x, 12, Y + 2, W - 24, 40, ok ? '#2f9e44' : '#3d4668', 10, { flat: !ok }); A.txt(x, u[0], 30, Y + 22, 22, '#fff', 'center'); A.txt(x, u[1] + '  ур. ' + lv[i], 50, Y + 15, 13, '#fff'); A.txt(x, u[2], 50, Y + 31, 11, '#d7e3ff', 'left', null, 600); A.txt(x, '🪙 ' + cost(i), W - 20, Y + 22, 14, ok ? '#fff6b0' : '#9aa5c9', 'right'); });
+    A.hud(x, W, '🪙 ' + Math.floor(coins), ps ? '+' + ps + ' / сек' : '+' + per + ' за клик');
+  } };
+};
+const bj = (x, sc, st) => {
+  const W = 300, H = 420, SU = ['♠', '♥', '♦', '♣'], RK = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+  let chips = 100, peak = 100, bet = 10, deck = [], pl = [], dl = [], state = 'bet', fr = 0, msg = '', over = 0, hide = 1;
+  const mkDeck = () => { deck = []; for (let s = 0; s < 4; s++) for (let r = 0; r < 13; r++) deck.push({ s, r, t: 0 }); deck.sort(() => Math.random() - .5); };
+  const val = h => { let v = 0, a = 0; h.forEach(c => { v += c.r === 0 ? 11 : Math.min(10, c.r + 1); if (c.r === 0) a++; }); while (v > 21 && a > 0) { v -= 10; a--; } return v; };
+  const draw = h => { if (deck.length < 12) mkDeck(); const c = deck.pop(); c.t = 0; h.push(c); S.p('tick'); };
+  const settle = (r, text, mult) => { state = 'end'; hide = 0; msg = text; chips += Math.round(bet * mult); peak = Math.max(peak, chips); sc(peak); S.p(mult > 0 ? 'coin' : mult < 0 ? 'lose' : 'tick'); if (chips < 5) { over = 1; setTimeout(() => st(OVER), 900); } };
+  const deal = () => { if (chips < bet) bet = Math.max(5, chips); pl = []; dl = []; draw(pl); draw(dl); draw(pl); draw(dl); hide = 1; msg = ''; state = 'play'; if (val(pl) === 21) settle(0, 'Блэкджек! x1.5', 1.5); };
+  const stand = () => { hide = 0; while (val(dl) < 17) draw(dl); const p = val(pl), d = val(dl); if (d > 21 || p > d) settle(0, 'Победа! +' + bet, 1); else if (p === d) settle(0, 'Ничья', 0); else settle(0, 'Дилер выиграл', -1); };
+  mkDeck(); sc(peak); st('Набери 21 очко и обыграй дилера. Выбери ставку и раздай');
+  const card = (c, X, Y, down) => { const k = Math.min(1, c.t += .12); x.save(); x.translate(X, Y - (1 - k) * 24); x.globalAlpha = k; A.box(x, 0, 0, 46, 64, down ? '#2c4fb8' : '#fdfdfd', 7, { nogloss: 1 }); if (down) { x.strokeStyle = 'rgba(255,255,255,.5)'; x.lineWidth = 1.5; A.rr(x, 5, 5, 36, 54, 4); x.stroke(); A.txt(x, '★', 23, 33, 20, '#ffe27a', 'center'); } else { const red = c.s === 1 || c.s === 2; A.txt(x, RK[c.r], 8, 14, 16, red ? '#d62839' : '#1b1f2a'); A.txt(x, SU[c.s], 23, 40, 26, red ? '#d62839' : '#1b1f2a', 'center'); } x.restore(); };
+  return { click(a, b) {
+    if (over) return;
+    if (state === 'bet' || state === 'end') { if (b > 330 && b < 372) { const k = Math.floor((a - 18) / 88); if (k >= 0 && k < 3) { bet = [10, 25, 50][k]; if (bet > chips) bet = Math.min(chips, bet); S.p('click'); } } if (b > 376 && a > 60 && a < 240) { deal(); } return; }
+    if (state === 'play' && b > 372) { const k = Math.floor((a - 12) / 93); if (k === 0) { draw(pl); if (val(pl) > 21) settle(0, 'Перебор! −' + bet, -1); else if (val(pl) === 21) stand(); } else if (k === 1) stand(); else if (k === 2 && pl.length === 2 && chips >= bet * 2) { bet *= 2; draw(pl); if (val(pl) > 21) settle(0, 'Перебор! −' + bet, -1); else stand(); } }
+  }, t() {
+    fr++; const bg = x.createRadialGradient(150, 200, 30, 150, 210, 260); bg.addColorStop(0, '#2f8f5a'); bg.addColorStop(1, '#0f4a2d'); x.fillStyle = bg; x.fillRect(0, 0, W, H); x.strokeStyle = '#d4a017'; x.lineWidth = 6; x.strokeRect(5, 5, W - 10, H - 10);
+    A.txt(x, 'ДИЛЕР ' + (hide ? '?' : val(dl)), 150, 52, 13, 'rgba(255,255,255,.8)', 'center'); dl.forEach((c, i) => card(c, 150 - dl.length * 26 + i * 52 + 3, 68, hide && i === 1));
+    A.txt(x, 'ТЫ ' + (pl.length ? val(pl) : ''), 150, 226, 13, 'rgba(255,255,255,.8)', 'center'); pl.forEach((c, i) => card(c, 150 - pl.length * 26 + i * 52 + 3, 242, 0));
+    if (msg) A.txt(x, msg, 150, 200, 20, '#ffe27a', 'center', 'rgba(0,0,0,.5)');
+    if (state === 'bet' || state === 'end') { [10, 25, 50].forEach((v, i) => { A.orb(x, 62 + i * 88, 352, 17, bet === v ? '#ffd23f' : '#c0392b'); A.txt(x, String(v), 62 + i * 88, 352, 12, bet === v ? '#4a2f00' : '#fff', 'center'); }); A.btn(x, 60, 380, 180, 32, state === 'end' ? 'Новая раздача' : 'Раздать', '#2f9e44', 16); }
+    else { ['Ещё', 'Хватит', pl.length === 2 && chips >= bet * 2 ? 'Удвоить' : '—'].forEach((l, i) => A.btn(x, 12 + i * 93, 376, 86, 34, l, i === 0 ? '#3b82f6' : i === 1 ? '#ef476f' : '#f59f00', 14)); }
+    A.hud(x, W, '🪙 ' + chips, 'Ставка ' + bet);
+  } };
+};
+const rps = (x, sc, st) => {
+  const W = 300, H = 340, EM = ['✊', '✋', '✌️'], NM = ['Камень', 'Бумага', 'Ножницы'];
+  let wins = 0, state = 'pick', pc = -1, bc = -1, t = 0, fr = 0, res = '', over = 0, streakMsg = '';
+  sc(0); st('Выбери камень, бумагу или ножницы. Проиграешь — игра окончена');
+  return { click(a, b) { if (over || state !== 'pick') return; if (b < 240 || b > 320) return; const i = Math.floor((a - 12) / 96); if (i < 0 || i > 2) return; pc = i; bc = rnd(3); state = 'shake'; t = 0; S.p('click'); }, t() {
+    fr++; if (state === 'shake') { t++; if (t % 16 === 0 && t < 48) S.p('tick'); if (t >= 52) { state = 'res'; t = 0; const d = (pc - bc + 3) % 3; if (d === 0) { res = 'Ничья'; S.p('tick'); } else if (d === 1) { wins++; sc(wins); res = 'Победа!'; S.p('coin'); boom(150, 130, '#ffd13a', 16); } else { res = 'Проигрыш'; S.p('lose'); SH = 6; setTimeout(() => { over = 1; st(OVER); }, 900); } } } else if (state === 'res') { t++; if (t > 70 && !over) state = 'pick'; }
+    const bg = x.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#3a2a7a'); bg.addColorStop(1, '#1a1245'); x.fillStyle = bg; x.fillRect(0, 0, W, H);
+    const sh = state === 'shake' ? Math.sin(t * .5) * 18 : 0, shw = state === 'shake' ? 1.2 : 1;
+    A.orb(x, 80, 120 + sh, 52, '#ff9ad5', { flat: 1 }); A.orb(x, 220, 120 - sh, 52, '#7ae8ff', { flat: 1 });
+    x.font = '56px serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(state === 'shake' ? '✊' : state === 'res' || over ? EM[bc] : '❔', 80, 122 + sh); x.fillText(state === 'shake' ? '✊' : pc >= 0 && (state === 'res' || over) ? EM[pc] : '❔', 220, 122 - sh);
+    A.txt(x, 'Бот', 80, 188, 14, '#ffd1ee', 'center'); A.txt(x, 'Ты', 220, 188, 14, '#c6f3ff', 'center');
+    if (state === 'shake') A.txt(x, ['Камень…', 'Ножницы…', 'Бумага!'][Math.min(2, Math.floor(t / 17))], 150, 215, 20, '#fff', 'center'); if (state === 'res') A.txt(x, res, 150, 215, 26, res === 'Победа!' ? '#7dff9a' : res === 'Ничья' ? '#ffe27a' : '#ff7a7a', 'center', 'rgba(0,0,0,.4)');
+    EM.forEach((e, i) => { A.box(x, 12 + i * 96, 244, 88, 72, state === 'pick' ? '#4c5aa8' : '#3a4270', 14); x.font = '34px serif'; x.fillText(e, 56 + i * 96, 270); A.txt(x, NM[i], 56 + i * 96, 303, 11, '#fff', 'center', null, 600); });
+    A.hud(x, W, 'Победы ' + wins, null);
+  } };
+};
 function hang(box, score) {
   const WL = ['ПРОГРАММА', 'КЛАВИАТУРА', 'ПЛАНЕТА', 'ДРАКОН', 'ШОКОЛАД', 'ВЕЛОСИПЕД', 'КОСМОС', 'ГИТАРА', 'МОНИТОР', 'ПИРАТ', 'ДЕЛЬФИН', 'ИГРА'], word = WL[rnd(WL.length)];
   let lives = 6; const got = new Set(), full = () => [...word].every(c => got.has(c));
@@ -823,33 +1277,64 @@ function hang(box, score) {
   return { dir: null, stop() {} };
 }
 const gallery = (x, sc, st) => {
-  let tg = [], n = 0, fr = 0, over = 0;
-  st('Кликай по мишеням. У тебя 30 секунд');
-  return { dir: () => {}, click(mx, my) { if (over) return; const i = tg.findIndex(t => Math.hypot(t.x - mx, t.y - my) < t.r); if (i >= 0) { boom(tg[i].x, tg[i].y, '#e5484d', 14); tg.splice(i, 1); sc(++n); } }, t() {
-    if (!over) {
-      fr++; if (fr % 35 === 0) { const l = rnd(2); tg.push({ x: l ? -20 : 420, y: 40 + rnd(200), r: 14 + rnd(12), v: (l ? 1 : -1) * (1.5 + Math.random() * 2) }); }
-      tg.forEach(t => { t.x += t.v; }); tg = tg.filter(t => t.x > -40 && t.x < 440);
-      if (fr > 1800) { over = 1; st('Время вышло! Попаданий: ' + n); }
-    }
-    tg.forEach(t => { C(x, '#ffffff', t.x, t.y, t.r); C(x, '#e5484d', t.x, t.y, t.r * .66); C(x, '#ffffff', t.x, t.y, t.r * .33); });
-    R(x, '#1a73e8', 0, 294, Math.max(0, 400 * (1 - fr / 1800)), 6);
+  const W = 400, H = 300, TL = 1800;
+  let t = 0, n = 0, tg = [], fr = 0, over = 0, mx = 200, my = 150, flash = 0, holes = [], cd = 0, combo = 0;
+  const rows = [[96, 1, 2.2, 'duck'], [166, -1, 1.7, 'can'], [236, 1, 1.2, 'balloon']];
+  const spawn = r => tg.push({ x: r[1] > 0 ? -30 : W + 30, y: r[0], v: r[1] * (r[2] + Math.random() * .8 + t / 1800), k: r[3], hit: 0, ph: Math.random() * 6, star: rnd(9) === 0 });
+  rows.forEach(r => { for (let i = 0; i < 4; i++) { spawn(r); tg[tg.length - 1].x = i * 110; } });
+  sc(0); st('Целься мышью или пальцем и кликай по мишеням. 30 секунд. Звёзды — бонус');
+  return { move: (a, b) => { mx = a; my = b; }, click(a, b) {
+    mx = a; my = b; if (over || cd > 0) return; cd = 10; flash = 5; S.p('shoot'); holes.push([a, b, 120]); let h = 0;
+    for (let i = tg.length - 1; i >= 0; i--) { const o = tg[i]; if (!o.hit && Math.hypot(a - o.x, b - (o.y - 10)) < 22) { o.hit = 1; h = 1; combo++; const v = (o.star ? 5 : 1) * Math.min(4, 1 + Math.floor(combo / 3)); n += v; sc(n); A.pop(o.x, o.y - 30, '+' + v, o.star ? '#ffd13a' : '#fff'); boom(o.x, o.y - 10, o.star ? '#ffd13a' : '#ff8a3c', 12); S.p('pop'); break; } }
+    if (!h) combo = 0;
+  }, t() {
+    fr++; cd--; flash = Math.max(0, flash - 1);
+    if (!over) { t++; if (t >= TL) { over = 1; st(OVER); } rows.forEach((r, i) => { const near = tg.filter(o => o.y === r[0] && !o.hit); if (near.length < 4 && (fr + i * 17) % 50 === 0) spawn(r); }); tg.forEach(o => { o.x += o.v; if (o.hit) o.hit++; }); tg = tg.filter(o => o.x > -50 && o.x < W + 50 && o.hit < 24); }
+    holes.forEach(h => h[2]--); holes = holes.filter(h => h[2] > 0);
+    const wg = x.createLinearGradient(0, 0, 0, H); wg.addColorStop(0, '#7a4a2a'); wg.addColorStop(1, '#5a331a'); x.fillStyle = wg; x.fillRect(0, 0, W, H); x.fillStyle = 'rgba(0,0,0,.12)'; for (let i = 0; i < W; i += 26) x.fillRect(i, 0, 2, H);
+    for (let i = 0; i < 9; i++) { x.fillStyle = i % 2 ? '#fff' : '#e5484d'; x.beginPath(); x.moveTo(i * 46, 0); x.lineTo(i * 46 + 46, 0); x.lineTo(i * 46 + 40, 30); x.lineTo(i * 46 + 6, 30); x.fill(); } for (let i = 0; i < 12; i++) { x.fillStyle = ['#ffd13a', '#ff7aa8', '#7ae8ff'][i % 3]; A.circ(x, 20 + i * 33, 34, 3.4); x.fill(); }
+    rows.forEach(r => { A.box(x, 0, r[0] + 14, W, 10, '#c9955a', 3, { flat: 1 }); });
+    tg.forEach(o => { const y = o.y - 10 + (o.hit ? o.hit * 2 : 0); x.save(); x.translate(o.x, y); if (o.hit) { x.rotate(o.hit * .2); x.globalAlpha = 1 - o.hit / 24; }
+      if (o.star) { A.star5(x, 0, 0, 16, '#ffd13a', fr * .05); } else if (o.k === 'duck') { x.fillStyle = '#ffd23f'; x.strokeStyle = '#8a6200'; x.lineWidth = 1.6; A.ell(x, 0, 6, 15, 11); x.fill(); x.stroke(); A.circ(x, o.v > 0 ? 9 : -9, -8, 8); x.fill(); x.stroke(); x.fillStyle = '#ff7a2f'; x.beginPath(); x.moveTo(o.v > 0 ? 15 : -15, -8); x.lineTo(o.v > 0 ? 24 : -24, -5); x.lineTo(o.v > 0 ? 15 : -15, -3); x.fill(); x.fillStyle = '#151515'; A.circ(x, o.v > 0 ? 11 : -11, -10, 1.8); x.fill(); }
+      else if (o.k === 'can') { A.box(x, -11, -14, 22, 28, '#4cc9f0', 4); x.fillStyle = '#fff'; x.fillRect(-11, -4, 22, 8); A.txt(x, '★', 0, 0, 9, '#e5484d', 'center'); }
+      else { A.orb(x, 0, -4, 13, ['#ff6b6b', '#4dabf7', '#ffd43b'][Math.floor(o.ph) % 3]); x.strokeStyle = '#ddd'; x.lineWidth = 1.2; x.beginPath(); x.moveTo(0, 9); x.quadraticCurveTo(-4, 16, 0, 22); x.stroke(); } x.restore(); });
+    holes.forEach(h => { x.globalAlpha = Math.min(1, h[2] / 40); x.fillStyle = '#1b0d05'; A.circ(x, h[0], h[1], 3); x.fill(); x.globalAlpha = 1; });
+    if (flash) { x.fillStyle = 'rgba(255,240,200,.25)'; x.fillRect(0, 0, W, H); }
+    if (!over) { x.strokeStyle = '#fff'; x.lineWidth = 2; x.shadowColor = '#000'; x.shadowBlur = 4; A.circ(x, mx, my, 14); x.stroke(); x.beginPath(); x.moveTo(mx - 20, my); x.lineTo(mx - 6, my); x.moveTo(mx + 6, my); x.lineTo(mx + 20, my); x.moveTo(mx, my - 20); x.lineTo(mx, my - 6); x.moveTo(mx, my + 6); x.lineTo(mx, my + 20); x.stroke(); x.shadowBlur = 0; }
+    A.bar(x, 8, 38, W - 16, 6, 1 - t / TL, '#ffd13a'); A.hud(x, W, 'Попаданий ' + n, combo > 2 ? 'Серия ' + combo : null);
   } };
 };
 const runner = (x, sc, st) => {
-  let y = 0, vy = 0, ob = [], fr = 0, wait = 60, over = 0;
-  st('W или тап — прыжок');
-  const jump = () => { if (y === 0 && !over) vy = 10.5; };
-  return { dir: (dx, dy) => { if (dy < 0) jump(); }, click: jump, t() {
+  const W = 400, H = 300, GY = 238;
+  let y = 0, vy = 0, jumpHeld = 0, duck = 0, dist = 0, over = 0, ob = [], fr = 0, step = 0, sp = 5, nt = 0, n = 0, pk = 0, clouds = [[60, 40], [220, 70], [340, 30]];
+  const jump = () => { if (y === 0 && !over) { vy = 11.2; jumpHeld = 12; S.p('jump'); boom(70, GY, '#e8c78a', 5); } };
+  sc(0); st('W, пробел или тап — прыжок (держи — выше). S — пригнуться');
+  const cactus = (X, h, k) => { const w = 12 + k * 4; A.box(x, X - w / 2, GY - h, w, h, '#4caf50', 6); if (h > 34) { A.box(x, X - w / 2 - 9, GY - h * .65, 9, 5, '#4caf50', 2); A.box(x, X - w / 2 - 9, GY - h * .65 - 12, 6, 14, '#4caf50', 3); A.box(x, X + w / 2, GY - h * .5, 9, 5, '#4caf50', 2); A.box(x, X + w / 2 + 3, GY - h * .5 - 12, 6, 14, '#4caf50', 3); } };
+  return { click: jump, dir: (dx, dy) => { if (dy < 0) jump(); }, t() {
+    fr++; const kj = (K.KeyW | 0) || (K.Space | 0) || (K.ArrowUp | 0); if (kj && !pk) jump(); pk = kj; duck = (K.KeyS | 0) || (K.ArrowDown | 0) ? 1 : 0;
     if (!over) {
-      fr++; vy -= .6; y = Math.max(0, y + vy); if (y === 0 && vy < 0) vy = 0;
-      const sp = 4 + fr / 500; if (--wait <= 0) { ob.push([420, 18 + rnd(14), 28 + rnd(26)]); wait = Math.max(34, 70 + rnd(50) - fr / 40); }
-      ob.forEach(o => { o[0] -= sp; }); ob = ob.filter(o => o[0] > -50);
-      if (fr % 6 === 0) sc(Math.floor(fr / 6));
-      if (ob.some(o => hit(62, 240 - y - 34, 24, 34, o[0], 240 - o[2], o[1], o[2]))) { over = 1; boom(74, 240 - y - 17, '#e5484d', 26); st(OVER); }
+      sp = 5 + Math.min(5, dist / 2500); dist += sp; n = Math.floor(dist / 10); sc(n);
+      if (kj && vy > 0 && jumpHeld > 0) { vy += .12; jumpHeld--; } vy -= .6; y = Math.max(0, y + vy); if (y === 0) vy = 0; if (duck && y > 0) vy -= .8;
+      if (!ob.length || ob[ob.length - 1].x < W - 200 - rnd(160)) { const r = rnd(10); if (n > 150 && r < 3) ob.push({ x: W + 30, k: 'bird', h: [22, 52, 84][rnd(3)], w: 34 }); else ob.push({ x: W + 30, k: 'cac', h: 28 + rnd(24), w: 14 + rnd(2) * 20, n: rnd(3) }); }
+      ob.forEach(o => o.x -= sp); ob = ob.filter(o => o.x > -50);
+      const hx = 56, hw = duck ? 40 : 24, hh = duck ? 22 : 38, hy = GY - y - hh;
+      if (ob.some(o => o.k === 'cac' ? (hx + hw > o.x - o.w / 2 + 4 && hx < o.x + o.w / 2 - 4 && hy + hh > GY - o.h + 4) : (hx + hw > o.x - 14 && hx < o.x + 14 && hy < GY - o.h + 4 && hy + hh > GY - o.h - 18))) { over = 1; boom(70, GY - y - 20, '#7bd96a', 30); SH = 9; st(OVER); }
+      if (!duck && y === 0) step += .25; else if (y === 0) step += .3; if (n % 400 === 0 && n > 0 && fr % 60 === 0) S.p('win');
     }
-    x.fillStyle = '#2b303b'; x.fillRect(0, 240, 400, 60); x.fillStyle = 'rgba(255,255,255,.12)'; x.fillRect(0, 240, 400, 2);
-    ob.forEach(o => R(x, '#2e9e6b', o[0], 240 - o[2], o[1], o[2]));
-    R(x, '#f9ab00', 60, 240 - y - 36, 28, 36); R(x, '#ffffff', 76, 240 - y - 30, 6, 6);
+    nt += (((Math.floor(n / 350) % 2) ? 1 : 0) - nt) * .02;
+    A.sky(x, W, H, fr, 'sand'); x.fillStyle = 'rgba(5,10,45,' + (nt * .72) + ')'; x.fillRect(0, 0, W, H); if (nt > .1) { x.globalAlpha = nt; A.stars(x, W, H * .6, fr, 40); x.globalAlpha = 1; }
+    x.fillStyle = nt > .5 ? '#fff6c8' : '#ffd25a'; A.circ(x, 330, 50 + nt * 10, 20); x.fill();
+    clouds.forEach(c => { c[0] -= sp * .15; if (c[0] < -40) c[0] = W + 40; A.cloud(x, c[0], c[1], 10, .75 * (1 - nt * .6)); });
+    A.hills(x, W, 200, dist * .3, '#e6b866', '#d9a850', 14); A.hills(x, W, 215, dist * .6, '#cf9a43', '#c48c36', 10);
+    x.fillStyle = '#d9a850'; x.fillRect(0, GY, W, H - GY); x.fillStyle = '#b8862f'; x.fillRect(0, GY, W, 4); x.fillStyle = 'rgba(120,80,20,.35)'; for (let i = 0; i < 24; i++) x.fillRect((i * 83 - dist * 1.2) % (W + 40) + (W + 40) * ((i * 83 - dist * 1.2) % (W + 40) < 0), GY + 10 + (i * 29) % 44, 6 + i % 3 * 3, 2);
+    ob.forEach(o => { if (o.k === 'cac') { for (let q = 0; q <= (o.w > 30 ? 1 : 0); q++) cactus(o.x + q * 16 - (o.w > 30 ? 8 : 0), o.h - q * 6, q); } else { const fl = Math.sin(fr * .3) * 8; x.fillStyle = '#9a7bd1'; A.ell(x, o.x, GY - o.h, 14, 8); x.fill(); x.strokeStyle = '#4c3590'; x.lineWidth = 1.5; x.stroke(); x.fillStyle = '#b39be0'; x.beginPath(); x.moveTo(o.x - 4, GY - o.h - 4); x.lineTo(o.x - 16, GY - o.h - 18 - fl); x.lineTo(o.x + 8, GY - o.h - 4); x.closePath(); x.fill(); x.stroke(); x.fillStyle = '#ffb703'; x.beginPath(); x.moveTo(o.x - 12, GY - o.h - 2); x.lineTo(o.x - 24, GY - o.h + 1); x.lineTo(o.x - 12, GY - o.h + 3); x.fill(); x.fillStyle = '#fff'; A.circ(x, o.x - 6, GY - o.h - 2, 2); x.fill(); } });
+    // динозавр
+    const dy = GY - y; x.save(); x.translate(70, dy); A.shadow(x, 0, 0, 22 - y * .1, 4, .2);
+    const g = '#4fb35a', gd = '#2d7a38', leg = Math.floor(step) % 2 ? 1 : -1;
+    x.fillStyle = gd; x.beginPath(); x.moveTo(-14, -20); x.lineTo(-34, -12); x.lineTo(-14, -10); x.fill();
+    if (duck) { A.box(x, -18, -20, 34, 16, g, 7); A.box(x, 10, -22, 20, 14, g, 6); x.fillStyle = '#fff'; A.circ(x, 24, -18, 3); x.fill(); x.fillStyle = '#151515'; A.circ(x, 25, -18, 1.5); x.fill(); A.box(x, -10, -6, 8, 6, gd, 2); A.box(x, 4, -6, 8, 6, gd, 2); }
+    else { A.box(x, -12, -38, 26, 30, g, 8); A.box(x, 4, -48, 24, 18, g, 7); x.fillStyle = '#fff'; A.circ(x, 22, -43, 3.4); x.fill(); x.fillStyle = '#151515'; A.circ(x, 23.4, -43, 1.7); x.fill(); x.strokeStyle = gd; x.lineWidth = 1.6; x.beginPath(); x.moveTo(20, -37); x.lineTo(28, -37); x.stroke(); A.box(x, -9, -12 + (y ? 0 : (leg > 0 ? -4 : 0)), 8, 12, gd, 2); A.box(x, 3, -12 + (y ? 0 : (leg > 0 ? 0 : -4)), 8, 12, gd, 2); x.fillStyle = gd; for (let i = 0; i < 3; i++) { x.beginPath(); x.moveTo(-8 + i * 7, -38); x.lineTo(-5 + i * 7, -45); x.lineTo(-2 + i * 7, -38); x.fill(); } }
+    x.restore(); A.hud(x, W, n + ' м', null);
   } };
 };
 const catchMk = cfg => (x, sc, st) => {
@@ -921,41 +1406,50 @@ function calc(box, score) {
   return { dir: null, stop: () => clearInterval(iv) };
 }
 const lander = (x, sc, st) => {
-  let px = 60 + rnd(180), py = 40, vx = (Math.random() - .5) * .8, vy = 0, a = 0, fuel = 100, over = 0, last = -1;
-  const pad = 30 + rnd(190);
-  st('W — тяга, A и D — наклон. Сядь мягко на зелёную площадку');
-  return { t() {
-    let th = 0;
-    if (!over) {
-      if (K.KeyA) a -= .035; if (K.KeyD) a += .035; a = cl(a, -1.2, 1.2);
-      if (K.KeyW && fuel > 0) { vx += Math.sin(a) * .06; vy -= Math.cos(a) * .06; fuel -= .15; th = 1; }
-      vy += .025; px += vx; py += vy; if (px < 10 || px > 290) { vx = -vx * .4; px = cl(px, 10, 290); }
-      const f = Math.round(fuel); if (f !== last) { last = f; sc(f); }
-      if (py >= 358) {
-        over = 1; py = 358; const ok = px > pad && px < pad + 70 && vy < 1.6 && Math.abs(vx) < 1 && Math.abs(a) < .35;
-        if (ok) { st('Мягкая посадка! Осталось топлива: ' + Math.round(fuel)); boom(px, 370, '#1ea672', 20); } else { st('Авария! Нажми «Начать заново»'); boom(px, 360, '#e5484d', 30); }
-      }
+  const W = 300, H = 400;
+  let lvl = 1, px = 150, py = 60, vx = 0, vy = 0, ang = 0, fuel = 100, fr = 0, over = 0, land = 0, ter = [], pad = 0, score = 0, thr = 0, stars = Array.from({ length: 40 }, () => [rnd(300), rnd(250)]);
+  const build = () => { ter = []; pad = 40 + rnd(180); const pw = Math.max(40, 64 - lvl * 3); let h = 340 + rnd(20); for (let i = 0; i <= 30; i++) { const X = i * 10; if (X >= pad && X <= pad + pw) { ter.push([X, ter.length ? ter[ter.length - 1][1] : 350]); if (X + 10 > pad + pw) pad = pad; } else { h = cl(h + (Math.random() - .5) * 26, 300, 385); ter.push([X, h]); } } const base = ter.find(t => t[0] >= pad)[1]; ter.forEach(t => { if (t[0] >= pad && t[0] <= pad + pw) t[1] = base; }); pad = { x: pad, w: pw, y: base }; px = 40 + rnd(220); py = 60; vx = (Math.random() - .5) * 1.2; vy = 0; ang = 0; fuel = 100; land = 0; };
+  build(); sc(0); st('W — двигатель, A и D — наклон. Сядь на площадку мягко и ровно');
+  return { held: true, t() {
+    fr++;
+    if (!over && !land) {
+      const rot = (K.KeyD | 0) - (K.KeyA | 0); ang = cl(ang + rot * .035, -1.2, 1.2); thr = (K.KeyW | 0) && fuel > 0 ? 1 : 0;
+      if (thr) { vx += Math.sin(ang) * .07; vy -= Math.cos(ang) * .07; fuel = Math.max(0, fuel - .22); if (fr % 3 === 0) boom(px - Math.sin(ang) * 14, py + Math.cos(ang) * 14, '#ffb703', 2); }
+      vy += .028; px += vx; py += vy;
+      if (px < 8) { px = 8; vx = Math.abs(vx) * .4; } if (px > W - 8) { px = W - 8; vx = -Math.abs(vx) * .4; }
+      const gy = (() => { for (let i = 0; i < ter.length - 1; i++) if (px >= ter[i][0] && px <= ter[i + 1][0]) return ter[i][1] + (ter[i + 1][1] - ter[i][1]) * (px - ter[i][0]) / 10; return 380; })();
+      if (py + 12 >= gy) { const ok = px > pad.x && px < pad.x + pad.w && Math.abs(vy) < 1.5 && Math.abs(vx) < .9 && Math.abs(ang) < .22; if (ok) { land = 1; const b = Math.round(100 + fuel * 2 + lvl * 50); score += b; sc(score); S.p('win'); A.pop(px, py - 30, '+' + b, '#7dff9a'); boom(px, py + 12, '#7dff9a', 20); st('Посадка! Нажми «Начать заново» или жди следующий уровень'); setTimeout(() => { if (!over) { lvl++; build(); st('Уровень ' + lvl); } }, 1200); } else { over = 1; boom(px, py, '#ff7043', 40); SH = 12; st(OVER); } }
     }
-    x.fillStyle = '#2b303b'; x.fillRect(0, 372, 300, 28); R(x, '#1ea672', pad, 368, 70, 6);
-    x.fillStyle = 'rgba(255,255,255,.5)'; for (let i = 0; i < 20; i++) x.fillRect((i * 97) % 300, (i * 53) % 330, 1.5, 1.5);
-    x.save(); x.translate(px, py); x.rotate(a);
-    if (th) { x.fillStyle = '#ff8a3d'; x.beginPath(); x.moveTo(-5, 12); x.lineTo(5, 12); x.lineTo(0, 24 + rnd(8)); x.fill(); }
-    R(x, '#dfe6f1', -10, -12, 20, 24); R(x, '#4fa8ff', -5, -7, 10, 8); x.strokeStyle = '#dfe6f1'; x.lineWidth = 2; x.beginPath(); x.moveTo(-10, 12); x.lineTo(-15, 18); x.moveTo(10, 12); x.lineTo(15, 18); x.stroke(); x.restore();
+    A.sky(x, W, H, fr, 'space'); stars.forEach(s => { x.fillStyle = 'rgba(255,255,255,.7)'; x.fillRect(s[0], s[1], 1.5, 1.5); }); const eg = x.createRadialGradient(60, 70, 2, 60, 70, 26); eg.addColorStop(0, '#7fd4ff'); eg.addColorStop(.6, '#2f7be0'); eg.addColorStop(1, '#14346b'); x.fillStyle = eg; A.circ(x, 60, 70, 24); x.fill(); x.fillStyle = 'rgba(80,200,120,.7)'; A.ell(x, 54, 66, 9, 6, .4); x.fill(); A.ell(x, 68, 78, 6, 4, -.3); x.fill();
+    x.beginPath(); x.moveTo(0, H); ter.forEach(t => x.lineTo(t[0], t[1])); x.lineTo(W, H); x.closePath(); const tg = x.createLinearGradient(0, 290, 0, H); tg.addColorStop(0, '#b9b3c9'); tg.addColorStop(1, '#6a6580'); x.fillStyle = tg; x.fill(); x.strokeStyle = '#e5e0f2'; x.lineWidth = 2; x.stroke();
+    x.fillStyle = 'rgba(0,0,0,.15)'; [[40, 360], [120, 372], [220, 365], [260, 380]].forEach(c => { A.ell(x, c[0], c[1], 12, 4); x.fill(); });
+    A.box(x, pad.x, pad.y - 4, pad.w, 6, '#4cc9f0', 2); for (let i = 0; i < 3; i++) { x.fillStyle = fr % 40 < 20 ? '#ffd13a' : '#ff5252'; A.circ(x, pad.x + 6 + i * (pad.w - 12) / 2, pad.y - 8, 2); x.fill(); }
+    if (!over) { x.save(); x.translate(px, py); x.rotate(ang);
+      if (thr) { x.fillStyle = '#ffb703'; x.beginPath(); x.moveTo(-6, 12); x.lineTo(0, 12 + 14 + Math.random() * 10); x.lineTo(6, 12); x.fill(); x.fillStyle = '#fff4b0'; x.beginPath(); x.moveTo(-3, 12); x.lineTo(0, 12 + 8 + Math.random() * 6); x.lineTo(3, 12); x.fill(); }
+      x.strokeStyle = '#cfd4e6'; x.lineWidth = 2.4; x.beginPath(); x.moveTo(-8, 6); x.lineTo(-14, 16); x.moveTo(8, 6); x.lineTo(14, 16); x.stroke(); x.fillStyle = '#cfd4e6'; x.fillRect(-17, 15, 7, 2.4); x.fillRect(10, 15, 7, 2.4);
+      A.box(x, -9, -4, 18, 14, '#c9ccd8', 4); x.fillStyle = '#7fd4ff'; x.strokeStyle = '#2a5d8a'; x.lineWidth = 1.4; A.circ(x, 0, -10, 8); x.fill(); x.stroke(); x.fillStyle = 'rgba(255,255,255,.6)'; A.ell(x, -2.5, -12.5, 2.5, 1.6, -.5); x.fill(); x.restore(); }
+    const okV = Math.abs(vy) < 1.5, okH = Math.abs(vx) < .9; A.txt(x, '↓ ' + vy.toFixed(1), 12, 58, 12, okV ? '#7dff9a' : '#ff7a7a', 'left'); A.txt(x, '→ ' + vx.toFixed(1), 12, 74, 12, okH ? '#7dff9a' : '#ff7a7a', 'left');
+    A.bar(x, 8, 40, 100, 7, fuel / 100, fuel < 25 ? '#ff5252' : '#ffd13a'); A.hud(x, W, 'Уровень ' + lvl, '⛽ ' + Math.round(fuel));
   } };
 };
 const timing = (x, sc, st) => {
-  let m = 0, d = 1, zw = 80, zx = 110, n = 0, rd = 0, over = 0, sp = 3;
-  st('Нажми W или кликни, когда метка в зелёной зоне. 10 раундов');
-  const shot = () => {
-    if (over) return;
-    if (m >= zx && m <= zx + zw) { sc(++n); boom(m, 80, '#1ea672', 14); } else boom(m, 80, '#e5484d', 8);
-    if (++rd >= 10) { over = 1; st('Готово! Попаданий: ' + n + ' из 10'); return; }
-    zw = Math.max(24, zw - 6); zx = 20 + rnd(260 - zw); sp += .5;
-  };
-  return { dir: (dx, dy) => { if (dy < 0) shot(); }, click: shot, t() {
-    if (!over) { m += d * sp; if (m > 300 || m < 0) { d = -d; m = cl(m, 0, 300); } }
-    x.fillStyle = 'rgba(255,255,255,.1)'; x.fillRect(0, 70, 300, 20); R(x, '#1ea672', zx, 66, zw, 28); R(x, '#ffffff', m - 3, 56, 6, 48);
-    x.fillStyle = '#e8ecf4'; x.font = '14px sans-serif'; x.textAlign = 'left'; x.fillText('Раунд ' + Math.min(10, rd + 1) + ' из 10', 10, 30);
+  const W = 300, H = 230;
+  let a = 0, dirn = 1, sp = .016, zone = [-.22, .22], n = 0, lives = 3, over = 0, fr = 0, flash = 0, ok = 0, combo = 0, hold = 0;
+  const newZone = () => { const w = Math.max(.09, .22 - n * .01); const c = (Math.random() - .5) * 1.1; zone = [c - w, c + w]; };
+  sc(0); st('Кликни или нажми пробел, когда стрелка в зелёной зоне. 3 промаха — конец');
+  const shot = () => { if (over || hold > 0) return; if (a >= zone[0] && a <= zone[1]) { n++; combo++; sc(n); S.p('coin'); A.pop(150, 100, combo > 1 ? 'Комбо x' + combo : 'Точно!', '#7dff9a'); A.ring(150, 190, '#7dff9a', 20); flash = 14; ok = 1; sp = Math.min(.045, .016 + n * .0015); newZone(); } else { lives--; combo = 0; S.p('hit'); SH = 5; flash = 14; ok = 0; A.pop(150, 100, 'Мимо', '#ff7a7a'); if (lives <= 0) { over = 1; st(OVER); } } hold = 10; };
+  let pk = 0;
+  return { click: shot, dir: () => {}, t() {
+    fr++; const kk = (K.Space | 0) || (K.KeyW | 0) || (K.Enter | 0); if (kk && !pk) shot(); pk = kk; hold--;
+    if (!over) { a += dirn * sp * (1 + Math.sin(fr * .03) * .3); if (a > 1) { a = 1; dirn = -1; } if (a < -1) { a = -1; dirn = 1; } }
+    flash = Math.max(0, flash - 1);
+    A.sky(x, W, H, fr, 'deep'); const cx = 150, cy = 210, R = 150;
+    A.panel(x, 10, 40, W - 20, H - 50, 'rgba(10,20,50,.5)', 16);
+    x.lineWidth = 22; x.strokeStyle = 'rgba(255,255,255,.12)'; x.beginPath(); x.arc(cx, cy, R * .62, Math.PI * 1.1, Math.PI * 1.9); x.stroke();
+    const ang = v => Math.PI * 1.5 + v * 1.1 * .5 * 1; x.strokeStyle = ok && flash ? '#7dff9a' : '#32d96b'; x.lineWidth = 22; x.lineCap = 'butt'; x.beginPath(); x.arc(cx, cy, R * .62, ang(zone[0]) - Math.PI * 1.5 * 0 - 0, ang(zone[1])); x.stroke();
+    x.strokeStyle = 'rgba(255,255,255,.5)'; x.lineWidth = 2; for (let i = -10; i <= 10; i++) { const t = Math.PI * 1.5 + i / 10 * .55, r1 = R * .62 + 15, r2 = R * .62 + (i % 5 ? 20 : 26); x.beginPath(); x.moveTo(cx + Math.cos(t) * r1, cy + Math.sin(t) * r1); x.lineTo(cx + Math.cos(t) * r2, cy + Math.sin(t) * r2); x.stroke(); }
+    const t = Math.PI * 1.5 + a * .55; x.save(); x.shadowColor = '#ff5252'; x.shadowBlur = 10; x.strokeStyle = '#ff5252'; x.lineWidth = 4; x.lineCap = 'round'; x.beginPath(); x.moveTo(cx, cy); x.lineTo(cx + Math.cos(t) * R * .8, cy + Math.sin(t) * R * .8); x.stroke(); x.restore(); A.orb(x, cx, cy, 9, '#e8ecf4');
+    A.hud(x, W, 'Попаданий ' + n, null); A.lives(x, W, lives, 3);
   } };
 };
 const APPLES = { hero: '🧺', good: '🍎', bad: '💣', speed: 3, lives: 3 };
@@ -2013,108 +2507,113 @@ const cFlower = (x, sc, st) => {
 };
 
 
-const games = [
-  { id: 'snake', name: 'Змейка', icon: '🐍', bg: '#c8f2ea', tag: 'Аркада', desc: 'Собирай яблоки и не врезайся в себя.', run: snake, label: 'Счёт', pad: true },
-  { id: 'g2048', name: '2048', icon: '🔢', bg: '#ffe7a8', tag: 'Головоломка', desc: 'Складывай одинаковые плитки и дойди до 2048.', run: g2048, label: 'Счёт', pad: true },
-  { id: 'mem', name: 'Найди пару', icon: '🃏', bg: '#ffd0d7', tag: 'Память', desc: 'Найди все пары карточек за минимум ходов.', run: memory, label: 'Ходы', pad: false },
-  { id: 'flap', name: 'Прыг-скок', icon: '🐦', bg: '#fff1c2', tag: 'Аркада', desc: 'Лети между трубами. W или тап делает взмах.', run: L(300, 400, flappy), label: 'Счёт', pad: true },
-  { id: 'pong', name: 'Пинг-понг', icon: '🏓', bg: '#d2e3fc', tag: 'Спорт', desc: 'Обыграй компьютера. Ракетка на W и S.', run: L(400, 300, pong), label: 'Счёт', pad: true },
-  { id: 'brick', name: 'Арканоид', icon: '🧱', bg: '#fad2cf', tag: 'Аркада', desc: 'Разбей все кирпичи мячом.', run: L(300, 400, brick), label: 'Счёт', pad: true },
-  { id: 'dodge', name: 'Уворот', icon: '☄️', bg: '#fde3cf', tag: 'Аркада', desc: 'Уворачивайся от падающих блоков как можно дольше.', run: L(300, 400, dodge), label: 'Секунды', pad: true },
-  { id: 'shoot', name: 'Звёздный бой', icon: '🚀', bg: '#e9d2fd', tag: 'Экшен', desc: 'Стреляй по инопланетянам, пока они не долетели.', run: L(300, 400, shoot), label: 'Счёт', pad: true },
-  { id: 'coins', name: 'Охотник за монетами', icon: '🪙', bg: '#fff1c2', tag: 'Экшен', desc: 'Собери как можно больше монет за 30 секунд.', run: L(300, 300, coins), label: 'Монеты', pad: true },
-  { id: 'ttt', name: 'Крестики-нолики', icon: '❌', bg: '#ceead6', tag: 'Головоломка', desc: 'Классика против компьютера.', run: ttt, label: 'Победа', pad: false },
-  { id: 'react', name: 'Тест реакции', icon: '⚡', bg: '#d2e3fc', tag: 'Скорость', desc: 'Проверь, как быстро ты нажимаешь.', run: react, label: 'Время', pad: false },
-  { id: 'mole', name: 'Поймай крота', icon: '🐹', bg: '#fde3cf', tag: 'Скорость', desc: 'Кроты выскакивают из нор. Успей кликнуть.', run: mole, label: 'Счёт', pad: false },
-  { id: 'guess', name: 'Угадай число', icon: '🔮', bg: '#e9d2fd', tag: 'Головоломка', desc: 'Найди число от 1 до 100 за минимум попыток.', run: guess, label: 'Попытки', pad: false },
-  { id: 'tetris', name: 'Тетрис', icon: '🟦', bg: '#d2e3fc', tag: 'Головоломка', desc: 'Собирай линии из падающих фигур.', run: L(200, 400, tetris), label: 'Счёт', pad: true },
-  { id: 'sweeper', name: 'Сапёр', icon: '💣', bg: '#fad2cf', tag: 'Головоломка', desc: 'Открой все клетки и не наступи на мину.', run: sweeper, label: 'Открыто', pad: false },
-  { id: 'racer', name: 'Гонки', icon: '🏎️', bg: '#ffe7a8', tag: 'Гонки', desc: 'Обгоняй машины на трассе и не врезайся.', run: L(300, 400, racer), label: 'Очки', pad: true },
-  { id: 'maze', name: 'Лабиринт', icon: '🌀', bg: '#c8f2ea', tag: 'Головоломка', desc: 'Каждый раз новый лабиринт. Найди выход.', run: L(300, 300, maze), label: 'Шаги', pad: true },
-  { id: 'simon', name: 'Саймон', icon: '🎛️', bg: '#e9d2fd', tag: 'Память', desc: 'Запомни цепочку цветов и повтори её.', run: simon, label: 'Раунд', pad: false },
-  { id: 'jumper', name: 'Прыгун', icon: '🦘', bg: '#ceead6', tag: 'Аркада', desc: 'Прыгай по платформам всё выше.', run: L(300, 400, jumper), label: 'Высота', pad: true },
-  { id: 'clicker', name: 'Ферма-кликер', icon: '🥕', bg: '#fde3cf', tag: 'Кликер', desc: 'Собирай урожай и покупай улучшения.', run: clicker, label: 'Монеты', pad: false },
-  { id: 'bj', name: 'Блэкджек', icon: '♠️', bg: '#d2e3fc', tag: 'Карты', desc: 'Набери 21 очко и обыграй дилера.', run: bj, label: 'Фишки', pad: false },
-  { id: 'rps', name: 'Камень, ножницы, бумага', icon: '✌️', bg: '#fff1c2', tag: 'Классика', desc: 'Сыграй против компьютера.', run: rps, label: 'Победы', pad: false },
-  { id: 'hang', name: 'Виселица', icon: '🔤', bg: '#e9d2fd', tag: 'Слова', desc: 'Угадай слово по буквам.', run: hang, label: 'Жизни', pad: false },
-  { id: 'gallery', name: 'Тир', icon: '🎯', bg: '#ffd0d7', tag: 'Скорость', desc: 'Попади в как можно больше мишеней за 30 секунд.', run: L(400, 300, gallery), label: 'Попадания', pad: false },
-  { id: 'runner', name: 'Бег по пустыне', icon: '🦖', bg: '#ffe7a8', tag: 'Аркада', desc: 'Перепрыгивай препятствия, W или тап.', run: L(400, 300, runner), label: 'Очки', pad: true },
-  { id: 'apples', name: 'Ловец яблок', icon: '🍎', bg: '#ffd0d7', tag: 'Аркада', desc: 'Лови яблоки корзиной и обходи бомбы.', kind: 'catch', cfg: APPLES, run: (b, s) => catchGame(b, s, APPLES), label: 'Счёт', pad: true },
-  { id: 'slide', name: 'Пятнашки', icon: '🔳', bg: '#d2e3fc', tag: 'Головоломка', desc: 'Расставь плитки по порядку.', run: slide, label: 'Ходы', pad: false },
-  { id: 'calc', name: 'Устный счёт', icon: '➕', bg: '#c8f2ea', tag: 'Математика', desc: 'Решай примеры на скорость за 30 секунд.', run: calc, label: 'Верно', pad: false },
-  { id: 'lander', name: 'Посадка на Луну', icon: '🌙', bg: '#d2e3fc', tag: 'Симулятор', desc: 'Посади корабль мягко на площадку.', run: L(300, 400, lander), label: 'Топливо', pad: true },
-  { id: 'timing', name: 'Снайпер-таймер', icon: '⏱️', bg: '#fff1c2', tag: 'Скорость', desc: 'Останови метку точно в зелёной зоне.', run: L(300, 160, timing), label: 'Попадания', pad: false },
-  { id: "cStars", name: "Ловец звёзд", icon: "⭐", bg: "#fff1c2", tag: "Аркада", desc: "Лови звёзды в корзину, кометы не трогай.", run: L(300, 400, cStars), label: "Счёт", pad: true },
-  { id: "cSnow", name: "Снежинки", icon: "❄️", bg: "#dff3ff", tag: "Аркада", desc: "Лови снежинки, камни пропускай.", run: L(300, 400, cSnow), label: "Счёт", pad: true },
-  { id: "cFish", name: "Рыбалка", icon: "🐟", bg: "#d6f5ff", tag: "Аркада", desc: "Лови рыбок в удочку, ботинки не трогай.", run: L(300, 400, cFish), label: "Счёт", pad: true },
-  { id: "cEggs", name: "Ловец яиц", icon: "🥚", bg: "#fff6dc", tag: "Аркада", desc: "Лови яйца, камни пропускай.", run: L(300, 400, cEggs), label: "Счёт", pad: true },
-  { id: "cGems", name: "Самоцветы", icon: "💎", bg: "#e0f0ff", tag: "Аркада", desc: "Собирай драгоценные камни, бомбы не лови.", run: L(300, 400, cGems), label: "Счёт", pad: true },
-  { id: "cMush", name: "Грибной сбор", icon: "🍄", bg: "#ffe3d6", tag: "Аркада", desc: "Собирай грибы, избегай пауков.", run: L(300, 400, cMush), label: "Счёт", pad: true },
-  { id: "cLeaf", name: "Осенние листья", icon: "🍂", bg: "#ffe9c2", tag: "Аркада", desc: "Лови листья на ветру.", run: L(300, 400, cLeaf), label: "Счёт", pad: true },
-  { id: "cCandy", name: "Сладкий дождь", icon: "🍬", bg: "#ffe1ef", tag: "Аркада", desc: "Лови конфеты, не трогай соль.", run: L(300, 400, cCandy), label: "Счёт", pad: true },
-  { id: "dIce", name: "Сосульки", icon: "🧊", bg: "#e3f6ff", tag: "Уворот", desc: "Уворачивайся от падающего льда. Сколько продержишься?", run: L(300, 400, dIce), label: "Секунды", pad: true },
-  { id: "dRock", name: "Камнепад", icon: "🪨", bg: "#e8e8e8", tag: "Уворот", desc: "Уходи от падающих камней.", run: L(300, 400, dRock), label: "Секунды", pad: true },
-  { id: "dBall", name: "Волейбол", icon: "🏐", bg: "#fff5d6", tag: "Уворот", desc: "Уворачивайся от мячей.", run: L(300, 400, dBall), label: "Секунды", pad: true },
-  { id: "dMeteor", name: "Метеоры", icon: "☄️", bg: "#e3e8ff", tag: "Уворот", desc: "Уклоняйся от метеоритов на ракете.", run: L(300, 400, dMeteor), label: "Секунды", pad: true },
-  { id: "dBee", name: "Пчёлы", icon: "🐝", bg: "#fff8d6", tag: "Уворот", desc: "Пчёлы летают поперёк поля. Не попадись.", run: L(300, 400, dBee), label: "Секунды", pad: true },
-  { id: "dFire", name: "Огненные шары", icon: "🔥", bg: "#ffe0d6", tag: "Уворот", desc: "Уворачивайся от огненных шаров.", run: L(300, 400, dFire), label: "Секунды", pad: true },
-  { id: "sDuck", name: "Охота на уток", icon: "🦆", bg: "#d9f2e0", tag: "Стрельба", desc: "Кликай по уткам, улетевшие отнимают жизнь.", run: L(300, 400, sDuck), label: "Счёт", pad: false },
-  { id: "sBalloon", name: "Воздушные шары", icon: "🎈", bg: "#e6f0ff", tag: "Стрельба", desc: "Лопай шарики кликом, не дай им улететь.", run: L(300, 400, sBalloon), label: "Счёт", pad: false },
-  { id: "sMonster", name: "Монстры", icon: "👾", bg: "#e8ffe0", tag: "Скорость", desc: "Лови монстров, пока они не спрятались.", run: L(300, 400, sMonster), label: "Счёт", pad: false },
-  { id: "sFrog", name: "Лягушки", icon: "🐸", bg: "#e3f7e0", tag: "Скорость", desc: "Лови лягушек на кувшинках.", run: L(300, 400, sFrog), label: "Счёт", pad: false },
-  { id: "sBottle", name: "Бутылки", icon: "🍾", bg: "#f0e6ff", tag: "Стрельба", desc: "Разбей бутылки, пока не упали.", run: L(300, 400, sBottle), label: "Счёт", pad: false },
-  { id: "sWater", name: "Арбузный разрез", icon: "🍉", bg: "#ffe0e0", tag: "Стрельба", desc: "Разрезай арбузы кликом.", run: L(300, 400, sWater), label: "Счёт", pad: false },
-  { id: "pLights", name: "Огни", icon: "💡", bg: "#fff8d6", tag: "Головоломка", desc: "Погаси все огни. Клик меняет клетку и соседей.", run: L(300, 300, pLights), label: "Ходы", pad: false },
-  { id: "pHanoi", name: "Ханойские башни", icon: "🗼", bg: "#efe6d6", tag: "Головоломка", desc: "Перенеси пирамиду на правый столбик.", run: L(300, 300, pHanoi), label: "Ходы", pad: false },
-  { id: "pFlood", name: "Заливка цвета", icon: "🎨", bg: "#e6fff2", tag: "Головоломка", desc: "Закрась всё поле одним цветом за меньше ходов.", run: L(300, 340, pFlood), label: "Ходы", pad: false },
-  { id: "pBubbles", name: "Пузыри", icon: "🫧", bg: "#e3f6ff", tag: "Головоломка", desc: "Лопай группы одинаковых пузырей.", run: L(300, 300, pBubbles), label: "Очки", pad: false },
-  { id: "pCode", name: "Код цветов", icon: "🔐", bg: "#f1efff", tag: "Логика", desc: "Угадай код из 4 цветов за 8 попыток.", run: L(300, 400, pCode), label: "Попытки", pad: false },
-  { id: "rFrog", name: "Лягушка на дороге", icon: "🐸", bg: "#e8f8e0", tag: "Аркада", desc: "WASD — шаги. Перейди дорогу, не попав под машину.", run: L(300, 350, rFrog), label: "Переходы", pad: true },
-  { id: "rLogs", name: "Переправа", icon: "🪵", bg: "#dff3ff", tag: "Аркада", desc: "Прыгай по брёвнам через реку.", run: L(300, 400, rLogs), label: "Высота", pad: true },
-  { id: "rLift", name: "Ракетный полёт", icon: "🚀", bg: "#dfe9ff", tag: "Аркада", desc: "Зажми W — ракета взлетает. Метеориты не трогай.", run: L(300, 400, rLift), label: "Очки", pad: true },
-  { id: "rPlane", name: "Самолётик", icon: "✈️", bg: "#e3f6ff", tag: "Аркада", desc: "W и S — лети между облаками.", run: L(300, 400, rPlane), label: "Очки", pad: true },
-  { id: "rTunnel", name: "Туннель", icon: "🛸", bg: "#f1e6ff", tag: "Аркада", desc: "Держись в проходе, стены сужаются.", run: L(300, 400, rTunnel), label: "Дистанция", pad: true },
-  { id: "spBasket", name: "Баскетбол", icon: "🏀", bg: "#ffe9d6", tag: "Спорт", desc: "Кликни, куда бросить мяч. Попади в кольцо.", run: L(300, 400, spBasket), label: "Попадания", pad: false },
-  { id: "spPenalty", name: "Пенальти", icon: "⚽", bg: "#e0f5e0", tag: "Спорт", desc: "Кликни в створ. Вратарь пытается угадать.", run: L(300, 400, spPenalty), label: "Голы", pad: false },
-  { id: "spBowling", name: "Боулинг", icon: "🎳", bg: "#f5ecd6", tag: "Спорт", desc: "Кликай, куда катится шар. 3 броска.", run: L(300, 400, spBowling), label: "Сбито", pad: false },
-  { id: "tPiano", name: "Плитки", icon: "🎹", bg: "#eceff1", tag: "Ритм", desc: "Жми на чёрные плитки, пока они не ушли вниз.", run: L(300, 400, tPiano), label: "Очки", pad: false },
-  { id: "tRhythm", name: "Барабаны", icon: "🥁", bg: "#fff0e6", tag: "Ритм", desc: "Жми, когда круг совпадает с кольцом.", run: L(300, 400, tRhythm), label: "Очки", pad: false },
-  { id: "cFarm", name: "Курятник", icon: "🐔", bg: "#e8f5e9", tag: "Кликер", desc: "Кликай по курице, покупай кур.", run: L(300, 400, cFarm), label: "Яйца", pad: false },
-  { id: "cRobot", name: "Фабрика роботов", icon: "🤖", bg: "#eceff1", tag: "Кликер", desc: "Собирай детали и покупай роботов.", run: L(300, 400, cRobot), label: "Детали", pad: false },
-  { id: "cPiggy", name: "Копилка", icon: "🐷", bg: "#fce4ec", tag: "Кликер", desc: "Тапай по свинке и улучшай множитель.", run: L(300, 400, cPiggy), label: "Монеты", pad: false },
-  { id: "raBoat", name: "Лодка", icon: "🚤", bg: "#e1f5fe", tag: "Аркада", desc: "A и D — собирай буйки, избегай камней.", run: L(300, 400, raBoat), label: "Буйки", pad: true },
-  { id: "raBike", name: "Велогонка", icon: "🚴", bg: "#fff3e0", tag: "Гонки", desc: "A и D — смена полосы, уворачивайся от 🚧.", run: L(300, 400, raBike), label: "Километры", pad: true },
-  { id: "pConnect4", name: "Четыре в ряд", icon: "🔴", bg: "#e3f2fd", tag: "Логика", desc: "Ставь фишки и собери 4 в ряд раньше бота.", run: L(301, 258, pConnect4), label: "Очки", pad: false },
-  { id: "pSudoku", name: "Судоку 4×4", icon: "🧮", bg: "#e8f5e9", tag: "Головоломка", desc: "Заполни 4×4 цифрами 1–4 без повторов в строках и столбцах.", run: L(300, 340, pSudoku), label: "Заполнено", pad: false },
-  { id: "aStack", name: "Башня", icon: "📦", bg: "#fff3e0", tag: "Ловкость", desc: "Ставь блоки точно друг на друга. Промах рушит башню.", run: L(300, 400, aStack), label: "Высота", pad: false },
-  { id: "aBalance", name: "Баланс", icon: "⚖️", bg: "#e1f5fe", tag: "Ловкость", desc: "A и D — наклоняй доску и удержи шарик.", run: L(300, 300, aBalance), label: "Секунды", pad: true },
-  { id: "aDarts", name: "Дартс", icon: "🎯", bg: "#fff8e1", tag: "Меткость", desc: "Кликни, чтобы бросить дротик. 5 бросков.", run: L(300, 300, aDarts), label: "Очки", pad: false },
-  { id: "aCannon", name: "Пушка", icon: "💥", bg: "#fbe9e7", tag: "Меткость", desc: "Кликни, чтобы выстрелить. Сбей все мишени.", run: L(300, 300, aCannon), label: "Очки", pad: false },
-  { id: "pPaint", name: "Раскраска", icon: "🖌️", bg: "#fce4ec", tag: "Творчество", desc: "Рисуй по клеткам. Здесь нет проигрыша.", run: L(300, 340, pPaint), label: "Очки", pad: false },
-  { id: "aJump", name: "Прыжки через кактусы", icon: "🦘", bg: "#ffe0b2", tag: "Аркада", desc: "Кликни, чтобы прыгнуть через кактусы.", run: L(300, 300, aJump), label: "Метры", pad: false },
-  { id: "aSlots", name: "Автомат", icon: "🎰", bg: "#fff8e1", tag: "Казино", desc: "Крути барабан и собирай комбинации.", run: L(300, 300, aSlots), label: "Монеты", pad: false },
-  { id: "aNumberTap", name: "Числа по порядку", icon: "🔢", bg: "#e3f2fd", tag: "Скорость", desc: "Нажимай числа от 1 до 16 как можно быстрее.", run: L(300, 300, aNumberTap), label: "Числа", pad: false },
-  { id: "aTrampoline", name: "Батут", icon: "🤸", bg: "#e8f5e9", tag: "Аркада", desc: "A и D — двигай батут и лови звёзды.", run: L(300, 400, aTrampoline), label: "Звёзды", pad: true },
-  { id: "aHoney", name: "Медведь и мёд", icon: "🍯", bg: "#f1f8e9", tag: "Аркада", desc: "A и D — лови мёд, пчёлы не трогай.", run: L(300, 400, aHoney), label: "Мёд", pad: true },
-  { id: "aRabbit", name: "Морковки", icon: "🥕", bg: "#fff3e0", tag: "Скорость", desc: "Кликай по морковкам, лису не трогай.", run: L(300, 200, aRabbit), label: "Морковки", pad: false },
-  { id: "aRoll", name: "Выше или ниже", icon: "🎲", bg: "#fffde7", tag: "Логика", desc: "Угадай, выпадет ли больше или меньше. Серия растёт.", run: L(300, 300, aRoll), label: "Серия", pad: false },
-  { id: "aHideSeek", name: "Найди отличие", icon: "🔎", bg: "#fafafa", tag: "Внимание", desc: "Найди фрукт, который отличается от остальных.", run: L(300, 300, aHideSeek), label: "Найдено", pad: false },
-  { id: "aShips", name: "Морской бой", icon: "🚢", bg: "#e1f5fe", tag: "Логика", desc: "Стреляй по клеткам и найди все корабли врага.", run: L(300, 320, aShips), label: "Попаданий", pad: false },
-  { id: "aSpace", name: "Космос", icon: "🚀", bg: "#e8eaf6", tag: "Аркада", desc: "A и D — собирай звёзды, облетай астероиды.", run: L(300, 400, aSpace), label: "Звёзды", pad: true },
-  { id: "aTrafficLight", name: "Светофор", icon: "🚦", bg: "#e8f5e9", tag: "Аркада", desc: "Перейди дорогу на зелёный свет и не попади под машину.", run: L(300, 360, aTrafficLight), label: "Переходы", pad: false },
-  { id: "aSpeedTap", name: "Быстрые тапы", icon: "👆", bg: "#f3e5f5", tag: "Скорость", desc: "Жми на цели, пока они не исчезли.", run: L(300, 400, aSpeedTap), label: "Попаданий", pad: false },
-  { id: "aPopMath", name: "Пузыри-примеры", icon: "🫧", bg: "#e1f5fe", tag: "Математика", desc: "Лопай пузырь с правильным ответом на пример.", run: L(300, 400, aPopMath), label: "Верно", pad: false },
-  { id: "aSnowball", name: "Снежки", icon: "⛄", bg: "#e3f2fd", tag: "Меткость", desc: "Кликни, чтобы бросить снежок в снеговика.", run: L(300, 400, aSnowball), label: "Попаданий", pad: false },
-  { id: "aSort", name: "Сортировка шариков", icon: "🧪", bg: "#ede7f6", tag: "Логика", desc: "Разложи шарики по трубкам: один цвет в каждой.", run: L(300, 300, aSort), label: "Ходы", pad: false },
-  { id: "aKite", name: "Воздушный змей", icon: "🪁", bg: "#bbdefb", tag: "Аркада", desc: "W и S — двигай змея, птицы мешают.", run: L(300, 400, aKite), label: "Секунды", pad: true },
-  { id: "cCupcake", name: "Ловец кексов", icon: "🧁", bg: "#fff0f5", tag: "Аркада", desc: "Лови кексы, лимоны не трогай.", run: L(300, 400, cCupcake), label: "Счёт", pad: true },
-  { id: "dSpaceRock", name: "Астероиды", icon: "🌑", bg: "#e8eaf6", tag: "Уворот", desc: "Уворачивайся от астероидов.", run: L(300, 400, dSpaceRock), label: "Секунды", pad: true },
-  { id: "cBall", name: "Ловец мячей", icon: "🏀", bg: "#fff3e0", tag: "Аркада", desc: "Лови мячи в корзину, камни пропускай.", run: L(300, 400, cBall), label: "Счёт", pad: true },
-  { id: "dBolt", name: "Молнии", icon: "⚡", bg: "#fffde7", tag: "Уворот", desc: "Уворачивайся от молний.", run: L(300, 400, dBolt), label: "Секунды", pad: true },
-  { id: "sPenguin", name: "Пингвины на льдине", icon: "🐧", bg: "#e0f7fa", tag: "Скорость", desc: "Лови пингвинов, пока они не спрятались.", run: L(300, 400, sPenguin), label: "Счёт", pad: false },
-  { id: "dCar", name: "Уворот от машин", icon: "🚗", bg: "#eceff1", tag: "Уворот", desc: "Уворачивайся от машин на дороге.", run: L(300, 400, dCar), label: "Секунды", pad: true },
-  { id: "cFlower", name: "Цветочный ловец", icon: "🌸", bg: "#fce4ec", tag: "Аркада", desc: "Собирай цветы, листья-ловушки не трогай.", run: L(300, 400, cFlower), label: "Счёт", pad: true }
+// id, функция, название, значок, цвет карточки, жанр, описание, подпись счёта, экранные кнопки, ширина, высота (null — игра рисует сама)
+const GAMES = [
+  ["snake", snake, "Змейка", "🐍", "#c8f2ea", "Аркада", "Собирай яблоки и не врезайся в себя. Чем длиннее — тем быстрее.", "Счёт", true, 352, 352],
+  ["g2048", g2048, "2048", "🔢", "#ffe7a8", "Головоломка", "Складывай одинаковые плитки и дойди до 2048. Свайпы и клавиши.", "Счёт", true, 300, 340],
+  ["mem", memory, "Найди пару", "🃏", "#ffd0d7", "Память", "Переворачивай карточки и находи пары за минимум ходов.", "Ходы", false, 300, 340],
+  ["flap", flappy, "Прыг-скок", "🐦", "#fff1c2", "Аркада", "Лети между трубами. Тапай, W или пробел — взмах.", "Счёт", true, 300, 400],
+  ["pong", pong, "Пинг-понг", "🏓", "#d2e3fc", "Спорт", "Обыграй бота. Ракетка — W/S, мышь или палец.", "Счёт", true, 400, 300],
+  ["brick", brick, "Арканоид", "🧱", "#fad2cf", "Аркада", "Разбивай кирпичи, лови бонусы, проходи уровни.", "Счёт", true, 300, 400],
+  ["dodge", dodge, "Лавовый уворот", "🌋", "#fde3cf", "Аркада", "Беги от огненных шаров и камней. Рывок и щит спасают.", "Секунды", true, 300, 400],
+  ["shoot", shoot, "Звёздный бой", "🚀", "#e9d2fd", "Экшен", "Волны инопланетян и боссы. Лови бонусы и не сдавайся.", "Счёт", true, 300, 400],
+  ["coins", coins, "Охотник за монетами", "🪙", "#fff1c2", "Экшен", "Собирай монеты 30 секунд. Комбо удваивает очки, шипы отнимают время.", "Монеты", true, 300, 300],
+  ["ttt", ttt, "Крестики-нолики", "❌", "#ceead6", "Головоломка", "Классика против хитрого бота. Победа — очко.", "Победы", false, 300, 360],
+  ["react", react, "Тест реакции", "⚡", "#d2e3fc", "Скорость", "Жми, как только экран станет зелёным. 5 попыток.", "Время", false, 300, 300],
+  ["mole", mole, "Поймай крота", "🐹", "#fde3cf", "Скорость", "Бей кротов, лови золотых и не трогай ежей. 30 секунд.", "Счёт", false, 300, 340],
+  ["guess", guess, "Угадай число", "🔮", "#e9d2fd", "Головоломка", "Найди число от 1 до 100 за 8 попыток.", "Попытки", false, 300, 420],
+  ["tetris", tetris, "Тетрис", "🟦", "#d2e3fc", "Головоломка", "Собирай линии из падающих фигур.", "Счёт", true, 200, 400],
+  ["sweeper", sweeper, "Сапёр", "💣", "#fad2cf", "Головоломка", "Открой все клетки и не наступи на мину. Первый ход безопасный.", "Открыто", false, 300, 372],
+  ["racer", racer, "Гонки", "🏎️", "#ffe7a8", "Гонки", "Обгоняй машины, лови монеты, жми нитро. Не врежься.", "Очки", true, 300, 400],
+  ["maze", maze, "Лабиринт", "🌀", "#c8f2ea", "Головоломка", "Туман войны: найди портал в тёмном лабиринте. Время ограничено.", "Уровень", false, 300, 300],
+  ["simon", simon, "Саймон", "🎛️", "#e9d2fd", "Память", "Запомни цепочку цветов и звуков и повтори её.", "Раунд", false, 300, 330],
+  ["jumper", jumper, "Прыгун", "🦘", "#ceead6", "Аркада", "Прыгай по платформам всё выше: пружины, облака, звёзды.", "Высота", false, 300, 400],
+  ["clicker", clicker, "Ферма-кликер", "🥕", "#fde3cf", "Кликер", "Жми на морковку, покупай трактор, поля и помощников.", "Монеты", false, 300, 440],
+  ["bj", bj, "Блэкджек", "♠️", "#d2e3fc", "Карты", "Набери 21 очко и обыграй дилера. Ставки и удвоение.", "Фишки", false, 300, 420],
+  ["rps", rps, "Камень, ножницы, бумага", "✌️", "#fff1c2", "Классика", "Серия побед против бота. Проигрыш — конец.", "Победы", false, 300, 340],
+  ["hang", hang, "Виселица", "🔤", "#e9d2fd", "Слова", "Угадай слово по буквам.", "Жизни", false, null, null],
+  ["gallery", gallery, "Тир", "🎯", "#ffd0d7", "Меткость", "Ярмарочный тир: утки, банки и шарики. Лови серии.", "Попадания", false, 400, 300],
+  ["runner", runner, "Бег по пустыне", "🦖", "#ffe7a8", "Аркада", "Прыгай через кактусы и пригибайся от птерозавров.", "Очки", true, 400, 300],
+  ["slide", slide, "Пятнашки", "🔳", "#d2e3fc", "Головоломка", "Расставь плитки по порядку.", "Ходы", false, null, null],
+  ["calc", calc, "Устный счёт", "➕", "#c8f2ea", "Математика", "Решай примеры на скорость за 30 секунд.", "Верно", false, null, null],
+  ["lander", lander, "Посадка на Луну", "🌙", "#d2e3fc", "Симулятор", "Сядь мягко и ровно на площадку. Следи за топливом.", "Очки", true, 300, 400],
+  ["timing", timing, "Снайпер-таймер", "⏱️", "#fff1c2", "Скорость", "Останови стрелку в зелёной зоне. Зона сужается.", "Попадания", false, 300, 230],
+  ["cStars", cStars, "Ловец звёзд", "⭐", "#fff1c2", "Аркада", "Лови звёзды в корзину, кометы не трогай.", "Счёт", true, 300, 400],
+  ["cSnow", cSnow, "Снежинки", "❄️", "#dff3ff", "Аркада", "Лови снежинки, камни пропускай.", "Счёт", true, 300, 400],
+  ["cFish", cFish, "Рыбалка", "🐟", "#d6f5ff", "Аркада", "Лови рыбок в удочку, ботинки не трогай.", "Счёт", true, 300, 400],
+  ["cEggs", cEggs, "Ловец яиц", "🥚", "#fff6dc", "Аркада", "Лови яйца, камни пропускай.", "Счёт", true, 300, 400],
+  ["cGems", cGems, "Самоцветы", "💎", "#e0f0ff", "Аркада", "Собирай драгоценные камни, бомбы не лови.", "Счёт", true, 300, 400],
+  ["cMush", cMush, "Грибной сбор", "🍄", "#ffe3d6", "Аркада", "Собирай грибы, избегай пауков.", "Счёт", true, 300, 400],
+  ["cLeaf", cLeaf, "Осенние листья", "🍂", "#ffe9c2", "Аркада", "Лови листья на ветру.", "Счёт", true, 300, 400],
+  ["cCandy", cCandy, "Сладкий дождь", "🍬", "#ffe1ef", "Аркада", "Лови конфеты, не трогай соль.", "Счёт", true, 300, 400],
+  ["dIce", dIce, "Сосульки", "🧊", "#e3f6ff", "Уворот", "Уворачивайся от падающего льда. Сколько продержишься?", "Секунды", true, 300, 400],
+  ["dRock", dRock, "Камнепад", "🪨", "#e8e8e8", "Уворот", "Уходи от падающих камней.", "Секунды", true, 300, 400],
+  ["dBall", dBall, "Волейбол", "🏐", "#fff5d6", "Уворот", "Уворачивайся от мячей.", "Секунды", true, 300, 400],
+  ["dMeteor", dMeteor, "Метеоры", "☄️", "#e3e8ff", "Уворот", "Уклоняйся от метеоритов на ракете.", "Секунды", true, 300, 400],
+  ["dBee", dBee, "Пчёлы", "🐝", "#fff8d6", "Уворот", "Пчёлы летают поперёк поля. Не попадись.", "Секунды", true, 300, 400],
+  ["dFire", dFire, "Огненные шары", "🔥", "#ffe0d6", "Уворот", "Уворачивайся от огненных шаров.", "Секунды", true, 300, 400],
+  ["sDuck", sDuck, "Охота на уток", "🦆", "#d9f2e0", "Стрельба", "Кликай по уткам, улетевшие отнимают жизнь.", "Счёт", false, 300, 400],
+  ["sBalloon", sBalloon, "Воздушные шары", "🎈", "#e6f0ff", "Стрельба", "Лопай шарики кликом, не дай им улететь.", "Счёт", false, 300, 400],
+  ["sMonster", sMonster, "Монстры", "👾", "#e8ffe0", "Скорость", "Лови монстров, пока они не спрятались.", "Счёт", false, 300, 400],
+  ["sFrog", sFrog, "Лягушки", "🐸", "#e3f7e0", "Скорость", "Лови лягушек на кувшинках.", "Счёт", false, 300, 400],
+  ["sBottle", sBottle, "Бутылки", "🍾", "#f0e6ff", "Стрельба", "Разбей бутылки, пока не упали.", "Счёт", false, 300, 400],
+  ["sWater", sWater, "Арбузный разрез", "🍉", "#ffe0e0", "Стрельба", "Разрезай арбузы кликом.", "Счёт", false, 300, 400],
+  ["pLights", pLights, "Огни", "💡", "#fff8d6", "Головоломка", "Погаси все огни. Клик меняет клетку и соседей.", "Ходы", false, 300, 300],
+  ["pHanoi", pHanoi, "Ханойские башни", "🗼", "#efe6d6", "Головоломка", "Перенеси пирамиду на правый столбик.", "Ходы", false, 300, 300],
+  ["pFlood", pFlood, "Заливка цвета", "🎨", "#e6fff2", "Головоломка", "Закрась всё поле одним цветом за меньше ходов.", "Ходы", false, 300, 340],
+  ["pBubbles", pBubbles, "Пузыри", "🫧", "#e3f6ff", "Головоломка", "Лопай группы одинаковых пузырей.", "Очки", false, 300, 300],
+  ["pCode", pCode, "Код цветов", "🔐", "#f1efff", "Логика", "Угадай код из 4 цветов за 8 попыток.", "Попытки", false, 300, 400],
+  ["rFrog", rFrog, "Лягушка на дороге", "🐸", "#e8f8e0", "Аркада", "WASD — шаги. Перейди дорогу, не попав под машину.", "Переходы", true, 300, 350],
+  ["rLogs", rLogs, "Переправа", "🪵", "#dff3ff", "Аркада", "Прыгай по брёвнам через реку.", "Высота", true, 300, 400],
+  ["rLift", rLift, "Ракетный полёт", "🚀", "#dfe9ff", "Аркада", "Зажми W — ракета взлетает. Метеориты не трогай.", "Очки", true, 300, 400],
+  ["rPlane", rPlane, "Самолётик", "✈️", "#e3f6ff", "Аркада", "W и S — лети между облаками.", "Очки", true, 300, 400],
+  ["rTunnel", rTunnel, "Туннель", "🛸", "#f1e6ff", "Аркада", "Держись в проходе, стены сужаются.", "Дистанция", true, 300, 400],
+  ["spBasket", spBasket, "Баскетбол", "🏀", "#ffe9d6", "Спорт", "Кликни, куда бросить мяч. Попади в кольцо.", "Попадания", false, 300, 400],
+  ["spPenalty", spPenalty, "Пенальти", "⚽", "#e0f5e0", "Спорт", "Кликни в створ. Вратарь пытается угадать.", "Голы", false, 300, 400],
+  ["spBowling", spBowling, "Боулинг", "🎳", "#f5ecd6", "Спорт", "Кликай, куда катится шар. 3 броска.", "Сбито", false, 300, 400],
+  ["tPiano", tPiano, "Плитки", "🎹", "#eceff1", "Ритм", "Жми на чёрные плитки, пока они не ушли вниз.", "Очки", false, 300, 400],
+  ["tRhythm", tRhythm, "Барабаны", "🥁", "#fff0e6", "Ритм", "Жми, когда круг совпадает с кольцом.", "Очки", false, 300, 400],
+  ["cFarm", cFarm, "Курятник", "🐔", "#e8f5e9", "Кликер", "Кликай по курице, покупай кур.", "Яйца", false, 300, 400],
+  ["cRobot", cRobot, "Фабрика роботов", "🤖", "#eceff1", "Кликер", "Собирай детали и покупай роботов.", "Детали", false, 300, 400],
+  ["cPiggy", cPiggy, "Копилка", "🐷", "#fce4ec", "Кликер", "Тапай по свинке и улучшай множитель.", "Монеты", false, 300, 400],
+  ["raBoat", raBoat, "Лодка", "🚤", "#e1f5fe", "Аркада", "A и D — собирай буйки, избегай камней.", "Буйки", true, 300, 400],
+  ["raBike", raBike, "Велогонка", "🚴", "#fff3e0", "Гонки", "A и D — смена полосы, уворачивайся от 🚧.", "Километры", true, 300, 400],
+  ["pConnect4", pConnect4, "Четыре в ряд", "🔴", "#e3f2fd", "Логика", "Ставь фишки и собери 4 в ряд раньше бота.", "Очки", false, 301, 258],
+  ["pSudoku", pSudoku, "Судоку 4×4", "🧮", "#e8f5e9", "Головоломка", "Заполни 4×4 цифрами 1–4 без повторов в строках и столбцах.", "Заполнено", false, 300, 340],
+  ["aStack", aStack, "Башня", "📦", "#fff3e0", "Ловкость", "Ставь блоки точно друг на друга. Промах рушит башню.", "Высота", false, 300, 400],
+  ["aBalance", aBalance, "Баланс", "⚖️", "#e1f5fe", "Ловкость", "A и D — наклоняй доску и удержи шарик.", "Секунды", true, 300, 300],
+  ["aDarts", aDarts, "Дартс", "🎯", "#fff8e1", "Меткость", "Кликни, чтобы бросить дротик. 5 бросков.", "Очки", false, 300, 300],
+  ["aCannon", aCannon, "Пушка", "💥", "#fbe9e7", "Меткость", "Кликни, чтобы выстрелить. Сбей все мишени.", "Очки", false, 300, 300],
+  ["pPaint", pPaint, "Раскраска", "🖌️", "#fce4ec", "Творчество", "Рисуй по клеткам. Здесь нет проигрыша.", "Очки", false, 300, 340],
+  ["aJump", aJump, "Прыжки через кактусы", "🦘", "#ffe0b2", "Аркада", "Кликни, чтобы прыгнуть через кактусы.", "Метры", false, 300, 300],
+  ["aSlots", aSlots, "Автомат", "🎰", "#fff8e1", "Казино", "Крути барабан и собирай комбинации.", "Монеты", false, 300, 300],
+  ["aNumberTap", aNumberTap, "Числа по порядку", "🔢", "#e3f2fd", "Скорость", "Нажимай числа от 1 до 16 как можно быстрее.", "Числа", false, 300, 300],
+  ["aTrampoline", aTrampoline, "Батут", "🤸", "#e8f5e9", "Аркада", "A и D — двигай батут и лови звёзды.", "Звёзды", true, 300, 400],
+  ["aHoney", aHoney, "Медведь и мёд", "🍯", "#f1f8e9", "Аркада", "A и D — лови мёд, пчёлы не трогай.", "Мёд", true, 300, 400],
+  ["aRabbit", aRabbit, "Морковки", "🥕", "#fff3e0", "Скорость", "Кликай по морковкам, лису не трогай.", "Морковки", false, 300, 200],
+  ["aRoll", aRoll, "Выше или ниже", "🎲", "#fffde7", "Логика", "Угадай, выпадет ли больше или меньше. Серия растёт.", "Серия", false, 300, 300],
+  ["aHideSeek", aHideSeek, "Найди отличие", "🔎", "#fafafa", "Внимание", "Найди фрукт, который отличается от остальных.", "Найдено", false, 300, 300],
+  ["aShips", aShips, "Морской бой", "🚢", "#e1f5fe", "Логика", "Стреляй по клеткам и найди все корабли врага.", "Попаданий", false, 300, 320],
+  ["aSpace", aSpace, "Космос", "🚀", "#e8eaf6", "Аркада", "A и D — собирай звёзды, облетай астероиды.", "Звёзды", true, 300, 400],
+  ["aTrafficLight", aTrafficLight, "Светофор", "🚦", "#e8f5e9", "Аркада", "Перейди дорогу на зелёный свет и не попади под машину.", "Переходы", false, 300, 360],
+  ["aSpeedTap", aSpeedTap, "Быстрые тапы", "👆", "#f3e5f5", "Скорость", "Жми на цели, пока они не исчезли.", "Попаданий", false, 300, 400],
+  ["aPopMath", aPopMath, "Пузыри-примеры", "🫧", "#e1f5fe", "Математика", "Лопай пузырь с правильным ответом на пример.", "Верно", false, 300, 400],
+  ["aSnowball", aSnowball, "Снежки", "⛄", "#e3f2fd", "Меткость", "Кликни, чтобы бросить снежок в снеговика.", "Попаданий", false, 300, 400],
+  ["aSort", aSort, "Сортировка шариков", "🧪", "#ede7f6", "Логика", "Разложи шарики по трубкам: один цвет в каждой.", "Ходы", false, 300, 300],
+  ["aKite", aKite, "Воздушный змей", "🪁", "#bbdefb", "Аркада", "W и S — двигай змея, птицы мешают.", "Секунды", true, 300, 400],
+  ["cCupcake", cCupcake, "Ловец кексов", "🧁", "#fff0f5", "Аркада", "Лови кексы, лимоны не трогай.", "Счёт", true, 300, 400],
+  ["dSpaceRock", dSpaceRock, "Астероиды", "🌑", "#e8eaf6", "Уворот", "Уворачивайся от астероидов.", "Секунды", true, 300, 400],
+  ["cBall", cBall, "Ловец мячей", "🏀", "#fff3e0", "Аркада", "Лови мячи в корзину, камни пропускай.", "Счёт", true, 300, 400],
+  ["dBolt", dBolt, "Молнии", "⚡", "#fffde7", "Уворот", "Уворачивайся от молний.", "Секунды", true, 300, 400],
+  ["sPenguin", sPenguin, "Пингвины на льдине", "🐧", "#e0f7fa", "Скорость", "Лови пингвинов, пока они не спрятались.", "Счёт", false, 300, 400],
+  ["dCar", dCar, "Уворот от машин", "🚗", "#eceff1", "Уворот", "Уворачивайся от машин на дороге.", "Секунды", true, 300, 400],
+  ["cFlower", cFlower, "Цветочный ловец", "🌸", "#fce4ec", "Аркада", "Собирай цветы, листья-ловушки не трогай.", "Счёт", true, 300, 400],
+  ["apples", catchGame, "Ловец яблок", "🍎", "#ffd0d7", "Аркада", "Лови яблоки корзиной и обходи бомбы.", "Счёт", true, null, null]
 ];
+const games = GAMES.map(([id, fn, name, icon, bg, tag, desc, label, pad, W, H]) => ({ id, name, icon, bg, tag, desc, run: W ? L(W, H, fn) : fn, label, pad }));
+{ const ap = games.find(g => g.id === 'apples'); if (ap) { ap.kind = 'catch'; ap.cfg = APPLES; ap.run = (b, s) => catchGame(b, s, APPLES); } }
+const DL = {}; GAMES.forEach(r => { DL[r[0]] = r[9] ? [r[1].name, r[9], r[10]] : [r[1].name]; });
+const SRCS = Object.assign({ worldGame, catchGame, quizGame }, ...GAMES.map(r => ({ [r[1].name]: r[1] })));
 const installed = new Set();
 let cur = null, game = null;
 
@@ -2162,6 +2661,8 @@ function openGame(g) {
   $('ov').classList.add('on'); start();
 }
 function closeGame() { Object.keys(K).forEach(k => { K[k] = 0; }); if (game) game.stop(); game = null; $('ov').classList.remove('on'); $('ov').style.zIndex = ''; }
+const syncMute = () => { $('mute').textContent = S.on ? '🔊' : '🔇'; };
+$('mute').onclick = () => { S.on = !S.on; try { localStorage.setItem('nbz-mute', S.on ? '0' : '1'); } catch (e) {} syncMute(); S.p('click'); }; syncMute();
 
 $('back').onclick = closeGame;
 $('re').onclick = start;
@@ -2853,9 +3354,7 @@ $('clMute').onclick = () => { if (!call || !call.stream) return; const t = call.
 if (acc) boot();
 
 /* ---------- Скачивание игр: каждая игра собирается в отдельный файл ---------- */
-const DL = { snake: ['snake'], g2048: ['g2048'], mem: ['memory'], flap: ['flappy', 300, 400], pong: ['pong', 400, 300], brick: ['brick', 300, 400], dodge: ['dodge', 300, 400], shoot: ['shoot', 300, 400], coins: ['coins', 300, 300], ttt: ['ttt'], react: ['react'], mole: ['mole'], guess: ['guess'], tetris: ['tetris', 200, 400], sweeper: ['sweeper'], racer: ['racer', 300, 400], maze: ['maze', 300, 300], simon: ['simon'], jumper: ['jumper', 300, 400], clicker: ['clicker'], bj: ['bj'], rps: ['rps'], hang: ['hang'], gallery: ['gallery', 400, 300], runner: ['runner', 400, 300], slide: ['slide'], calc: ['calc'], lander: ['lander', 300, 400], timing: ['timing', 300, 160], cStars: ['cStars', 300, 400], cSnow: ['cSnow', 300, 400], cFish: ['cFish', 300, 400], cEggs: ['cEggs', 300, 400], cGems: ['cGems', 300, 400], cMush: ['cMush', 300, 400], cLeaf: ['cLeaf', 300, 400], cCandy: ['cCandy', 300, 400], dIce: ['dIce', 300, 400], dRock: ['dRock', 300, 400], dBall: ['dBall', 300, 400], dMeteor: ['dMeteor', 300, 400], dBee: ['dBee', 300, 400], dFire: ['dFire', 300, 400], sDuck: ['sDuck', 300, 400], sBalloon: ['sBalloon', 300, 400], sMonster: ['sMonster', 300, 400], sFrog: ['sFrog', 300, 400], sBottle: ['sBottle', 300, 400], sWater: ['sWater', 300, 400], pLights: ['pLights', 300, 300], pHanoi: ['pHanoi', 300, 300], pFlood: ['pFlood', 300, 340], pBubbles: ['pBubbles', 300, 300], pCode: ['pCode', 300, 400], rFrog: ['rFrog', 300, 350], rLogs: ['rLogs', 300, 400], rLift: ['rLift', 300, 400], rPlane: ['rPlane', 300, 400], rTunnel: ['rTunnel', 300, 400], spBasket: ['spBasket', 300, 400], spPenalty: ['spPenalty', 300, 400], spBowling: ['spBowling', 300, 400], tPiano: ['tPiano', 300, 400], tRhythm: ['tRhythm', 300, 400], cFarm: ['cFarm', 300, 400], cRobot: ['cRobot', 300, 400], cPiggy: ['cPiggy', 300, 400], raBoat: ['raBoat', 300, 400], raBike: ['raBike', 300, 400], pConnect4: ['pConnect4', 301, 258], pSudoku: ['pSudoku', 300, 340], aStack: ['aStack', 300, 400], aBalance: ['aBalance', 300, 300], aDarts: ['aDarts', 300, 300], aCannon: ['aCannon', 300, 300], pPaint: ['pPaint', 300, 340], aJump: ['aJump', 300, 300], aSlots: ['aSlots', 300, 300], aNumberTap: ['aNumberTap', 300, 300], aTrampoline: ['aTrampoline', 300, 400], aHoney: ['aHoney', 300, 400], aRabbit: ['aRabbit', 300, 200], aRoll: ['aRoll', 300, 300], aHideSeek: ['aHideSeek', 300, 300], aShips: ['aShips', 300, 320], aSpace: ['aSpace', 300, 400], aTrafficLight: ['aTrafficLight', 300, 360], aSpeedTap: ['aSpeedTap', 300, 400], aPopMath: ['aPopMath', 300, 400], aSnowball: ['aSnowball', 300, 400], aSort: ['aSort', 300, 300], aKite: ['aKite', 300, 400], cCupcake: ['cCupcake', 300, 400], dSpaceRock: ['dSpaceRock', 300, 400], cBall: ['cBall', 300, 400], dBolt: ['dBolt', 300, 400], sPenguin: ['sPenguin', 300, 400], dCar: ['dCar', 300, 400], cFlower: ['cFlower', 300, 400] };
 const HELP = { rnd, sh, R, C, hit, cl, boom, stepFx, loop };
-const SRCS = { worldGame, snake, g2048, memory, flappy, pong, brick, dodge, shoot, coins, ttt, react, mole, guess, tetris, sweeper, racer, maze, simon, jumper, clicker, bj, rps, hang, gallery, runner, slide, calc, lander, timing, catchGame, quizGame, cStars, cSnow, cFish, cEggs, cGems, cMush, cLeaf, cCandy, dIce, dRock, dBall, dMeteor, dBee, dFire, sDuck, sBalloon, sMonster, sFrog, sBottle, sWater, pLights, pHanoi, pFlood, pBubbles, pCode, rFrog, rLogs, rLift, rPlane, rTunnel, spBasket, spPenalty, spBowling, tPiano, tRhythm, cFarm, cRobot, cPiggy, raBoat, raBike, pConnect4, pSudoku, aStack, aBalance, aDarts, aCannon, pPaint, aJump, aSlots, aNumberTap, aTrampoline, aHoney, aRabbit, aRoll, aHideSeek, aShips, aSpace, aTrafficLight, aSpeedTap, aPopMath, aSnowball, aSort, aKite, cCupcake, dSpaceRock, cBall, dBolt, sPenguin, dCar, cFlower };
 const srcOf = (n, f) => { const t = f.toString(); return /^(async\s+)?function/.test(t) ? t : 'const ' + n + ' = ' + t + ';'; };
 function buildGame(g) {
   let fn, run; const extra = [];
@@ -2872,11 +3371,12 @@ function buildGame(g) {
     "document.querySelectorAll('#pad button').forEach(b => { const [dx, dy] = b.dataset.d.split(',').map(Number), code = dy ? (dy < 0 ? 'KeyW' : 'KeyS') : (dx < 0 ? 'KeyA' : 'KeyD'); b.onpointerdown = e => { if (!game || !game.dir) return; e.preventDefault(); if (game.held) K[code] = 1; else game.dir(dx, dy); }; b.onpointerup = b.onpointerleave = b.onpointercancel = () => { K[code] = 0; }; });",
     "let tx, ty; $('box').addEventListener('touchstart', e => { tx = e.touches[0].clientX; ty = e.touches[0].clientY; }, { passive: true });",
     "$('box').addEventListener('touchend', e => { if (!game || !game.dir || game.held) return; const dx = e.changedTouches[0].clientX - tx, dy = e.changedTouches[0].clientY - ty; if (Math.max(Math.abs(dx), Math.abs(dy)) < 24) return; if (Math.abs(dx) > Math.abs(dy)) game.dir(dx > 0 ? 1 : -1, 0); else game.dir(0, dy > 0 ? 1 : -1); }, { passive: true });",
+    "const syncMute = () => { $('mute').textContent = S.on ? '🔊' : '🔇'; }; $('mute').onclick = () => { S.on = !S.on; try { localStorage.setItem('nbz-mute', S.on ? '0' : '1'); } catch (e) {} syncMute(); S.p('click'); }; syncMute();",
     'start();'
   ];
   const js = ["const $ = id => document.getElementById(id);"].concat(
     Object.entries(HELP).map(([k, f]) => srcOf(k, f)),
-    ["const status = t => { $('st').textContent = t || ''; };", 'const OVER = ' + JSON.stringify(OVER) + ';', 'const K = {};', 'let PARTS = [], SH = 0;'].concat(extra, [srcOf(fn, SRCS[fn])]), glue).join('\n');
+    ["const status = t => { $('st').textContent = t || ''; };", 'const OVER = ' + JSON.stringify(OVER) + ', WIN = ' + JSON.stringify(WIN) + ';', 'const K = {};', 'let PARTS = [], SH = 0;', 'const { A, S } = (' + artKit.toString() + ')();'].concat(extra, [srcOf(fn, SRCS[fn])]), glue).join('\n');
   const ov = $('ov').outerHTML.replace('class="ov"', 'class="ov on"');
   return '<!doctype html>\n<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>' + g.name + ' · nobezter games</title>\n<style>' + document.querySelector('style').textContent + '#back{display:none}</style></head>\n<body>' + ov + '\n<script>' + js + '<\/script></body></html>';
 }
