@@ -17,7 +17,8 @@ canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block;background:
 button.m{background:transparent;border:1px solid rgba(200,205,210,.18);color:#aeb4b9;padding:12px 38px;min-width:240px;letter-spacing:.25em;font-size:13px;text-transform:uppercase;cursor:pointer;transition:all .25s;font-family:inherit}
 button.m:hover{border-color:rgba(230,235,240,.7);color:#fff;background:rgba(255,255,255,.05);letter-spacing:.32em}
 .tip{position:absolute;bottom:26px;font-size:11px;letter-spacing:.2em;color:#555b61;text-transform:uppercase;padding:0 20px}
-#intro{background:#000;pointer-events:auto;cursor:pointer}
+#intro{background:#000;cursor:pointer}
+.layer.off,#intro.off,#pause.off,#title.off{pointer-events:none!important}
 #intro p{font-size:clamp(18px,2.6vw,30px);font-weight:300;letter-spacing:.06em;color:#b9bec2;max-width:900px;padding:0 24px;line-height:1.5;opacity:0;transition:opacity 1.4s}
 #intro p.on{opacity:1}
 #intro .skip{position:absolute;bottom:26px;font-size:11px;letter-spacing:.2em;color:#4a5055;text-transform:uppercase}
@@ -306,7 +307,7 @@ function startIntro() {
   const next = () => { if (G.mode !== 'intro') return; if (introIdx >= TX[lang].intro.length) { endIntro(); return; } p.textContent = TX[lang].intro[introIdx++]; p.classList.add('on'); introTimer = setTimeout(() => { p.classList.remove('on'); introTimer = setTimeout(next, 1500); }, 3300); };
   clearTimeout(introTimer); setTimeout(next, 900);
 }
-function endIntro() { clearTimeout(introTimer); $('intro').classList.add('off'); setMode('play'); lockPointer(); hintEl.classList.add('on'); setTimeout(() => hintEl.classList.remove('on'), 7000); setTimeout(() => G.mode === 'play' && say('s1', 3600), 2800); }
+function endIntro() { clearTimeout(introTimer); $('intro').classList.add('off'); setMode('play'); lockPointer(); setTimeout(() => { if (G.mode === 'play' && !G.locked) $('pause').classList.remove('off'); }, 700); hintEl.classList.add('on'); setTimeout(() => hintEl.classList.remove('on'), 7000); setTimeout(() => G.mode === 'play' && say('s1', 3600), 2800); }
 $('intro').addEventListener('click', () => { if (G.mode === 'intro') { introIdx = 99; endIntro(); } });
 
 /* ---------------- Цикл ---------------- */
